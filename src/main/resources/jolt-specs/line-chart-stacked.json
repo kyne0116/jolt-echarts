@@ -1,0 +1,59 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "chartMeta": {
+        "title": "title.text"
+      },
+      "categories": "xAxis.data",
+      "series": {
+        "*": {
+          "values": "series[&1].data",
+          "seriesName": "series[&1].name",
+          "seriesType": "series[&1].type",
+          "stackGroup": "series[&1].stack"
+        }
+      }
+    }
+  },
+  {
+    "operation": "shift",
+    "spec": {
+      "*": "&",
+      "series": {
+        "*": {
+          "name": "legend.data[&1]"
+        }
+      }
+    }
+  },
+  {
+    "operation": "default",
+    "spec": {
+      "tooltip": {
+        "trigger": "axis"
+      },
+      "legend": {
+        "show": true
+      },
+      "grid": {
+        "left": "3%",
+        "right": "4%",
+        "bottom": "3%",
+        "containLabel": true
+      },
+      "toolbox": {
+        "feature": {
+          "saveAsImage": {}
+        }
+      },
+      "xAxis": {
+        "type": "category",
+        "boundaryGap": false
+      },
+      "yAxis": {
+        "type": "value"
+      }
+    }
+  }
+]

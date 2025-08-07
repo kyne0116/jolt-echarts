@@ -1,0 +1,105 @@
+{
+  "account": {
+    "status": "active",
+    "timestamps": {
+      "createdAt": "2020-03-01T09:00:00Z",
+      "lastLogin": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    },
+    "twoFactorEnabled": false,
+    "type": "premium",
+    "verified": true
+  },
+  "employment": {
+    "company": {
+      "department": "研发部",
+      "name": "科技有限公司"
+    },
+    "compensation": {
+      "salary": 25000
+    },
+    "hireDate": "2020-03-15",
+    "position": "高级工程师"
+  },
+  "preferences": {
+    "hobbies": [
+      "reading",
+      "gaming",
+      "music"
+    ],
+    "language": "zh-CN",
+    "theme": "light",
+    "timezone": "Asia/Shanghai"
+  },
+  "profile": {
+    "address": {
+      "city": "北京市",
+      "country": "中国",
+      "district": "朝阳区",
+      "postalCode": "100020",
+      "province": "北京市",
+      "street": "建国路88号"
+    },
+    "contactInfo": {
+      "email": "zhangsan@example.com",
+      "phone": "13800138000",
+      "preferredContact": "email"
+    },
+    "personalInfo": {
+      "age": 28,
+      "gender": "M",
+      "name": {
+        "displayName": "",
+        "firstName": "张",
+        "lastName": "三"
+      }
+    },
+    "userId": "12345"
+  },
+  "settings": {
+    "notifications": {
+      "email": true,
+      "push": true,
+      "sms": false
+    },
+    "privacy": {
+      "activityTracking": true,
+      "contactVisible": true,
+      "profilePublic": false
+    }
+  },
+  "skills": {
+    "languages": [
+      {
+        "name": "Chinese",
+        "proficiency": "fluent"
+      },
+      {
+        "name": "English",
+        "proficiency": "fluent"
+      }
+    ],
+    "technical": {
+      "java": {
+        "category": "Programming Language",
+        "level": 5,
+        "name": "Java"
+      },
+      "javascript": {
+        "category": "Programming Language",
+        "level": 3,
+        "name": "JavaScript"
+      },
+      "python": {
+        "category": "Programming Language",
+        "level": 4,
+        "name": "Python"
+      },
+      "sql": {
+        "category": "Database",
+        "level": 4,
+        "name": "SQL"
+      }
+    }
+  }
+}

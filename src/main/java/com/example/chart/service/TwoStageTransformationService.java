@@ -1,0 +1,275 @@
+package com.example.chart.service;
+
+import com.bazaarvoice.jolt.Chainr;
+import com.bazaarvoice.jolt.JsonUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/**
+ * 两阶段转换服务
+ * 实现从通用JSON模板到最终ECharts配置的两阶段转换流程
+ */
+@Service
+public class TwoStageTransformationService {
+
+    @Autowired
+    private PlaceholderManager placeholderManager;
+    
+    @Autowired
+    private MappingRelationshipService mappingService;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 转换结果类
+     */
+    public static class TransformationResult {
+        private boolean success;
+        private String message;
+        private Object result;
+        private Set<String> placeholders;
+        private Map<String, Object> queryResults;
+
+        public TransformationResult(boolean success, String message, Object result) {
+            this.success = success;
+            this.message = message;
+            this.result = result;
+        }
+
+        // Getters and Setters
+        public boolean isSuccess() { return success; }
+        public void setSuccess(boolean success) { this.success = success; }
+        
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+        
+        public Object getResult() { return result; }
+        public void setResult(Object result) { this.result = result; }
+        
+        public Set<String> getPlaceholders() { return placeholders; }
+        public void setPlaceholders(Set<String> placeholders) { this.placeholders = placeholders; }
+        
+        public Map<String, Object> getQueryResults() { return queryResults; }
+        public void setQueryResults(Map<String, Object> queryResults) { this.queryResults = queryResults; }
+    }
+
+    /**
+     * 完整的两阶段转换流程
+     */
+    public TransformationResult executeFullTransformation(String chartId, Map<String, Object> universalTemplate) {
+        try {
+            System.out.println("=== 开始两阶段转换流程 ===");
+            
+            // 第一阶段：结构转换（保持占位符）
+            System.out.println("第一阶段：执行结构转换...");
+            TransformationResult stage1Result = executeStage1Transformation(universalTemplate);
+            
+            if (!stage1Result.isSuccess()) {
+                return stage1Result;
+            }
+            
+            // 第二阶段：数据回填（替换占位符）
+            System.out.println("第二阶段：执行数据回填...");
+            TransformationResult stage2Result = executeStage2Transformation(chartId, stage1Result.getResult());
+            
+            if (stage2Result.isSuccess()) {
+                System.out.println("✅ 两阶段转换完成");
+            }
+            
+            return stage2Result;
+            
+        } catch (Exception e) {
+            System.err.println("两阶段转换失败: " + e.getMessage());
+            return new TransformationResult(false, "转换失败: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 第一阶段：结构转换（保持占位符）
+     */
+    public TransformationResult executeStage1Transformation(Map<String, Object> universalTemplate) {
+        try {
+            // 提取模板中的占位符
+            Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(universalTemplate);
+            System.out.println("发现占位符: " + placeholders);
+            
+            // 使用Jolt进行结构转换
+            Map<String, Object> structuralResult = transformStructureWithJolt(universalTemplate);
+            
+            // 验证转换后占位符是否保持
+            Set<String> afterPlaceholders = placeholderManager.extractPlaceholdersFromJson(structuralResult);
+            System.out.println("转换后占位符: " + afterPlaceholders);
+            
+            TransformationResult result = new TransformationResult(true, "第一阶段转换成功", structuralResult);
+            result.setPlaceholders(afterPlaceholders);
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.err.println("第一阶段转换失败: " + e.getMessage());
+            return new TransformationResult(false, "第一阶段转换失败: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 第二阶段：数据回填（替换占位符）
+     */
+    public TransformationResult executeStage2Transformation(String chartId, Object echartsTemplate) {
+        try {
+            // 提取ECharts模板中的占位符
+            Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(echartsTemplate);
+            System.out.println("需要替换的占位符: " + placeholders);
+            
+            // 验证映射关系
+            List<String> missingMappings = mappingService.validateMappings(chartId, placeholders);
+            if (!missingMappings.isEmpty()) {
+                return new TransformationResult(false, "缺少映射关系: " + missingMappings, null);
+            }
+            
+            // 模拟数据库查询
+            Map<String, Object> queryResults = mappingService.simulateDataQuery(chartId, placeholders);
+            System.out.println("查询结果: " + queryResults.keySet());
+            
+            // 替换占位符
+            Object finalResult = placeholderManager.replacePlaceholdersInJson(echartsTemplate, queryResults);
+            
+            TransformationResult result = new TransformationResult(true, "第二阶段转换成功", finalResult);
+            result.setQueryResults(queryResults);
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.err.println("第二阶段转换失败: " + e.getMessage());
+            return new TransformationResult(false, "第二阶段转换失败: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 使用Jolt进行结构转换（保持占位符）
+     */
+    private Map<String, Object> transformStructureWithJolt(Map<String, Object> universalTemplate) throws IOException {
+        // 加载专门的占位符保持Jolt规范
+        ClassPathResource resource = new ClassPathResource("jolt-specs/line-chart-placeholder.json");
+        String joltSpecContent = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        
+        // 解析Jolt规范
+        List<Object> joltSpec = JsonUtils.jsonToList(joltSpecContent);
+        Chainr chainr = Chainr.fromSpec(joltSpec);
+        
+        // 执行Jolt转换
+        Object transformedObj = chainr.transform(universalTemplate);
+        
+        return (Map<String, Object>) transformedObj;
+    }
+
+    /**
+     * 创建带占位符的通用JSON模板
+     */
+    public Map<String, Object> createUniversalTemplateWithPlaceholders() {
+        Map<String, Object> template = new HashMap<>();
+        
+        // 图表元数据
+        Map<String, Object> chartMeta = new HashMap<>();
+        chartMeta.put("chartId", "stacked_line_chart");
+        chartMeta.put("chartType", "${chart_type}");
+        chartMeta.put("title", "${chart_title}");
+        chartMeta.put("dataSource", "marketing_db");
+        template.put("chartMeta", chartMeta);
+        
+        // 类别数据
+        template.put("categories", "${category_field}");
+        
+        // 系列数据
+        List<Map<String, Object>> series = new ArrayList<>();
+        
+        // 创建5个系列的模板
+        for (int i = 1; i <= 5; i++) {
+            Map<String, Object> seriesItem = new HashMap<>();
+            seriesItem.put("seriesId", "series_" + i);
+            seriesItem.put("seriesName", "${series_name_" + i + "}");
+            seriesItem.put("seriesType", "${chart_type}");
+            seriesItem.put("stackGroup", "${stack_group}");
+            seriesItem.put("values", "${series_data_" + i + "}");
+            series.add(seriesItem);
+        }
+        
+        template.put("series", series);
+        
+        // 样式配置
+        Map<String, Object> styleConfig = new HashMap<>();
+        styleConfig.put("showLegend", true);
+        styleConfig.put("showTooltip", true);
+        styleConfig.put("showGrid", true);
+        template.put("styleConfig", styleConfig);
+        
+        return template;
+    }
+
+    /**
+     * 验证完整转换流程
+     */
+    public TransformationResult validateFullProcess(String chartId) {
+        try {
+            System.out.println("=== 验证完整转换流程 ===");
+            
+            // 初始化映射关系
+            mappingService.initializeSampleMappings();
+            
+            // 创建带占位符的模板
+            Map<String, Object> template = createUniversalTemplateWithPlaceholders();
+            System.out.println("创建模板完成，包含占位符: " + 
+                placeholderManager.extractPlaceholdersFromJson(template));
+            
+            // 执行完整转换
+            TransformationResult result = executeFullTransformation(chartId, template);
+            
+            if (result.isSuccess()) {
+                // 验证最终结果
+                Set<String> remainingPlaceholders = placeholderManager.extractPlaceholdersFromJson(result.getResult());
+                if (remainingPlaceholders.isEmpty()) {
+                    result.setMessage("✅ 完整转换验证成功，所有占位符已替换");
+                } else {
+                    result.setMessage("⚠️ 转换完成但仍有未替换的占位符: " + remainingPlaceholders);
+                }
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.err.println("验证过程失败: " + e.getMessage());
+            return new TransformationResult(false, "验证失败: " + e.getMessage(), null);
+        }
+    }
+
+    /**
+     * 获取转换流程的详细信息
+     */
+    public Map<String, Object> getTransformationInfo(String chartId) {
+        Map<String, Object> info = new HashMap<>();
+        
+        // 模板信息
+        Map<String, Object> template = createUniversalTemplateWithPlaceholders();
+        Set<String> templatePlaceholders = placeholderManager.extractPlaceholdersFromJson(template);
+        
+        info.put("templatePlaceholders", templatePlaceholders);
+        info.put("templatePlaceholderCount", templatePlaceholders.size());
+        
+        // 映射关系信息
+        Map<String, Object> mappings = mappingService.getChartMappings(chartId);
+        info.put("availableMappings", mappings.keySet());
+        info.put("mappingCount", mappings.size());
+        
+        // 验证信息
+        List<String> missingMappings = mappingService.validateMappings(chartId, templatePlaceholders);
+        info.put("missingMappings", missingMappings);
+        info.put("mappingComplete", missingMappings.isEmpty());
+        
+        return info;
+    }
+}

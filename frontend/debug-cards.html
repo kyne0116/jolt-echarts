@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四个卡片布局测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .cards-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid #1890ff;
+            min-height: 300px;
+        }
+        
+        .card h3 {
+            margin-bottom: 10px;
+            color: #1890ff;
+        }
+        
+        /* 响应式布局 */
+        @media (min-width: 1200px) {
+            .card {
+                flex: 1;
+                min-width: calc(25% - 12px);
+            }
+        }
+        
+        @media (max-width: 1199px) and (min-width: 768px) {
+            .card {
+                flex: 1;
+                min-width: calc(50% - 8px);
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .card {
+                flex: 1;
+                min-width: 100%;
+            }
+        }
+        
+        .debug-info {
+            background: #e6f7ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #1890ff;
+        }
+        
+        .screen-info {
+            font-weight: bold;
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>四个卡片布局测试</h1>
+        
+        <div class="debug-info">
+            <div class="screen-info">
+                当前屏幕宽度: <span id="width">0</span>px
+                | 断点: <span id="breakpoint">unknown</span>
+                | 预期布局: <span id="layout">unknown</span>
+            </div>
+        </div>
+        
+        <div class="cards-row">
+            <div class="card">
+                <h3>卡片1 - 通用JSON模板</h3>
+                <p>这是第一个卡片，包含带占位符的通用JSON模板。</p>
+                <ul>
+                    <li>包含变量占位符</li>
+                    <li>标准化数据结构</li>
+                    <li>支持多种图表类型</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h3>卡片2 - 第一阶段输出</h3>
+                <p>这是第二个卡片，显示第一阶段转换的结果。</p>
+                <ul>
+                    <li>ECharts结构化JSON</li>
+                    <li>保持占位符不变</li>
+                    <li>结构转换完成</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h3>卡片3 - 第二阶段输出</h3>
+                <p>这是第三个卡片，显示第二阶段转换的结果。</p>
+                <ul>
+                    <li>最终ECharts配置</li>
+                    <li>占位符已替换</li>
+                    <li>可直接渲染</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h3>卡片4 - 图表预览</h3>
+                <p>这是第四个卡片，显示最终的图表预览。</p>
+                <ul>
+                    <li>可视化结果</li>
+                    <li>交互式图表</li>
+                    <li>支持下载</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="debug-info">
+            <h3>布局说明：</h3>
+            <ul>
+                <li><strong>超大屏幕 (≥1200px):</strong> 四个卡片并排显示 (25% 每个)</li>
+                <li><strong>中大屏幕 (768px-1199px):</strong> 两行两列显示 (50% 每个)</li>
+                <li><strong>小屏幕 (<768px):</strong> 垂直堆叠显示 (100% 每个)</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function updateScreenInfo() {
+            const width = window.innerWidth;
+            const widthSpan = document.getElementById('width');
+            const breakpointSpan = document.getElementById('breakpoint');
+            const layoutSpan = document.getElementById('layout');
+            
+            widthSpan.textContent = width;
+            
+            if (width >= 1200) {
+                breakpointSpan.textContent = 'xl (≥1200px)';
+                layoutSpan.textContent = '四个卡片并排 (25% 每个)';
+            } else if (width >= 768) {
+                breakpointSpan.textContent = 'md-lg (768px-1199px)';
+                layoutSpan.textContent = '两行两列 (50% 每个)';
+            } else {
+                breakpointSpan.textContent = 'xs-sm (<768px)';
+                layoutSpan.textContent = '垂直堆叠 (100% 每个)';
+            }
+        }
+        
+        // 初始化和监听窗口大小变化
+        updateScreenInfo();
+        window.addEventListener('resize', updateScreenInfo);
+    </script>
+</body>
+</html>

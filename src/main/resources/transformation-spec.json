@@ -1,0 +1,98 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "user_id": "profile.userId",
+      "first_name": "profile.personalInfo.name.firstName",
+      "last_name": "profile.personalInfo.name.lastName",
+      "age": "profile.personalInfo.age",
+      "gender": "profile.personalInfo.gender",
+
+      "email": "profile.contactInfo.email",
+      "phone": "profile.contactInfo.phone",
+
+      "country": "profile.address.country",
+      "province": "profile.address.province",
+      "city": "profile.address.city",
+      "district": "profile.address.district",
+      "street": "profile.address.street",
+      "postal_code": "profile.address.postalCode",
+
+      "company_name": "employment.company.name",
+      "department": "employment.company.department",
+      "position": "employment.position",
+      "salary": "employment.compensation.salary",
+      "hire_date": "employment.hireDate",
+
+      "skill_java": "skills.technical.java.level",
+      "skill_python": "skills.technical.python.level",
+      "skill_javascript": "skills.technical.javascript.level",
+      "skill_sql": "skills.technical.sql.level",
+
+      "notification_email": "settings.notifications.email",
+      "notification_sms": "settings.notifications.sms",
+      "notification_push": "settings.notifications.push",
+
+      "privacy_profile_public": "settings.privacy.profilePublic",
+      "privacy_contact_visible": "settings.privacy.contactVisible",
+      "privacy_activity_tracking": "settings.privacy.activityTracking",
+
+      "account_status": "account.status",
+      "account_type": "account.type",
+      "last_login": "account.timestamps.lastLogin",
+      "created_at": "account.timestamps.createdAt",
+      "updated_at": "account.timestamps.updatedAt"
+    }
+  },
+  {
+    "operation": "default",
+    "spec": {
+      "skills": {
+        "technical": {
+          "java": {
+            "name": "Java",
+            "category": "Programming Language"
+          },
+          "python": {
+            "name": "Python",
+            "category": "Programming Language"
+          },
+          "javascript": {
+            "name": "JavaScript",
+            "category": "Programming Language"
+          },
+          "sql": {
+            "name": "SQL",
+            "category": "Database"
+          }
+        }
+      },
+
+      "preferences": {
+        "theme": "light",
+        "language": "zh-CN",
+        "timezone": "Asia/Shanghai"
+      },
+
+      "account": {
+        "verified": true,
+        "twoFactorEnabled": false
+      },
+
+      "profile": {
+        "contactInfo": {
+          "preferredContact": "email"
+        },
+        "personalInfo": {
+          "name": {
+            "displayName": ""
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "operation": "sort"
+  }
+]
