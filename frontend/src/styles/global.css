@@ -251,11 +251,6 @@ html, body {
   text-overflow: ellipsis;
 }
 
-/* 确保下拉框不被裁剪 */
-.ant-select-dropdown-placement-bottomLeft,
-.ant-select-dropdown-placement-bottomRight {
-  top: 100% !important;
-}
 
 /* 移动端下拉框优化 */
 @media (max-width: 768px) {

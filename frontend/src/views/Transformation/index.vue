@@ -22,6 +22,8 @@
             size="small"
             @change="handleChartTypeChange"
             placeholder="请选择图表类型"
+            :get-popup-container="(triggerNode: any) => triggerNode?.parentNode"
+            :dropdown-match-select-width="false"
           >
             <a-select-option value="stacked_line_chart">堆叠折线图</a-select-option>
             <a-select-option value="basic_bar_chart">基础柱状图</a-select-option>
@@ -388,8 +390,12 @@ const getStepStatus = (step: any) => {
   }
 }
 
-const handleChartTypeChange = () => {
-  transformationStore.resetSteps()
+const handleChartTypeChange = (value: string) => {
+  // 同步到store并重置步骤
+  transformationStore.setChartId(value)
+  // 立即加载对应图表的通用模板，给用户即时反馈
+  loadTemplateOnly()
+  message.success(`已切换到：${value === 'stacked_line_chart' ? '堆叠折线图' : value === 'basic_bar_chart' ? '基础柱状图' : '饼图'}`)
 }
 
 const executeFullTransformation = async () => {
