@@ -1,5 +1,12 @@
 <template>
   <div class="transformation-demo">
+    <!-- 版本信息 -->
+    <div class="version-info">
+      v{{ currentVersion }}
+    </div>
+
+
+
     <!-- 紧凑的页面标题和工具栏 -->
     <div class="page-header-compact">
       <div class="header-left">
@@ -14,11 +21,14 @@
             style="width: 160px"
             size="small"
             @change="handleChartTypeChange"
+            placeholder="请选择图表类型"
           >
             <a-select-option value="stacked_line_chart">堆叠折线图</a-select-option>
             <a-select-option value="basic_bar_chart">基础柱状图</a-select-option>
             <a-select-option value="pie_chart">饼图</a-select-option>
           </a-select>
+
+
 
           <a-button
             type="primary"
@@ -323,6 +333,9 @@ import 'vue-json-pretty/lib/styles.css'
 
 const transformationStore = useTransformationStore()
 
+// 版本信息
+const currentVersion = ref(new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14))
+
 // 响应式状态
 const chartContainer = ref<HTMLElement>()
 let chartInstance: echarts.ECharts | null = null
@@ -551,14 +564,22 @@ const createMockUniversalTemplate = (chartId: string) => {
         seriesName: "${series_name_2}",
         seriesType: "${chart_type}",
         values: "${series_data_2}",
+        objectData: "",
+        matrixData: "",
         stackGroup: "${stack_group}",
+        radius: "",
+        center: "",
         seriesId: "series_2"
       },
       {
         seriesName: "${series_name_3}",
         seriesType: "${chart_type}",
         values: "${series_data_3}",
+        objectData: "",
+        matrixData: "",
         stackGroup: "${stack_group}",
+        radius: "",
+        center: "",
         seriesId: "series_3"
       }
     )
@@ -763,7 +784,7 @@ const initChart = () => {
 
   } catch (error) {
     console.error('❌ 图表初始化失败:', error)
-    message.error(`图表初始化失败: ${error.message}`)
+    message.error(`图表初始化失败: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
@@ -794,7 +815,7 @@ const updateChart = () => {
     console.log('图表渲染成功')
   } catch (error) {
     console.error('图表渲染失败:', error)
-    message.error(`图表渲染失败: ${error.message}`)
+    message.error(`图表渲染失败: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
@@ -1005,6 +1026,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.version-info {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  z-index: 1000;
+}
+
+
+
 .transformation-demo {
   padding: 16px;
   max-width: 100%;

@@ -1,7 +1,6 @@
-import axios from "axios";
-import type { AxiosInstance } from "axios";
 import { message } from "ant-design-vue";
-import type { ApiResponse } from "@/types";
+import type { AxiosInstance } from "axios";
+import axios from "axios";
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
@@ -117,8 +116,8 @@ export const twoStageApi = {
     request.get(`/chart/two-stage/template/${chartId}`),
 
   // 第一阶段转换
-  stage1Transform: (template: any) =>
-    request.post("/chart/two-stage/stage1", template),
+  stage1Transform: (chartId: string, template: any) =>
+    request.post(`/chart/two-stage/stage1/${chartId}`, template),
 
   // 第二阶段转换
   stage2Transform: (chartId: string, echartsTemplate: any) =>

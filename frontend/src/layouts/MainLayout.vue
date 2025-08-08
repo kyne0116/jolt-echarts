@@ -27,49 +27,49 @@
           </template>
           仪表板
         </a-menu-item>
-        
+
         <a-menu-item key="/chart-config">
           <template #icon>
             <BarChartOutlined />
           </template>
           图表配置管理
         </a-menu-item>
-        
+
         <a-menu-item key="/jolt-spec">
           <template #icon>
             <CodeOutlined />
           </template>
           Jolt规范管理
         </a-menu-item>
-        
+
         <a-menu-item key="/mapping">
           <template #icon>
             <LinkOutlined />
           </template>
           占位符映射管理
         </a-menu-item>
-        
+
         <a-menu-item key="/template">
           <template #icon>
             <FileTextOutlined />
           </template>
           通用JSON模板
         </a-menu-item>
-        
+
         <a-menu-item key="/transformation">
           <template #icon>
             <SwapOutlined />
           </template>
           两阶段转换演示
         </a-menu-item>
-        
+
         <a-menu-item key="/virtual-database">
           <template #icon>
             <DatabaseOutlined />
           </template>
           虚拟数据库管理
         </a-menu-item>
-        
+
         <a-menu-item key="/system">
           <template #icon>
             <SettingOutlined />
@@ -146,26 +146,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useSystemStore } from '@/stores'
 import {
-  DashboardOutlined,
-  BarChartOutlined,
-  CodeOutlined,
-  LinkOutlined,
-  FileTextOutlined,
-  SwapOutlined,
-  DatabaseOutlined,
-  SettingOutlined,
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
-  HomeOutlined,
-  ReloadOutlined,
-  FullscreenOutlined,
-  FullscreenExitOutlined
+    BarChartOutlined,
+    CodeOutlined,
+    DashboardOutlined,
+    DatabaseOutlined,
+    FileTextOutlined,
+    FullscreenExitOutlined,
+    FullscreenOutlined,
+    HomeOutlined,
+    LinkOutlined,
+    MenuFoldOutlined,
+    MenuUnfoldOutlined,
+    ReloadOutlined,
+    SettingOutlined,
+    SwapOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()

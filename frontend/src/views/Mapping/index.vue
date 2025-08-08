@@ -1,133 +1,62 @@
 <template>
-  <div class="mapping-management">
-    <!-- 页面标题 -->
+  <div class="mapping-container">
     <div class="page-header">
-      <h1>占位符映射管理</h1>
-      <p>管理占位符与虚拟数据库表列的映射关系</p>
+      <h2>占位符映射管理</h2>
+      <p class="page-description">管理图表模板中占位符与数据源的映射关系</p>
     </div>
-    
-    <!-- 工具栏 -->
-    <a-card class="toolbar" title="映射关系概览">
+
+    <a-card title="映射关系管理" class="mapping-card">
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateModal">
+          <a-select
+            v-model:value="selectedChartType"
+            style="width: 160px"
+            placeholder="选择图表类型"
+            @change="loadMappings"
+          >
+            <a-select-option value="stacked_line_chart">堆叠折线图</a-select-option>
+            <a-select-option value="basic_bar_chart">基础柱状图</a-select-option>
+            <a-select-option value="pie_chart">饼图</a-select-option>
+          </a-select>
+          <a-button type="primary" @click="showAddModal" :disabled="!selectedChartType">
             <PlusOutlined />
             新增映射
           </a-button>
-          <a-button @click="refreshMappings">
-            <ReloadOutlined />
-            刷新
-          </a-button>
-          <a-button @click="exportMappings">
-            <ExportOutlined />
-            导出
-          </a-button>
         </a-space>
       </template>
-      
-      <div class="toolbar-content">
-        <a-row :gutter="16">
-          <a-col :span="6">
-            <a-statistic title="图表类型" :value="chartTypes.length" />
-          </a-col>
-          <a-col :span="6">
-            <a-statistic title="总映射数" :value="totalMappings" />
-          </a-col>
-          <a-col :span="6">
-            <a-statistic title="占位符数" :value="totalPlaceholders" />
-          </a-col>
-          <a-col :span="6">
-            <a-statistic title="数据表数" :value="uniqueTables.length" />
-          </a-col>
-        </a-row>
-      </div>
-    </a-card>
-    
-    <!-- 图表类型选择 -->
-    <a-card class="chart-selector" title="选择图表类型">
-      <a-radio-group
-        v-model:value="selectedChartId"
-        button-style="solid"
-        size="large"
-        @change="handleChartChange"
-      >
-        <a-radio-button
-          v-for="chart in chartTypes"
-          :key="chart.id"
-          :value="chart.id"
-        >
-          <component :is="chart.icon" />
-          {{ chart.name }}
-        </a-radio-button>
-      </a-radio-group>
-    </a-card>
-    
-    <!-- 映射关系表格 -->
-    <a-card class="mapping-table" :title="`${currentChartName} - 映射关系`">
-      <template #extra>
-        <a-space>
-          <a-input-search
-            v-model:value="searchKeyword"
-            placeholder="搜索占位符或表名"
-            style="width: 200px"
-            @search="handleSearch"
-          />
-          <a-button
-            type="primary"
-            ghost
-            @click="showBatchEditModal"
-            :disabled="selectedRowKeys.length === 0"
-          >
-            批量编辑
-          </a-button>
-        </a-space>
-      </template>
-      
+
       <a-table
-        :columns="tableColumns"
-        :data-source="filteredMappings"
-        :row-selection="rowSelection"
+        :columns="columns"
+        :data-source="mappingList"
         :loading="loading"
-        :pagination="paginationConfig"
-        row-key="placeholderName"
-        size="middle"
+        row-key="id"
+        :pagination="pagination"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'placeholderName'">
-            <a-tag color="blue" class="placeholder-tag">
-              {{ record.placeholderName }}
+          <template v-if="column.key === 'placeholder'">
+            <a-tag color="blue">${{ record.placeholder }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'dataSource'">
+            <a-tag color="green">{{ record.tableName }}.{{ record.columnName }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'status'">
+            <a-tag :color="record.status === 'active' ? 'green' : 'red'">
+              {{ record.status === 'active' ? '启用' : '禁用' }}
             </a-tag>
           </template>
-          
-          <template v-else-if="column.key === 'dataType'">
-            <a-tag :color="getDataTypeColor(record.dataType)">
-              {{ record.dataType }}
-            </a-tag>
-          </template>
-          
-          <template v-else-if="column.key === 'queryConditions'">
-            <a-tooltip v-if="record.queryConditions" :title="JSON.stringify(record.queryConditions, null, 2)">
-              <a-tag color="orange">有条件</a-tag>
-            </a-tooltip>
-            <span v-else class="text-muted">无</span>
-          </template>
-          
-          <template v-else-if="column.key === 'actions'">
+          <template v-else-if="column.key === 'action'">
             <a-space>
               <a-button type="link" size="small" @click="editMapping(record)">
-                <EditOutlined />
                 编辑
               </a-button>
               <a-button type="link" size="small" @click="testMapping(record)">
-                <PlayCircleOutlined />
                 测试
               </a-button>
               <a-popconfirm
-                title="确定要删除这个映射关系吗？"
-                @confirm="deleteMapping(record)"
+                title="确定要删除这个映射吗？"
+                @confirm="deleteMapping(record.id)"
               >
                 <a-button type="link" size="small" danger>
-                  <DeleteOutlined />
                   删除
                 </a-button>
               </a-popconfirm>
@@ -136,464 +65,357 @@
         </template>
       </a-table>
     </a-card>
-    
-    <!-- 映射关系可视化 -->
-    <a-card class="mapping-visualization" title="映射关系可视化">
-      <div ref="visualizationContainer" class="visualization-container">
-        <!-- 这里可以添加映射关系的可视化图表 -->
-        <a-empty description="映射关系可视化图表（待实现）" />
-      </div>
-    </a-card>
-    
-    <!-- 创建/编辑映射模态框 -->
+
+    <!-- 添加/编辑映射模态框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="modalTitle"
+      :title="isEdit ? '编辑映射' : '新增映射'"
       width="600px"
-      @ok="handleModalOk"
-      @cancel="handleModalCancel"
+      @ok="handleSubmit"
+      @cancel="handleCancel"
     >
       <a-form
         ref="formRef"
         :model="formData"
-        :rules="formRules"
+        :rules="rules"
         layout="vertical"
       >
-        <a-form-item label="占位符名称" name="placeholderName">
-          <a-input
-            v-model:value="formData.placeholderName"
-            placeholder="例如: ${chart_title}"
-            :disabled="isEditMode"
+        <a-form-item label="占位符名称" name="placeholder">
+          <a-input 
+            v-model:value="formData.placeholder" 
+            placeholder="例如: chart_title, series_data_1"
+            addon-before="${"
+            addon-after="}"
           />
         </a-form-item>
         
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="数据表名" name="tableName">
-              <a-select
-                v-model:value="formData.tableName"
-                placeholder="选择数据表"
-                show-search
-                :filter-option="filterOption"
-                :get-popup-container="(triggerNode) => triggerNode.parentNode"
+              <a-select 
+                v-model:value="formData.tableName" 
+                placeholder="请选择数据表"
+                @change="loadColumns"
               >
-                <a-select-option
-                  v-for="table in availableTables"
-                  :key="table"
-                  :value="table"
+                <a-select-option value="sales_data">销售数据表</a-select-option>
+                <a-select-option value="user_stats">用户统计表</a-select-option>
+                <a-select-option value="product_info">产品信息表</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="字段名" name="columnName">
+              <a-select 
+                v-model:value="formData.columnName" 
+                placeholder="请选择字段"
+                :disabled="!formData.tableName"
+              >
+                <a-select-option 
+                  v-for="column in availableColumns" 
+                  :key="column.value" 
+                  :value="column.value"
                 >
-                  {{ table }}
+                  {{ column.label }}
                 </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
-          
-          <a-col :span="12">
-            <a-form-item label="列名" name="columnName">
-              <a-input
-                v-model:value="formData.columnName"
-                placeholder="例如: title"
-              />
-            </a-form-item>
-          </a-col>
         </a-row>
         
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="数据类型" name="dataType">
-              <a-select
-                v-model:value="formData.dataType"
-                placeholder="选择数据类型"
-                :get-popup-container="(triggerNode) => triggerNode.parentNode"
-              >
-                <a-select-option value="string">字符串</a-select-option>
-                <a-select-option value="number">数字</a-select-option>
-                <a-select-option value="array">数组</a-select-option>
-                <a-select-option value="object">对象</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          
-          <a-col :span="12">
-            <a-form-item label="聚合类型" name="aggregationType">
-              <a-select
-                v-model:value="formData.aggregationType"
-                placeholder="选择聚合类型（可选）"
-                allow-clear
-              >
-                <a-select-option value="SUM">求和</a-select-option>
-                <a-select-option value="AVG">平均值</a-select-option>
-                <a-select-option value="COUNT">计数</a-select-option>
-                <a-select-option value="MAX">最大值</a-select-option>
-                <a-select-option value="MIN">最小值</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
+        <a-form-item label="数据类型" name="dataType">
+          <a-select v-model:value="formData.dataType" placeholder="请选择数据类型">
+            <a-select-option value="string">字符串</a-select-option>
+            <a-select-option value="number">数字</a-select-option>
+            <a-select-option value="array">数组</a-select-option>
+            <a-select-option value="object">对象</a-select-option>
+          </a-select>
+        </a-form-item>
         
-        <a-form-item label="查询条件" name="queryConditions">
-          <a-textarea
-            v-model:value="queryConditionsText"
-            placeholder="JSON格式的查询条件（可选）"
-            :rows="3"
-          />
+        <a-form-item label="描述" name="description">
+          <a-textarea v-model:value="formData.description" placeholder="请输入映射描述" :rows="3" />
         </a-form-item>
       </a-form>
     </a-modal>
-    
-    <!-- 测试结果模态框 -->
+
+    <!-- 测试映射模态框 -->
     <a-modal
       v-model:open="testModalVisible"
-      title="映射测试结果"
+      title="测试映射"
       width="800px"
       :footer="null"
     >
-      <div class="test-result">
-        <h4>测试映射: {{ testingMapping?.placeholderName }}</h4>
-        <a-descriptions bordered size="small">
-          <a-descriptions-item label="数据表">{{ testingMapping?.tableName }}</a-descriptions-item>
-          <a-descriptions-item label="列名">{{ testingMapping?.columnName }}</a-descriptions-item>
-          <a-descriptions-item label="数据类型">{{ testingMapping?.dataType }}</a-descriptions-item>
+      <div v-if="testResult">
+        <a-descriptions title="映射信息" bordered size="small">
+          <a-descriptions-item label="占位符">${{ testResult.placeholder }}</a-descriptions-item>
+          <a-descriptions-item label="数据源">{{ testResult.tableName }}.{{ testResult.columnName }}</a-descriptions-item>
+          <a-descriptions-item label="数据类型">{{ testResult.dataType }}</a-descriptions-item>
         </a-descriptions>
         
-        <h4 style="margin-top: 16px;">模拟查询结果:</h4>
-        <vue-json-pretty
-          v-if="testResult"
-          :data="testResult"
-          :show-length="true"
-          :show-line="true"
+        <a-divider>测试结果</a-divider>
+        
+        <a-alert
+          :type="testResult.success ? 'success' : 'error'"
+          :message="testResult.success ? '映射测试成功' : '映射测试失败'"
+          :description="testResult.message"
+          show-icon
         />
+        
+        <div v-if="testResult.sampleData" style="margin-top: 16px;">
+          <h4>示例数据：</h4>
+          <pre class="sample-data">{{ JSON.stringify(testResult.sampleData, null, 2) }}</pre>
+        </div>
       </div>
     </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { twoStageApi } from '@/api'
-import type { FieldMapping } from '@/types'
-import {
-    BarChartOutlined,
-    DeleteOutlined,
-    EditOutlined,
-    ExportOutlined,
-    LineChartOutlined,
-    PieChartOutlined,
-    PlayCircleOutlined,
-    PlusOutlined,
-    ReloadOutlined
-} from '@ant-design/icons-vue'
+import { PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import { computed, onMounted, reactive, ref } from 'vue'
-import VueJsonPretty from 'vue-json-pretty'
+import { onMounted, reactive, ref } from 'vue'
 
-// 响应式状态
-const selectedChartId = ref('stacked_line_chart')
-const searchKeyword = ref('')
+// 响应式数据
 const loading = ref(false)
 const modalVisible = ref(false)
 const testModalVisible = ref(false)
-const selectedRowKeys = ref<string[]>([])
-
-const mappingsData = ref<Record<string, FieldMapping>>({})
-const testingMapping = ref<FieldMapping | null>(null)
+const isEdit = ref(false)
+const selectedChartType = ref('')
+const mappingList = ref<any[]>([])
+const availableColumns = ref<any[]>([])
 const testResult = ref<any>(null)
-
-// 表单相关
 const formRef = ref()
-const formData = reactive<Partial<FieldMapping>>({})
-const queryConditionsText = ref('')
-const isEditMode = ref(false)
 
-// 图表类型配置
-const chartTypes = [
-  { id: 'stacked_line_chart', name: '堆叠折线图', icon: LineChartOutlined },
-  { id: 'basic_bar_chart', name: '基础柱状图', icon: BarChartOutlined },
-  { id: 'pie_chart', name: '饼图', icon: PieChartOutlined }
-]
-
-// 可用数据表
-const availableTables = [
-  'marketing_data',
-  'chart_config',
-  'sales_data',
-  'user_behavior',
-  'product_info'
-]
-
-// 计算属性
-const currentChartName = computed(() => {
-  const chart = chartTypes.find(c => c.id === selectedChartId.value)
-  return chart?.name || '未知图表'
-})
-
-const filteredMappings = computed(() => {
-  const mappings = Object.values(mappingsData.value)
-  if (!searchKeyword.value) return mappings
-  
-  return mappings.filter(mapping =>
-    mapping.placeholderName.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    mapping.tableName.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    mapping.columnName.toLowerCase().includes(searchKeyword.value.toLowerCase())
-  )
-})
-
-const totalMappings = computed(() => Object.keys(mappingsData.value).length)
-
-const totalPlaceholders = computed(() => {
-  return new Set(Object.values(mappingsData.value).map(m => m.placeholderName)).size
-})
-
-const uniqueTables = computed(() => {
-  return [...new Set(Object.values(mappingsData.value).map(m => m.tableName))]
-})
-
-const modalTitle = computed(() => isEditMode.value ? '编辑映射关系' : '新增映射关系')
-
-// 表格配置
-const tableColumns = [
+// 表格列配置
+const columns = [
   {
-    title: '占位符名称',
-    dataIndex: 'placeholderName',
-    key: 'placeholderName',
-    width: 200,
-    fixed: 'left'
+    title: '占位符',
+    dataIndex: 'placeholder',
+    key: 'placeholder',
   },
   {
-    title: '数据表',
-    dataIndex: 'tableName',
-    key: 'tableName',
-    width: 150
-  },
-  {
-    title: '列名',
-    dataIndex: 'columnName',
-    key: 'columnName',
-    width: 120
+    title: '数据源',
+    key: 'dataSource',
   },
   {
     title: '数据类型',
     dataIndex: 'dataType',
     key: 'dataType',
-    width: 100
   },
   {
-    title: '聚合类型',
-    dataIndex: 'aggregationType',
-    key: 'aggregationType',
-    width: 100
+    title: '描述',
+    dataIndex: 'description',
+    key: 'description',
+    ellipsis: true,
   },
   {
-    title: '查询条件',
-    dataIndex: 'queryConditions',
-    key: 'queryConditions',
-    width: 120
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
   },
   {
     title: '操作',
-    key: 'actions',
+    key: 'action',
     width: 200,
-    fixed: 'right'
-  }
+  },
 ]
 
-const rowSelection = {
-  selectedRowKeys: selectedRowKeys,
-  onChange: (keys: string[]) => {
-    selectedRowKeys.value = keys
-  }
-}
-
-const paginationConfig = {
+// 分页配置
+const pagination = reactive({
   current: 1,
   pageSize: 10,
-  total: computed(() => filteredMappings.value.length),
+  total: 0,
   showSizeChanger: true,
   showQuickJumper: true,
-  showTotal: (total: number, range: [number, number]) => 
-    `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-}
+})
+
+// 表单数据
+const formData = reactive({
+  id: null,
+  placeholder: '',
+  tableName: '',
+  columnName: '',
+  dataType: '',
+  description: '',
+  status: 'active',
+})
 
 // 表单验证规则
-const formRules = {
-  placeholderName: [
-    { required: true, message: '请输入占位符名称' },
-    { pattern: /^\$\{[^}]+\}$/, message: '占位符格式应为 ${variable_name}' }
-  ],
-  tableName: [
-    { required: true, message: '请选择数据表' }
-  ],
-  columnName: [
-    { required: true, message: '请输入列名' }
-  ],
-  dataType: [
-    { required: true, message: '请选择数据类型' }
-  ]
+const rules = {
+  placeholder: [{ required: true, message: '请输入占位符名称', trigger: 'blur' }],
+  tableName: [{ required: true, message: '请选择数据表', trigger: 'change' }],
+  columnName: [{ required: true, message: '请选择字段', trigger: 'change' }],
+  dataType: [{ required: true, message: '请选择数据类型', trigger: 'change' }],
 }
 
 // 方法
 const loadMappings = async () => {
+  if (!selectedChartType.value) return
+  
   loading.value = true
   try {
-    const response = await twoStageApi.getMappings(selectedChartId.value)
-    mappingsData.value = response.mappings || {}
-    console.log('映射关系加载成功:', response)
-  } catch (error: any) {
-    message.error(`加载映射关系失败: ${error.message}`)
+    // 模拟数据
+    const mockData = {
+      stacked_line_chart: [
+        {
+          id: 1,
+          placeholder: 'chart_title',
+          tableName: 'sales_data',
+          columnName: 'title',
+          dataType: 'string',
+          description: '图表标题',
+          status: 'active',
+        },
+        {
+          id: 2,
+          placeholder: 'series_data_1',
+          tableName: 'sales_data',
+          columnName: 'monthly_sales',
+          dataType: 'array',
+          description: '第一个系列数据',
+          status: 'active',
+        },
+      ],
+      basic_bar_chart: [
+        {
+          id: 3,
+          placeholder: 'chart_title',
+          tableName: 'user_stats',
+          columnName: 'report_title',
+          dataType: 'string',
+          description: '图表标题',
+          status: 'active',
+        },
+      ],
+      pie_chart: [
+        {
+          id: 4,
+          placeholder: 'chart_title',
+          tableName: 'product_info',
+          columnName: 'category_title',
+          dataType: 'string',
+          description: '图表标题',
+          status: 'active',
+        },
+      ],
+    }
+    
+    mappingList.value = (mockData as any)[selectedChartType.value] || []
+    pagination.total = mappingList.value.length
+  } catch (error) {
+    message.error('加载映射列表失败')
   } finally {
     loading.value = false
   }
 }
 
-const handleChartChange = () => {
-  loadMappings()
-}
-
-const refreshMappings = () => {
-  loadMappings()
-  message.success('映射关系已刷新')
-}
-
-const handleSearch = () => {
-  // 搜索逻辑已在计算属性中实现
-}
-
-const getDataTypeColor = (dataType: string) => {
-  const colors: Record<string, string> = {
-    string: 'green',
-    number: 'blue',
-    array: 'orange',
-    object: 'purple'
+const loadColumns = (tableName: string) => {
+  const columnMap: Record<string, any[]> = {
+    sales_data: [
+      { value: 'title', label: '标题' },
+      { value: 'monthly_sales', label: '月度销售额' },
+      { value: 'quarterly_sales', label: '季度销售额' },
+    ],
+    user_stats: [
+      { value: 'report_title', label: '报告标题' },
+      { value: 'user_count', label: '用户数量' },
+      { value: 'active_users', label: '活跃用户' },
+    ],
+    product_info: [
+      { value: 'category_title', label: '分类标题' },
+      { value: 'product_name', label: '产品名称' },
+      { value: 'price', label: '价格' },
+    ],
   }
-  return colors[dataType] || 'default'
+  
+  availableColumns.value = columnMap[tableName] || []
+  formData.columnName = ''
 }
 
-const showCreateModal = () => {
-  isEditMode.value = false
+const showAddModal = () => {
+  isEdit.value = false
+  modalVisible.value = true
   resetForm()
-  modalVisible.value = true
 }
 
-const editMapping = (record: FieldMapping) => {
-  isEditMode.value = true
+const editMapping = (record: any) => {
+  isEdit.value = true
+  modalVisible.value = true
   Object.assign(formData, record)
-  queryConditionsText.value = record.queryConditions 
-    ? JSON.stringify(record.queryConditions, null, 2) 
-    : ''
-  modalVisible.value = true
+  loadColumns(record.tableName)
 }
 
-const resetForm = () => {
-  Object.assign(formData, {
-    placeholderName: '',
-    tableName: '',
-    columnName: '',
-    dataType: '',
-    aggregationType: '',
-    queryConditions: undefined
-  })
-  queryConditionsText.value = ''
+const deleteMapping = async (id: number) => {
+  try {
+    mappingList.value = mappingList.value.filter(item => item.id !== id)
+    message.success('删除成功')
+  } catch (error) {
+    message.error('删除失败')
+  }
 }
 
-const handleModalOk = async () => {
+const testMapping = (record: any) => {
+  testResult.value = {
+    ...record,
+    success: true,
+    message: '映射配置正确，数据获取成功',
+    sampleData: {
+      placeholder: record.placeholder,
+      value: '示例数据值',
+      type: record.dataType,
+    },
+  }
+  testModalVisible.value = true
+}
+
+const handleSubmit = async () => {
   try {
     await formRef.value.validate()
     
-    // 解析查询条件
-    let queryConditions = undefined
-    if (queryConditionsText.value.trim()) {
-      try {
-        queryConditions = JSON.parse(queryConditionsText.value)
-      } catch (error) {
-        message.error('查询条件JSON格式不正确')
-        return
+    if (isEdit.value) {
+      const index = mappingList.value.findIndex(item => item.id === formData.id)
+      if (index !== -1) {
+        mappingList.value[index] = { ...formData }
       }
+      message.success('更新成功')
+    } else {
+      const newId = Math.max(...mappingList.value.map(item => item.id), 0) + 1
+      mappingList.value.push({ ...formData, id: newId })
+      message.success('创建成功')
     }
-    
-    const mappingData: FieldMapping = {
-      ...formData as FieldMapping,
-      queryConditions
-    }
-    
-    // 更新本地数据（实际项目中应该调用API）
-    mappingsData.value[mappingData.placeholderName] = mappingData
     
     modalVisible.value = false
-    message.success(isEditMode.value ? '映射关系更新成功' : '映射关系创建成功')
   } catch (error) {
     console.error('表单验证失败:', error)
   }
 }
 
-const handleModalCancel = () => {
+const handleCancel = () => {
   modalVisible.value = false
   resetForm()
 }
 
-const deleteMapping = (record: FieldMapping) => {
-  delete mappingsData.value[record.placeholderName]
-  message.success('映射关系删除成功')
-}
-
-const testMapping = async (record: FieldMapping) => {
-  testingMapping.value = record
-  
-  // 模拟测试结果
-  testResult.value = {
-    placeholder: record.placeholderName,
-    mockData: generateMockData(record),
-    queryInfo: {
-      table: record.tableName,
-      column: record.columnName,
-      conditions: record.queryConditions
-    }
-  }
-  
-  testModalVisible.value = true
-}
-
-const generateMockData = (mapping: FieldMapping) => {
-  switch (mapping.dataType) {
-    case 'string':
-      return `Mock_${mapping.columnName}_Value`
-    case 'number':
-      return Math.floor(Math.random() * 1000)
-    case 'array':
-      return [1, 2, 3, 4, 5].map(i => Math.floor(Math.random() * 100))
-    case 'object':
-      return { key: 'value', timestamp: new Date().toISOString() }
-    default:
-      return null
-  }
-}
-
-const showBatchEditModal = () => {
-  message.info('批量编辑功能待实现')
-}
-
-const exportMappings = () => {
-  const data = JSON.stringify(mappingsData.value, null, 2)
-  const blob = new Blob([data], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `mappings-${selectedChartId.value}-${Date.now()}.json`
-  link.click()
-  URL.revokeObjectURL(url)
-  message.success('映射关系已导出')
-}
-
-const filterOption = (input: string, option: any) => {
-  return option.value.toLowerCase().includes(input.toLowerCase())
+const resetForm = () => {
+  Object.assign(formData, {
+    id: null,
+    placeholder: '',
+    tableName: '',
+    columnName: '',
+    dataType: '',
+    description: '',
+    status: 'active',
+  })
+  availableColumns.value = []
+  formRef.value?.resetFields()
 }
 
 // 生命周期
 onMounted(() => {
-  loadMappings()
+  // 初始化时不加载数据，等用户选择图表类型
 })
 </script>
 
 <style scoped>
-.mapping-management {
+.mapping-container {
   padding: 24px;
 }
 
@@ -601,70 +423,28 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.page-header h1 {
+.page-header h2 {
   margin: 0 0 8px 0;
   font-size: 24px;
   font-weight: 600;
 }
 
-.page-header p {
+.page-description {
   margin: 0;
   color: #666;
   font-size: 14px;
 }
 
-.toolbar,
-.chart-selector,
-.mapping-table,
-.mapping-visualization {
-  margin-bottom: 24px;
+.mapping-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.toolbar-content {
-  margin-top: 16px;
-}
-
-.placeholder-tag {
+.sample-data {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 12px;
-}
-
-.text-muted {
-  color: #999;
-}
-
-.visualization-container {
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-}
-
-.test-result h4 {
-  margin: 16px 0 8px 0;
-  font-weight: 600;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .mapping-management {
-    padding: 16px;
-  }
-  
-  .toolbar-content .ant-row {
-    text-align: center;
-  }
-  
-  .chart-selector .ant-radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .chart-selector .ant-radio-button-wrapper {
-    text-align: center;
-  }
+  overflow-x: auto;
 }
 </style>

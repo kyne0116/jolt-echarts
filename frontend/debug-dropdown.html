@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropdown Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .dropdown { margin: 10px 0; }
+        select { padding: 8px; font-size: 14px; width: 200px; }
+        .status { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h2>🔍 Dropdown Debug Test</h2>
+    <div class="status">
+        <strong>Current Value:</strong> <span id="currentValue">stacked_line_chart</span><br>
+        <strong>Change Count:</strong> <span id="changeCount">0</span><br>
+        <strong>Last Change:</strong> <span id="lastChange">None</span>
+    </div>
+
+    <div class="dropdown">
+        <label for="chartSelect">Chart Type:</label><br>
+        <select id="chartSelect" onchange="handleChange(this.value)">
+            <option value="stacked_line_chart">堆叠折线图</option>
+            <option value="basic_bar_chart">基础柱状图</option>
+            <option value="pie_chart">饼图</option>
+        </select>
+    </div>
+
+    <div class="status">
+        <strong>Test Status:</strong>
+        <span id="testStatus" style="color: green;">✅ Dropdown is working!</span>
+    </div>
+
+    <script>
+        let changeCount = 0;
+
+        function handleChange(value) {
+            changeCount++;
+            const now = new Date().toLocaleTimeString();
+
+            console.log('Dropdown changed to:', value, 'at', now);
+
+            document.getElementById('currentValue').textContent = value;
+            document.getElementById('changeCount').textContent = changeCount;
+            document.getElementById('lastChange').textContent = now;
+
+            // Update test status
+            document.getElementById('testStatus').innerHTML =
+                `✅ Working! Changed to ${value} at ${now}`;
+        }
+
+        // Test on page load
+        console.log('Debug page loaded successfully');
+        document.getElementById('testStatus').style.color = 'green';
+    </script>
+</body>
+</html>
