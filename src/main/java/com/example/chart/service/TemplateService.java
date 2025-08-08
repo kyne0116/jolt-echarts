@@ -1,12 +1,19 @@
 package com.example.chart.service;
 
-import com.example.chart.repository.InMemoryUniversalTemplateRepository;
-import com.example.chart.repository.model.UniversalTemplateEntity;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.util.*;
+import com.example.chart.model.UniversalTemplate;
+import com.example.chart.repository.InMemoryUniversalTemplateRepository;
+import com.example.chart.repository.model.UniversalTemplateEntity;
 
 /**
  * 模板服务层：封装Repository访问，模拟真实Service风格
@@ -22,31 +29,23 @@ public class TemplateService {
 
     @PostConstruct
     public void init() {
-        // 预置三类图表模板（从旧的 createUniversalTemplateWithPlaceholders 迁移）
+        // 新设计：只有一个真正通用的模板
+        UniversalTemplate universalTemplate = UniversalTemplate.createDefault();
+
         repository.save(new UniversalTemplateEntity(
-                "stacked_line_chart",
-                "堆叠折线图通用模板",
-                "用于两阶段转换演示的折线图模板",
-                createBaseTemplate("stacked_line_chart")
-        ));
-        repository.save(new UniversalTemplateEntity(
-                "basic_bar_chart",
-                "基础柱状图通用模板",
-                "用于两阶段转换演示的柱状图模板",
-                createBaseTemplate("basic_bar_chart")
-        ));
-        repository.save(new UniversalTemplateEntity(
-                "pie_chart",
-                "饼图通用模板",
-                "用于两阶段转换演示的饼图模板",
-                createBaseTemplate("pie_chart")
-        ));
+                "universal",
+                "通用图表模板",
+                "真正通用的语义化图表模板，支持所有图表类型",
+                universalTemplate.toMap()));
+
+        System.out.println("✅ 初始化通用模板完成");
     }
 
     public Map<String, Object> getTemplateByChartId(String chartId) {
-        return repository.findById(chartId)
+        // 新设计：所有图表类型都使用同一个通用模板
+        return repository.findById("universal")
                 .map(UniversalTemplateEntity::getTemplate)
-                .orElseThrow(() -> new NoSuchElementException("模板不存在: " + chartId));
+                .orElseThrow(() -> new NoSuchElementException("通用模板不存在"));
     }
 
     public List<UniversalTemplateEntity> listAll() {
@@ -95,4 +94,3 @@ public class TemplateService {
         return template;
     }
 }
-
