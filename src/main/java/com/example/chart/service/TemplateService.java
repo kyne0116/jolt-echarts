@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.example.chart.model.TemplateType;
 import com.example.chart.model.UniversalTemplate;
 import com.example.chart.repository.InMemoryUniversalTemplateRepository;
 import com.example.chart.repository.model.UniversalTemplateEntity;
@@ -26,6 +27,9 @@ public class TemplateService {
 
     @Autowired
     private PlaceholderManager placeholderManager;
+
+    @Autowired
+    private CategoryTemplateFactory categoryTemplateFactory;
 
     @PostConstruct
     public void init() {
@@ -46,6 +50,22 @@ public class TemplateService {
         return repository.findById("universal")
                 .map(UniversalTemplateEntity::getTemplate)
                 .orElseThrow(() -> new NoSuchElementException("通用模板不存在"));
+    }
+
+    /**
+     * 根据图表类型获取分类模板（新版本）
+     */
+    public Map<String, Object> getCategoryTemplateByChartId(String chartId) {
+        System.out.println("📋 获取分类模板，图表类型: " + chartId);
+
+        // 使用分类模板工厂创建对应的模板
+        Map<String, Object> template = categoryTemplateFactory.createTemplateForChartType(chartId);
+
+        // 推断模板类型
+        TemplateType templateType = TemplateType.inferFromChartType(chartId);
+        System.out.println("📋 使用模板类型: " + templateType);
+
+        return template;
     }
 
     public List<UniversalTemplateEntity> listAll() {

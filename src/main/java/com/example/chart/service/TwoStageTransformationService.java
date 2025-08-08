@@ -143,16 +143,17 @@ public class TwoStageTransformationService {
      */
     public TransformationResult executeStage1Transformation(String chartId, Map<String, Object> universalTemplate) {
         try {
-            System.out.println("=== 第一阶段转换开始（智能语义转换）===");
+            System.out.println("=== 第一阶段转换开始（分类模板语义转换）===");
             System.out.println("图表类型: " + chartId);
 
             // 提取模板中的占位符
             Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(universalTemplate);
             System.out.println("发现占位符: " + placeholders);
 
-            // 使用智能转换引擎进行语义化转换
-            Map<String, Object> structuralResult = smartEngine.semanticTransform(universalTemplate);
-            System.out.println("使用智能转换引擎，根据图表类型自动适配");
+            // 使用新的分类模板转换引擎
+            Map<String, Object> structuralResult = smartEngine.semanticTransformWithCategory(chartId,
+                    universalTemplate);
+            System.out.println("使用分类模板转换引擎，根据图表类型自动适配");
 
             // 验证转换后占位符是否保持
             Set<String> afterPlaceholders = placeholderManager.extractPlaceholdersFromJson(structuralResult);
@@ -160,7 +161,7 @@ public class TwoStageTransformationService {
 
             TransformationResult result = new TransformationResult(true, "第一阶段转换成功", structuralResult);
             result.setPlaceholders(afterPlaceholders);
-            result.setUsedJoltSpec("SmartTransformationEngine"); // 不再使用JOLT
+            result.setUsedJoltSpec("CategoryTemplateEngine"); // 使用分类模板引擎
 
             System.out.println("=== 第一阶段转换完成 ===");
             return result;

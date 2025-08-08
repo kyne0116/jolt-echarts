@@ -85,17 +85,20 @@ public class TwoStageTransformationController {
     public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> getUniversalTemplate(
             @PathVariable String chartId) {
         try {
-            Map<String, Object> template = templateService.getTemplateByChartId(chartId);
+            // 使用新的分类模板
+            Map<String, Object> template = templateService.getCategoryTemplateByChartId(chartId);
             Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(template);
 
             Map<String, Object> response = new HashMap<>();
             response.put("template", template);
             response.put("placeholders", placeholders);
             response.put("placeholderCount", placeholders.size());
+            response.put("templateType", "category"); // 标识使用分类模板
 
             return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
+            System.err.println("获取分类模板失败: " + e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());

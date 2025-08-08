@@ -151,6 +151,51 @@ public class MappingRelationshipService {
         universalMappings.put("${series_5_style}", createFieldMapping(
                 "${series_5_style}", "chart_config", "series_style", "string", "smooth"));
 
+        // 新增：分类模板专用占位符映射
+        // 坐标轴配置映射
+        universalMappings.put("${boundary_gap}", createFieldMapping(
+                "${boundary_gap}", "chart_config", "boundary_gap", "boolean", "false"));
+
+        // 系列配置映射
+        universalMappings.put("${series_type}", createFieldMapping(
+                "${series_type}", "chart_config", "series_type", "string", "line"));
+        universalMappings.put("${stack_group}", createFieldMapping(
+                "${stack_group}", "chart_config", "stack_group", "string", "Total"));
+        universalMappings.put("${smooth_style}", createFieldMapping(
+                "${smooth_style}", "chart_config", "smooth_style", "boolean", "true"));
+
+        // 工具箱配置映射
+        universalMappings.put("${toolbox_config}", createFieldMapping(
+                "${toolbox_config}", "chart_config", "toolbox_config", "string", "default"));
+
+        // 饼图专用占位符映射
+        universalMappings.put("${radius_config}", createFieldMapping(
+                "${radius_config}", "chart_config", "radius_config", "string", "50%"));
+        universalMappings.put("${center_config}", createFieldMapping(
+                "${center_config}", "chart_config", "center_config", "array", "['50%', '50%']"));
+        universalMappings.put("${pie_data}", createFieldMapping(
+                "${pie_data}", "marketing_data", "pie_data", "array"));
+        universalMappings.put("${rose_type}", createFieldMapping(
+                "${rose_type}", "chart_config", "rose_type", "string", "false"));
+
+        // 雷达图专用占位符映射
+        universalMappings.put("${radar_config}", createFieldMapping(
+                "${radar_config}", "chart_config", "radar_config", "object"));
+        universalMappings.put("${radar_data}", createFieldMapping(
+                "${radar_data}", "marketing_data", "radar_data", "array"));
+
+        // 仪表盘专用占位符映射
+        universalMappings.put("${gauge_min}", createFieldMapping(
+                "${gauge_min}", "chart_config", "gauge_min", "number", "0"));
+        universalMappings.put("${gauge_max}", createFieldMapping(
+                "${gauge_max}", "chart_config", "gauge_max", "number", "100"));
+        universalMappings.put("${gauge_data}", createFieldMapping(
+                "${gauge_data}", "marketing_data", "gauge_data", "array"));
+        universalMappings.put("${gauge_detail}", createFieldMapping(
+                "${gauge_detail}", "chart_config", "gauge_detail", "object"));
+        universalMappings.put("${gauge_pointer}", createFieldMapping(
+                "${gauge_pointer}", "chart_config", "gauge_pointer", "object"));
+
         // 布局配置映射
         universalMappings.put("${legend_config}", createFieldMapping(
                 "${legend_config}", "chart_config", "legend_config", "string"));
@@ -279,6 +324,16 @@ public class MappingRelationshipService {
             case "number":
                 return generateNumberData(columnName);
 
+            case "boolean":
+                if (conditions != null && conditions.containsKey("filterValue")) {
+                    String value = (String) conditions.get("filterValue");
+                    return Boolean.parseBoolean(value);
+                }
+                return generateBooleanData(columnName);
+
+            case "object":
+                return generateObjectData(columnName, conditions);
+
             default:
                 return "Mock_" + columnName;
         }
@@ -329,6 +384,34 @@ public class MappingRelationshipService {
             return generateChannelData(channel);
         }
 
+        // 饼图数据
+        if ("pie_data".equals(columnName)) {
+            return Arrays.asList(
+                    Map.of("value", 335, "name", "直接访问"),
+                    Map.of("value", 310, "name", "邮件营销"),
+                    Map.of("value", 234, "name", "联盟广告"),
+                    Map.of("value", 135, "name", "视频广告"),
+                    Map.of("value", 1548, "name", "搜索引擎"));
+        }
+
+        // 雷达图数据
+        if ("radar_data".equals(columnName)) {
+            return Arrays.asList(
+                    Map.of("value", Arrays.asList(4200, 3000, 20000, 35000, 50000, 18000), "name", "预算分配"),
+                    Map.of("value", Arrays.asList(5000, 14000, 28000, 26000, 42000, 21000), "name", "实际开销"));
+        }
+
+        // 仪表盘数据
+        if ("gauge_data".equals(columnName)) {
+            return Arrays.asList(
+                    Map.of("value", 75, "name", "完成率"));
+        }
+
+        // 中心配置（饼图）
+        if ("center_config".equals(columnName)) {
+            return Arrays.asList("50%", "50%");
+        }
+
         return Arrays.asList(1, 2, 3, 4, 5);
     }
 
@@ -357,6 +440,51 @@ public class MappingRelationshipService {
      */
     private Integer generateNumberData(String columnName) {
         return new Random().nextInt(1000) + 100;
+    }
+
+    /**
+     * 生成布尔类型的Mock数据
+     */
+    private Boolean generateBooleanData(String columnName) {
+        switch (columnName) {
+            case "boundary_gap":
+                return false; // 折线图通常不需要边界间隙
+            case "smooth_style":
+                return true; // 默认使用平滑样式
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * 生成对象类型的Mock数据
+     */
+    private Object generateObjectData(String columnName, Map<String, Object> conditions) {
+        switch (columnName) {
+            case "radar_config":
+                Map<String, Object> radarConfig = new HashMap<>();
+                radarConfig.put("indicator", Arrays.asList(
+                        Map.of("name", "销售", "max", 6500),
+                        Map.of("name", "管理", "max", 16000),
+                        Map.of("name", "信息技术", "max", 30000),
+                        Map.of("name", "客服", "max", 38000),
+                        Map.of("name", "研发", "max", 52000),
+                        Map.of("name", "市场", "max", 25000)));
+                return radarConfig;
+
+            case "gauge_detail":
+                Map<String, Object> detail = new HashMap<>();
+                detail.put("formatter", "{value}%");
+                return detail;
+
+            case "gauge_pointer":
+                Map<String, Object> pointer = new HashMap<>();
+                pointer.put("itemStyle", Map.of("color", "auto"));
+                return pointer;
+
+            default:
+                return new HashMap<>();
+        }
     }
 
     /**
