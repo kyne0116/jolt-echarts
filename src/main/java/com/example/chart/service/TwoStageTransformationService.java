@@ -29,6 +29,12 @@ public class TwoStageTransformationService {
     @Autowired
     private MappingRelationshipService mappingService;
 
+    @Autowired
+    private ChartRegistryService chartRegistryService;
+
+    @Autowired
+    private TemplateService templateService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -179,7 +185,20 @@ public class TwoStageTransformationService {
      */
     public TransformationResult executeStage2Transformation(String chartId, Object echartsTemplate) {
         try {
-            // 提取ECharts模板中的占位符
+            // 优先使用新的映射服务和注册表
+            // 检查注册表中是否有激活的映射版本（暂时跳过新映射服务以避免循环依赖）
+            var registry = chartRegistryService.get(chartId);
+            if (registry.isPresent() && registry.get().getActiveMappingVersion() != null) {
+                System.out.println("📋 检测到注册表中的激活映射版本: " + registry.get().getActiveMappingVersion() + "，但暂时使用旧映射服务");
+            }
+
+            // 回退到旧的映射服务
+            System.out.println("📋 回退到旧映射服务");
+
+            // 初始化映射关系（关键步骤！）
+            mappingService.initializeSampleMappings();
+            System.out.println("✅ 映射关系初始化完成");
+
             Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(echartsTemplate);
             System.out.println("需要替换的占位符: " + placeholders);
 
@@ -349,8 +368,14 @@ public class TwoStageTransformationService {
     public Map<String, Object> getTransformationInfo(String chartId) {
         Map<String, Object> info = new HashMap<>();
 
-        // 模板信息
-        Map<String, Object> template = createUniversalTemplateWithPlaceholders();
+        // 模板信息：优先从模板服务获取；在测试环境或未注入时回退到内置创建
+        Map<String, Object> template;
+        if (templateService != null) {
+            template = templateService.getTemplateByChartId(chartId);
+        } else {
+            // 兼容旧测试用例
+            template = createUniversalTemplateWithPlaceholders();
+        }
         Set<String> templatePlaceholders = placeholderManager.extractPlaceholdersFromJson(template);
 
         info.put("templatePlaceholders", templatePlaceholders);

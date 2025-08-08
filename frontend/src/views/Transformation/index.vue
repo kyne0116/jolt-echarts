@@ -67,6 +67,14 @@
           >
             🧪 全面测试
           </a-button>
+
+          <a-button
+            type="text"
+            size="small"
+            @click="debugCurrentState"
+          >
+            🔍 调试状态
+          </a-button>
         </a-space>
       </div>
     </div>
@@ -315,6 +323,7 @@
 </template>
 
 <script setup lang="ts">
+import { twoStageApi } from '@/api'
 import { useTransformationStore } from '@/stores'
 import {
     BarChartOutlined,
@@ -390,70 +399,71 @@ const getStepStatus = (step: any) => {
   }
 }
 
-const handleChartTypeChange = (value: string) => {
-  // 同步到store并重置步骤
+const handleChartTypeChange = async (value: string) => {
+  console.log('🔄 图表类型切换:', value)
+
+  // 先重置所有状态
+  transformationStore.resetSteps()
+
+  // 同步到store
   transformationStore.setChartId(value)
-  // 立即加载对应图表的通用模板，给用户即时反馈
-  loadTemplateOnly()
-  message.success(`已切换到：${value === 'stacked_line_chart' ? '堆叠折线图' : value === 'basic_bar_chart' ? '基础柱状图' : '饼图'}`)
+
+  try {
+    // 执行完整转换流程
+    await transformationStore.executeFullTransformation()
+
+    const chartTypeNames = {
+      'stacked_line_chart': '堆叠折线图',
+      'basic_bar_chart': '基础柱状图',
+      'pie_chart': '饼图'
+    }
+
+    message.success(`已切换到：${chartTypeNames[value] || value}`)
+    console.log('✅ 图表类型切换成功')
+  } catch (e: any) {
+    console.error('❌ 图表类型切换失败:', e)
+    message.error(`切换失败：${e.message || '未知错误'}`)
+  }
 }
 
 const executeFullTransformation = async () => {
   try {
-    // 如果后端不可用，使用模拟数据
-    await executeFullTransformationWithMockData()
+    transformationStore.loading = true
+    transformationStore.error = null
+
+    // 步骤1：获取模板
+    const templateResp = await twoStageApi.getTemplate(transformationStore.currentChartId)
+    transformationStore.universalTemplate = templateResp.template
+    transformationStore.updateStepStatus('template', 'completed', templateResp)
+
+    // 步骤2：第一阶段
+    const stage1Resp = await twoStageApi.stage1Transform(
+      transformationStore.currentChartId,
+      transformationStore.universalTemplate
+    )
+    transformationStore.stage1Output = stage1Resp.echartsStructure
+    transformationStore.updateStepStatus('stage1', 'completed', stage1Resp)
+
+    // 步骤3：第二阶段
+    const stage2Resp = await twoStageApi.stage2Transform(
+      transformationStore.currentChartId,
+      transformationStore.stage1Output
+    )
+    transformationStore.stage2Output = stage2Resp.finalEChartsConfig
+    transformationStore.finalResult = stage2Resp.finalEChartsConfig
+    transformationStore.updateStepStatus('stage2', 'completed', stage2Resp)
+    transformationStore.updateStepStatus('complete', 'completed', stage2Resp.finalEChartsConfig)
+
     message.success('转换执行成功！')
   } catch (error: any) {
     console.error('转换失败:', error)
     message.error(`转换执行失败: ${error.message}`)
-  }
-}
-
-// 模拟完整的两阶段转换流程
-const executeFullTransformationWithMockData = async () => {
-  transformationStore.loading = true
-  transformationStore.error = null
-  transformationStore.resetSteps()
-
-  try {
-    // 步骤1: 获取通用模板
-    transformationStore.updateStepStatus('template', 'running')
-    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟网络延迟
-
-    const universalTemplate = createMockUniversalTemplate(transformationStore.currentChartId)
-    transformationStore.universalTemplate = universalTemplate
-    transformationStore.updateStepStatus('template', 'completed', { template: universalTemplate })
-
-    // 步骤2: 第一阶段转换（结构转换，保持占位符）
-    transformationStore.updateStepStatus('stage1', 'running')
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    const stage1Output = createMockStage1Output(universalTemplate, transformationStore.currentChartId)
-    transformationStore.stage1Output = stage1Output
-    transformationStore.updateStepStatus('stage1', 'completed', { echartsStructure: stage1Output })
-
-    // 步骤3: 第二阶段转换（数据回填）
-    transformationStore.updateStepStatus('stage2', 'running')
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    const stage2Output = createMockStage2Output(stage1Output, transformationStore.currentChartId)
-    transformationStore.stage2Output = stage2Output
-    transformationStore.updateStepStatus('stage2', 'completed', { finalEChartsConfig: stage2Output })
-
-    // 步骤4: 完成
-    transformationStore.updateStepStatus('complete', 'running')
-    transformationStore.finalResult = stage2Output
-    transformationStore.updateStepStatus('complete', 'completed', stage2Output)
-
-    console.log('✅ 模拟转换流程执行成功')
-
-  } catch (error) {
-    console.error('❌ 模拟转换流程执行失败:', error)
-    throw error
   } finally {
     transformationStore.loading = false
   }
 }
+
+
 
 const resetTransformation = () => {
   transformationStore.resetSteps()
@@ -463,22 +473,38 @@ const resetTransformation = () => {
   message.info('已重置转换状态')
 }
 
+// 调试工具：检查当前状态
+const debugCurrentState = () => {
+  console.log('🔍 当前状态调试信息:')
+  console.log('- 当前图表ID:', transformationStore.currentChartId)
+  console.log('- 通用模板:', transformationStore.universalTemplate)
+  console.log('- 第一阶段输出:', transformationStore.stage1Output)
+  console.log('- 第二阶段输出:', transformationStore.stage2Output)
+  console.log('- 最终结果:', transformationStore.finalResult)
+  console.log('- 加载状态:', transformationStore.loading)
+  console.log('- 错误信息:', transformationStore.error)
+  console.log('- 步骤状态:', transformationStore.steps.map(s => ({ id: s.id, status: s.status })))
+}
+
 // 测试所有功能的综合函数
 const testAllFunctionality = async () => {
   console.log('🧪 开始测试所有功能和UI修复效果...')
 
   try {
     // 1. 测试重置功能
+    console.log('1️⃣ 测试重置功能')
     resetTransformation()
     await new Promise(resolve => setTimeout(resolve, 500))
+    debugCurrentState()
 
     // 2. 测试完整转换流程
-    console.log('📝 测试完整转换流程...')
+    console.log('2️⃣ 测试完整转换流程...')
     await executeFullTransformation()
     await new Promise(resolve => setTimeout(resolve, 1000))
+    debugCurrentState()
 
     // 3. 验证数据是否正确设置
-    console.log('✅ 验证数据状态:')
+    console.log('3️⃣ 验证数据状态:')
     console.log('- universalTemplate:', !!transformationStore.universalTemplate)
     console.log('- stage1Output:', !!transformationStore.stage1Output)
     console.log('- stage2Output:', !!transformationStore.stage2Output)
@@ -509,226 +535,13 @@ const testAllFunctionality = async () => {
 
 const loadTemplateOnly = async () => {
   try {
-    // 使用模拟数据加载模板
-    const universalTemplate = createMockUniversalTemplate(transformationStore.currentChartId)
-    transformationStore.universalTemplate = universalTemplate
-    transformationStore.updateStepStatus('template', 'completed', { template: universalTemplate })
+    const templateResp = await twoStageApi.getTemplate(transformationStore.currentChartId)
+    transformationStore.universalTemplate = templateResp.template
+    transformationStore.updateStepStatus('template', 'completed', templateResp)
     message.success('模板加载成功！')
   } catch (error: any) {
     message.error(`模板加载失败: ${error.message}`)
   }
-}
-
-// 创建改进的通用模板 - 支持所有图表类型
-const createMockUniversalTemplate = (chartId: string) => {
-  const baseTemplate = {
-    chartMeta: {
-      chartId: chartId,
-      chartType: "${chart_type}",
-      title: "${chart_title}",
-      dataSource: "marketing_db"
-    },
-    // 通用配置（所有图表类型都可能需要）
-    title: {
-      text: "${chart_title}",
-      subtext: "${chart_subtitle}"
-    },
-    tooltip: "${tooltip_config}",
-    legend: {
-      data: "${legend_data}"
-    },
-    // 条件配置（根据图表类型动态包含）
-    xAxis: "${x_axis_config}",
-    yAxis: "${y_axis_config}",
-    categories: "${category_field}",
-    // 雷达图特定配置
-    radar: {
-      indicator: "${radar_indicators}"
-    },
-    // 系列数据（支持多种数据格式）
-    series: [
-      {
-        seriesName: "${series_name_1}",
-        seriesType: "${chart_type}",
-        // 支持多种数据格式
-        values: "${series_data_1}",           // 数组格式：[120, 200, 150]
-        objectData: "${series_object_data_1}", // 对象数组格式：[{value: 1548, name: "CityE"}]
-        matrixData: "${series_matrix_data_1}", // 矩阵格式：[[4200, 3000, 20000]]
-        // 图表特定属性
-        stackGroup: "${stack_group}",
-        radius: "${pie_radius}",
-        center: "${pie_center}",
-        seriesId: "series_1"
-      }
-    ]
-  }
-
-  // 根据图表类型添加特定配置
-  if (chartId === 'stacked_line_chart') {
-    baseTemplate.series.push(
-      {
-        seriesName: "${series_name_2}",
-        seriesType: "${chart_type}",
-        values: "${series_data_2}",
-        objectData: "",
-        matrixData: "",
-        stackGroup: "${stack_group}",
-        radius: "",
-        center: "",
-        seriesId: "series_2"
-      },
-      {
-        seriesName: "${series_name_3}",
-        seriesType: "${chart_type}",
-        values: "${series_data_3}",
-        objectData: "",
-        matrixData: "",
-        stackGroup: "${stack_group}",
-        radius: "",
-        center: "",
-        seriesId: "series_3"
-      }
-    )
-  }
-
-  return baseTemplate
-}
-
-// 创建模拟的第一阶段输出（ECharts结构，保持占位符）
-const createMockStage1Output = (universalTemplate: any, chartId: string) => {
-  if (chartId === 'pie_chart') {
-    return {
-      title: {
-        text: "${chart_title}",
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
-      },
-      legend: {
-        orient: 'vertical',
-        left: 'left',
-        data: "${legend_data}"
-      },
-      series: [
-        {
-          name: "${series_name_1}",
-          type: "pie",
-          radius: '50%',
-          data: "${series_data_1}",
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
-          }
-        }
-      ]
-    }
-  } else if (chartId === 'basic_bar_chart') {
-    return {
-      title: {
-        text: "${chart_title}",
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'axis'
-      },
-      xAxis: {
-        type: 'category',
-        data: "${category_field}"
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: "${series_name_1}",
-          data: "${series_data_1}",
-          type: 'bar'
-        }
-      ]
-    }
-  } else { // stacked_line_chart
-    return {
-      title: {
-        text: "${chart_title}",
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'axis'
-      },
-      legend: {
-        data: "${legend_data}"
-      },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: "${category_field}"
-      },
-      yAxis: {
-        type: 'value'
-      },
-      series: [
-        {
-          name: "${series_name_1}",
-          type: 'line',
-          stack: "${stack_group}",
-          data: "${series_data_1}"
-        },
-        {
-          name: "${series_name_2}",
-          type: 'line',
-          stack: "${stack_group}",
-          data: "${series_data_2}"
-        },
-        {
-          name: "${series_name_3}",
-          type: 'line',
-          stack: "${stack_group}",
-          data: "${series_data_3}"
-        }
-      ]
-    }
-  }
-}
-
-// 创建模拟的第二阶段输出（最终ECharts配置）
-const createMockStage2Output = (stage1Output: any, chartId: string) => {
-  // 将占位符替换为真实数据
-  const finalConfig = JSON.parse(JSON.stringify(stage1Output))
-
-  if (chartId === 'pie_chart') {
-    finalConfig.title.text = '访问来源分析'
-    finalConfig.legend.data = ['搜索引擎', '直接访问', '邮件营销', '联盟广告', '视频广告']
-    finalConfig.series[0].name = '访问来源'
-    finalConfig.series[0].data = [
-      { value: 1048, name: '搜索引擎' },
-      { value: 735, name: '直接访问' },
-      { value: 580, name: '邮件营销' },
-      { value: 484, name: '联盟广告' },
-      { value: 300, name: '视频广告' }
-    ]
-  } else if (chartId === 'basic_bar_chart') {
-    finalConfig.title.text = '月度销售数据'
-    finalConfig.xAxis.data = ['1月', '2月', '3月', '4月', '5月', '6月']
-    finalConfig.series[0].name = '销售额'
-    finalConfig.series[0].data = [120, 200, 150, 80, 70, 110]
-  } else { // stacked_line_chart
-    finalConfig.title.text = '网站流量趋势'
-    finalConfig.legend.data = ['邮件营销', '联盟广告', '视频广告']
-    finalConfig.xAxis.data = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    finalConfig.series[0].name = '邮件营销'
-    finalConfig.series[0].data = [120, 132, 101, 134, 90, 230, 210]
-    finalConfig.series[1].name = '联盟广告'
-    finalConfig.series[1].data = [220, 182, 191, 234, 290, 330, 310]
-    finalConfig.series[2].name = '视频广告'
-    finalConfig.series[2].data = [150, 232, 201, 154, 190, 330, 410]
-  }
-
-  return finalConfig
 }
 
 const copyToClipboard = async (data: any) => {
@@ -847,135 +660,10 @@ const downloadChart = () => {
   message.success('图表已下载')
 }
 
+// 仅用于下载/预览真实数据后的图表，不再注入假数据
 const testChart = () => {
-  console.log('开始测试图表功能')
-
-  // 根据当前选择的图表类型创建测试数据
-  let testData = {}
-
-  switch (transformationStore.currentChartId) {
-    case 'pie_chart':
-      testData = {
-        title: {
-          text: '测试饼图',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: '{a} <br/>{b}: {c} ({d}%)'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 'left'
-        },
-        series: [
-          {
-            name: '访问来源',
-            type: 'pie',
-            radius: '50%',
-            data: [
-              { value: 1048, name: '搜索引擎' },
-              { value: 735, name: '直接访问' },
-              { value: 580, name: '邮件营销' },
-              { value: 484, name: '联盟广告' },
-              { value: 300, name: '视频广告' }
-            ],
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            }
-          }
-        ]
-      }
-      break
-
-    case 'basic_bar_chart':
-      testData = {
-        title: {
-          text: '测试柱状图',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        xAxis: {
-          type: 'category',
-          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: [
-          {
-            name: '销量',
-            data: [120, 200, 150, 80, 70, 110, 130],
-            type: 'bar'
-          }
-        ]
-      }
-      break
-
-    default: // stacked_line_chart
-      testData = {
-        title: {
-          text: '测试堆叠折线图',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        legend: {
-          data: ['邮件营销', '联盟广告', '视频广告', '直接访问', '搜索引擎']
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: [
-          {
-            name: '邮件营销',
-            type: 'line',
-            stack: '总量',
-            data: [120, 132, 101, 134, 90, 230, 210]
-          },
-          {
-            name: '联盟广告',
-            type: 'line',
-            stack: '总量',
-            data: [220, 182, 191, 234, 290, 330, 310]
-          },
-          {
-            name: '视频广告',
-            type: 'line',
-            stack: '总量',
-            data: [150, 232, 201, 154, 190, 330, 410]
-          }
-        ]
-      }
-  }
-
-  console.log('测试数据:', testData)
-
-  // 强制设置到store中
-  transformationStore.finalResult = testData
-
-  // 确保图表容器可见并初始化
-  nextTick(() => {
-    console.log('准备初始化图表')
-    if (!chartInstance) {
-      initChart()
-    } else {
-      updateChart()
-    }
-    message.success(`测试${transformationStore.currentChartId}已加载`)
-  })
+  console.log('开始测试图表功能（调用后端API执行真实两阶段转换）')
+  executeFullTransformation()
 }
 
 // 监听最终结果变化

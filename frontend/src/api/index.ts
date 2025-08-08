@@ -102,34 +102,40 @@ export const request = {
   },
 };
 
-// 两阶段转换API
+// 统一解包后端ApiResponse的data
+const unwrap = (resp: any) =>
+  resp && typeof resp === "object" && "data" in resp ? resp.data : resp;
+
+// 两阶段转换API（已适配ApiResponse包装）
 export const twoStageApi = {
   // 健康检查
-  health: () => request.get("/chart/two-stage/health"),
+  health: () => request.get("/chart/two-stage/health").then(unwrap),
 
   // 完整转换验证
   validate: (chartId: string) =>
-    request.get(`/chart/two-stage/validate/${chartId}`),
+    request.get(`/chart/two-stage/validate/${chartId}`).then(unwrap),
 
   // 获取通用模板
   getTemplate: (chartId: string) =>
-    request.get(`/chart/two-stage/template/${chartId}`),
+    request.get(`/chart/two-stage/template/${chartId}`).then(unwrap),
 
   // 第一阶段转换
   stage1Transform: (chartId: string, template: any) =>
-    request.post(`/chart/two-stage/stage1/${chartId}`, template),
+    request.post(`/chart/two-stage/stage1/${chartId}`, template).then(unwrap),
 
   // 第二阶段转换
   stage2Transform: (chartId: string, echartsTemplate: any) =>
-    request.post(`/chart/two-stage/stage2/${chartId}`, echartsTemplate),
+    request
+      .post(`/chart/two-stage/stage2/${chartId}`, echartsTemplate)
+      .then(unwrap),
 
   // 获取映射关系
   getMappings: (chartId: string) =>
-    request.get(`/chart/two-stage/mappings/${chartId}`),
+    request.get(`/chart/two-stage/mappings/${chartId}`).then(unwrap),
 
   // 占位符测试
   testPlaceholder: (testData: any) =>
-    request.post("/chart/two-stage/placeholder/test", testData),
+    request.post("/chart/two-stage/placeholder/test", testData).then(unwrap),
 };
 
 // 图表验证API（原有的）
@@ -142,6 +148,70 @@ export const chartValidationApi = {
 
   // 健康检查
   health: () => request.get("/chart/validation/health"),
+};
+
+// 新增API：占位符目录、映射管理、注册表、数据源
+export const placeholderCatalogApi = {
+  // 生成占位符目录
+  generate: (
+    chartId: string,
+    body?: { templateVersion?: string; specVersion?: string }
+  ) =>
+    request
+      .post(`/charts/${chartId}/placeholder-catalog/generate`, body)
+      .then(unwrap),
+};
+
+export const mappingApi = {
+  // 获取激活映射
+  getActive: (chartId: string) =>
+    request.get(`/charts/${chartId}/mappings/active`).then(unwrap),
+
+  // 保存映射草稿
+  save: (chartId: string, mapping: any) =>
+    request.put(`/charts/${chartId}/mappings`, mapping).then(unwrap),
+
+  // 校验映射
+  validate: (
+    chartId: string,
+    body: { mapping: any; templateVersion?: string; specVersion?: string }
+  ) => request.post(`/charts/${chartId}/mappings/validate`, body).then(unwrap),
+
+  // Dry-run 预览
+  dryRun: (chartId: string, mapping: any) =>
+    request.post(`/charts/${chartId}/dry-run`, mapping).then(unwrap),
+};
+
+export const chartRegistryApi = {
+  // 列出所有图表
+  list: () => request.get("/charts").then(unwrap),
+
+  // 获取图表注册信息
+  get: (chartId: string) =>
+    request.get(`/charts/${chartId}/registry`).then(unwrap),
+
+  // 激活版本
+  activate: (
+    chartId: string,
+    body: {
+      templateVersion?: string;
+      specVersion?: string;
+      mappingVersion?: string;
+    }
+  ) => request.put(`/charts/${chartId}/registry/activate`, body).then(unwrap),
+};
+
+export const dataSourceApi = {
+  // 获取数据源schema
+  schema: () => request.get("/datasource/schema").then(unwrap),
+
+  // 预览表数据
+  preview: (table: string, limit = 20) =>
+    request.get("/datasource/preview", { table, limit }).then(unwrap),
+
+  // 查询预览
+  queryPreview: (body: any) =>
+    request.post("/datasource/query/preview", body).then(unwrap),
 };
 
 export default api;

@@ -68,6 +68,7 @@ export const useTransformationStore = defineStore("transformation", () => {
 
   // 方法
   const resetSteps = () => {
+    console.log("🔄 重置所有步骤状态");
     steps.value.forEach((step) => {
       step.status = "pending";
       step.input = undefined;
@@ -82,6 +83,7 @@ export const useTransformationStore = defineStore("transformation", () => {
     finalResult.value = null;
     error.value = null;
     executionTime.value = 0;
+    console.log("✅ 状态重置完成");
   };
 
   const updateStepStatus = (
@@ -111,28 +113,44 @@ export const useTransformationStore = defineStore("transformation", () => {
     try {
       // 步骤1: 获取通用模板
       updateStepStatus("template", "running");
+      console.log("📋 获取模板，图表ID:", currentChartId.value);
       const templateResponse = await twoStageApi.getTemplate(
         currentChartId.value
       );
-      universalTemplate.value = templateResponse.template;
+      console.log("📋 模板响应:", templateResponse);
+      universalTemplate.value = templateResponse.template || templateResponse;
       updateStepStatus("template", "completed", templateResponse);
 
       // 步骤2: 第一阶段转换
       updateStepStatus("stage1", "running");
+      console.log("🔄 第一阶段转换，输入:", universalTemplate.value);
       const stage1Response = await twoStageApi.stage1Transform(
         currentChartId.value,
         universalTemplate.value
       );
-      stage1Output.value = stage1Response.echartsStructure;
+      console.log("🔄 第一阶段响应:", stage1Response);
+      // 兼容不同的响应字段名
+      stage1Output.value =
+        stage1Response.echartsStructure ||
+        stage1Response.result ||
+        stage1Response;
+      console.log("🔄 第一阶段输出:", stage1Output.value);
       updateStepStatus("stage1", "completed", stage1Response);
 
       // 步骤3: 第二阶段转换
       updateStepStatus("stage2", "running");
+      console.log("⚡ 第二阶段转换，输入:", stage1Output.value);
       const stage2Response = await twoStageApi.stage2Transform(
         currentChartId.value,
         stage1Output.value
       );
-      stage2Output.value = stage2Response.finalEChartsConfig;
+      console.log("⚡ 第二阶段响应:", stage2Response);
+      // 兼容不同的响应字段名
+      stage2Output.value =
+        stage2Response.finalEChartsConfig ||
+        stage2Response.result ||
+        stage2Response;
+      console.log("⚡ 第二阶段输出:", stage2Output.value);
       updateStepStatus("stage2", "completed", stage2Response);
 
       // 步骤4: 完成

@@ -22,7 +22,8 @@
       "*": "&",
       "series": {
         "*": {
-          "name": "legend.data[&1]"
+          "name": "legend.data[&1]",
+          "*": "series[&1].&"
         }
       }
     }

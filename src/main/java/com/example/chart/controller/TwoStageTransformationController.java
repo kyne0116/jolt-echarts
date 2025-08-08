@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.chart.service.MappingRelationshipService;
 import com.example.chart.service.PlaceholderManager;
+import com.example.chart.service.TemplateService;
 import com.example.chart.service.TwoStageTransformationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -35,13 +36,17 @@ public class TwoStageTransformationController {
     @Autowired
     private MappingRelationshipService mappingService;
 
+    @Autowired
+    private TemplateService templateService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 验证完整的两阶段转换流程
      */
     @GetMapping("/validate/{chartId}")
-    public ResponseEntity<Map<String, Object>> validateTwoStageTransformation(@PathVariable String chartId) {
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> validateTwoStageTransformation(
+            @PathVariable String chartId) {
         try {
             TwoStageTransformationService.TransformationResult result = transformationService
                     .validateFullProcess(chartId);
@@ -63,13 +68,13 @@ public class TwoStageTransformationController {
             Map<String, Object> transformationInfo = transformationService.getTransformationInfo(chartId);
             response.put("transformationInfo", transformationInfo);
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -77,9 +82,10 @@ public class TwoStageTransformationController {
      * 获取带占位符的通用JSON模板
      */
     @GetMapping("/template/{chartId}")
-    public ResponseEntity<Map<String, Object>> getUniversalTemplate(@PathVariable String chartId) {
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> getUniversalTemplate(
+            @PathVariable String chartId) {
         try {
-            Map<String, Object> template = transformationService.createUniversalTemplateWithPlaceholders();
+            Map<String, Object> template = templateService.getTemplateByChartId(chartId);
             Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(template);
 
             Map<String, Object> response = new HashMap<>();
@@ -87,13 +93,13 @@ public class TwoStageTransformationController {
             response.put("placeholders", placeholders);
             response.put("placeholderCount", placeholders.size());
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -101,7 +107,7 @@ public class TwoStageTransformationController {
      * 执行第一阶段转换（结构转换）
      */
     @PostMapping("/stage1/{chartId}")
-    public ResponseEntity<Map<String, Object>> executeStage1Transformation(
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> executeStage1Transformation(
             @PathVariable String chartId,
             @RequestBody Map<String, Object> universalTemplate) {
         try {
@@ -118,7 +124,7 @@ public class TwoStageTransformationController {
             response.put("chartId", chartId);
             response.put("usedJoltSpec", result.getUsedJoltSpec());
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
             System.err.println("第一阶段转换失败: " + e.getMessage());
@@ -126,7 +132,7 @@ public class TwoStageTransformationController {
             errorResponse.put("success", false);
             errorResponse.put("message", "第一阶段转换失败: " + e.getMessage());
             errorResponse.put("chartId", chartId);
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -134,7 +140,7 @@ public class TwoStageTransformationController {
      * 执行第二阶段转换（数据回填）
      */
     @PostMapping("/stage2/{chartId}")
-    public ResponseEntity<Map<String, Object>> executeStage2Transformation(
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> executeStage2Transformation(
             @PathVariable String chartId,
             @RequestBody Map<String, Object> echartsTemplate) {
         try {
@@ -147,13 +153,13 @@ public class TwoStageTransformationController {
             response.put("finalEChartsConfig", result.getResult());
             response.put("queryResults", result.getQueryResults());
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -161,7 +167,8 @@ public class TwoStageTransformationController {
      * 获取映射关系信息
      */
     @GetMapping("/mappings/{chartId}")
-    public ResponseEntity<Map<String, Object>> getMappingInfo(@PathVariable String chartId) {
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> getMappingInfo(
+            @PathVariable String chartId) {
         try {
             // 初始化映射关系（如果还没有）
             if (mappingService.getChartMappings(chartId).isEmpty()) {
@@ -177,13 +184,13 @@ public class TwoStageTransformationController {
             response.put("mappingCount", mappings.size());
             response.put("allChartsSummary", summary);
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -191,7 +198,8 @@ public class TwoStageTransformationController {
      * 测试占位符管理功能
      */
     @PostMapping("/placeholder/test")
-    public ResponseEntity<Map<String, Object>> testPlaceholderManager(@RequestBody Map<String, Object> testData) {
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> testPlaceholderManager(
+            @RequestBody Map<String, Object> testData) {
         try {
             // 提取占位符
             Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(testData);
@@ -214,13 +222,13 @@ public class TwoStageTransformationController {
             response.put("missingPlaceholders", missingPlaceholders);
             response.put("validationPassed", missingPlaceholders.isEmpty());
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
 
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -228,13 +236,13 @@ public class TwoStageTransformationController {
      * 健康检查
      */
     @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> health() {
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> health() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "healthy");
         response.put("service", "Two Stage Transformation Service");
         response.put("features", java.util.Arrays.asList(
                 "占位符管理", "映射关系管理", "两阶段转换", "数据回填"));
         response.put("timestamp", System.currentTimeMillis());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
     }
 }
