@@ -218,69 +218,7 @@
                 </a-button>
               </a-space>
 
-              <!-- 测试功能按钮 -->
-              <a-space wrap>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testOfficialExample"
-                  title="官方ECharts示例"
-                  style="color: #1890ff;"
-                >
-                  📊 官方
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testSmoothFunction"
-                  title="简单平滑测试"
-                  style="color: #52c41a;"
-                >
-                  🧪 简单
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testDataStructureComparison"
-                  title="数据结构对比"
-                  style="color: #722ed1;"
-                >
-                  🔍 对比
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testRegressionCheck"
-                  title="回归测试"
-                  style="color: #fa541c;"
-                >
-                  🔄 回归
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testPropertyInterference"
-                  title="属性干扰诊断"
-                  style="color: #eb2f96;"
-                >
-                  🔬 诊断
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testDirectFix"
-                  title="直接修复测试"
-                  style="color: #13c2c2;"
-                >
-                  🔧 修复
-                </a-button>
-              </a-space>
+
             </a-space>
           </template>
 
@@ -1366,15 +1304,7 @@ const updateChart = async () => {
   try {
     console.log('🎨 开始渲染图表，原始数据:', transformationStore.finalResult)
 
-    // 🔍 检查原始数据
-    if (transformationStore.finalResult?.series) {
-      transformationStore.finalResult.series.forEach((series: any, index: number) => {
-        console.log(`ORIGINAL_SERIES_${index}: type=${series.type} smooth=${series.smooth} name=${series.name}`)
-      })
-    }
-
-    console.log(`CURRENT_CHART_ID: ${transformationStore.currentChartId}`)
-    console.log(`EXPECTED_SMOOTH: ${transformationStore.currentChartId === 'smooth_line_chart' ? 'true' : 'false'}`)
+    console.log(`🎨 渲染图表: ${transformationStore.currentChartId}`)
 
     // 数据验证和预处理（使用配置服务）
     const chartData = await preprocessChartData(transformationStore.finalResult)
@@ -1382,40 +1312,17 @@ const updateChart = async () => {
       throw new Error('图表数据格式不正确')
     }
 
-    // 🔍 检查预处理后的数据
-    if (chartData?.series) {
-      chartData.series.forEach((series: any, index: number) => {
-        console.log(`PROCESSED_SERIES_${index}: type=${series.type} smooth=${series.smooth} name=${series.name}`)
-        console.log(`PROCESSED_DATA_${index}: count=${series.data?.length} sample=${JSON.stringify(series.data?.slice(0, 3))}`)
-
-        if (transformationStore.currentChartId === 'smooth_line_chart' && series.type === 'line') {
-          if (series.smooth !== true) {
-            console.log(`ERROR_SMOOTH_WRONG: expected=true actual=${series.smooth}`)
-          } else {
-            console.log(`SUCCESS_SMOOTH_CORRECT: ${series.smooth}`)
-          }
-
-          // 检查数据点是否足够用于平滑
-          if (series.data && series.data.length < 3) {
-            console.log(`WARNING_INSUFFICIENT_DATA: count=${series.data.length} need>=3`)
-          }
-        }
-      })
-    }
+    console.log(`✅ 图表数据预处理完成`)
 
     // 清除之前的图表
     chartInstance.clear()
 
     // 设置新的配置
-    console.log('SETOPTION_START: notMerge=true')
-
     chartInstance.setOption(chartData, {
       notMerge: true,
       lazyUpdate: false,
       silent: false
     })
-
-    console.log('SETOPTION_COMPLETE')
 
     // 🔧 强制刷新图表以确保配置生效
     chartInstance.resize()
@@ -1430,29 +1337,8 @@ const updateChart = async () => {
 
     console.log('CHART_RENDER_SUCCESS')
 
-    // 🔍 验证ECharts实例中的配置
-    setTimeout(() => {
-      if (chartInstance && !chartInstance.isDisposed()) {
-        const currentOption = chartInstance.getOption()
-        console.log('🔍 [SMOOTH_DEBUG] ECharts实例中的实际配置:', currentOption)
-
-        // 🔍 检查ECharts版本和smooth属性支持
-        console.log('🔍 [ECHARTS_INFO] ECharts版本:', echarts.version)
-
-        // 🔍 验证smooth属性是否被正确应用
-        if (currentOption.series && Array.isArray(currentOption.series)) {
-          currentOption.series.forEach((series: any, index: number) => {
-            console.log(`🔍 [SMOOTH_VERIFY] ECharts实例series[${index}]:`, {
-              type: series.type,
-              smooth: series.smooth,
-              name: series.name
-            })
-          })
-        }
-
-        chartInstance.resize()
-      }
-    }, 50)
+    // 强制刷新图表以确保配置生效
+    chartInstance.resize()
 
     console.log('✅ 图表渲染成功')
   } catch (error) {
@@ -1496,17 +1382,11 @@ const preprocessChartData = async (data: any): Promise<any> => {
     console.log(`✅ [配置服务] 图表数据预处理完成: ${currentChartId}`)
     console.log(`✅ [配置服务] 处理后数据:`, processedData)
 
-    // 🔧 关键修复：平滑折线图移除stack属性
+    // 🔧 关键修复：平滑折线图移除stack属性（stack与smooth冲突）
     if (currentChartId === 'smooth_line_chart' && processedData.series) {
-      processedData.series.forEach((series: any, index: number) => {
-        if (series.type === 'line') {
-          console.log(`SMOOTH_CHECK_${index}: smooth=${series.smooth} stack=${series.stack}`)
-
-          // 移除stack属性，因为它与smooth冲突
-          if (series.stack) {
-            console.log(`REMOVE_STACK_${index}: 移除stack属性以启用smooth`)
-            delete series.stack
-          }
+      processedData.series.forEach((series: any) => {
+        if (series.type === 'line' && series.stack) {
+          delete series.stack
         }
       })
     }
@@ -1564,377 +1444,15 @@ const refreshChart = async () => {
   }
 }
 
-// 🧪 官方ECharts示例对比测试
-const testOfficialExample = () => {
-  if (!chartInstance) {
-    message.error('图表实例不存在')
-    return
-  }
 
-  console.log('OFFICIAL_EXAMPLE_TEST_START')
 
-  // 官方ECharts平滑折线图示例 (https://echarts.apache.org/examples/zh/editor.html?c=line-smooth)
-  const officialConfig = {
-    title: {
-      text: '官方ECharts平滑折线图示例'
-    },
-    tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: ['邮件营销', '联盟广告', '视频广告', '直接访问', '搜索引擎']
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    toolbox: {
-      feature: {
-        saveAsImage: {}
-      }
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: '邮件营销',
-        type: 'line',
-        stack: 'Total',
-        smooth: true,
-        lineStyle: {
-          width: 0
-        },
-        showSymbol: false,
-        areaStyle: {
-          opacity: 0.8
-        },
-        emphasis: {
-          focus: 'series'
-        },
-        data: [140, 232, 101, 264, 90, 340, 250]
-      },
-      {
-        name: '联盟广告',
-        type: 'line',
-        stack: 'Total',
-        smooth: true,
-        lineStyle: {
-          width: 0
-        },
-        showSymbol: false,
-        areaStyle: {
-          opacity: 0.8
-        },
-        emphasis: {
-          focus: 'series'
-        },
-        data: [120, 282, 111, 234, 220, 340, 310]
-      }
-    ]
-  }
 
-  console.log('OFFICIAL_CONFIG_SET')
-  console.log('OFFICIAL_SERIES_0_SMOOTH:', officialConfig.series[0].smooth)
-  console.log('OFFICIAL_SERIES_1_SMOOTH:', officialConfig.series[1].smooth)
 
-  chartInstance.setOption(officialConfig, { notMerge: true })
-  message.success('官方ECharts示例已加载，应该看到平滑的区域图')
-}
 
-// 🧪 简化的平滑测试
-const testSmoothFunction = () => {
-  if (!chartInstance) {
-    message.error('图表实例不存在')
-    return
-  }
 
-  console.log('SIMPLE_SMOOTH_TEST_START')
 
-  // 最简单的平滑测试配置
-  const simpleConfig = {
-    title: { text: '简单平滑测试' },
-    xAxis: {
-      type: 'category',
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: 'Smooth Line',
-        type: 'line',
-        smooth: true,
-        data: [820, 932, 901, 934, 1290, 1330, 1320]
-      }
-    ]
-  }
 
-  console.log('SIMPLE_CONFIG_SET')
-  console.log('SIMPLE_SERIES_SMOOTH:', simpleConfig.series[0].smooth)
-  console.log('SIMPLE_SERIES_DATA:', simpleConfig.series[0].data)
 
-  chartInstance.setOption(simpleConfig, { notMerge: true })
-  message.success('简单平滑测试已加载')
-}
-
-// 🧪 数据结构对比测试
-const testDataStructureComparison = () => {
-  if (!chartInstance) {
-    message.error('图表实例不存在')
-    return
-  }
-
-  console.log('DATA_STRUCTURE_COMPARISON_START')
-
-  if (transformationStore.finalResult && transformationStore.finalResult.series) {
-    const ourData = transformationStore.finalResult
-
-    console.log('OUR_DATA_STRUCTURE:')
-    console.log('- Title:', ourData.title)
-    console.log('- XAxis:', ourData.xAxis)
-    console.log('- YAxis:', ourData.yAxis)
-    console.log('- Series count:', ourData.series.length)
-
-    ourData.series.forEach((series, index) => {
-      console.log(`- Series[${index}]:`)
-      console.log(`  - name: ${series.name}`)
-      console.log(`  - type: ${series.type}`)
-      console.log(`  - smooth: ${series.smooth}`)
-      console.log(`  - data length: ${series.data?.length}`)
-      console.log(`  - data sample: ${JSON.stringify(series.data?.slice(0, 3))}`)
-      console.log(`  - other props: ${Object.keys(series).filter(k => !['name', 'type', 'smooth', 'data'].includes(k)).join(', ')}`)
-    })
-
-    // 创建对比配置：我们的数据 vs 官方格式
-    const comparisonConfig = {
-      title: { text: '数据结构对比测试' },
-      xAxis: ourData.xAxis,
-      yAxis: ourData.yAxis,
-      series: [
-        // 我们的原始数据
-        {
-          ...ourData.series[0],
-          name: '我们的数据(原始)',
-          lineStyle: { color: '#ff0000', width: 2 }
-        },
-        // 简化为官方格式
-        {
-          name: '官方格式',
-          type: 'line',
-          smooth: true,
-          data: ourData.series[0].data,
-          lineStyle: { color: '#0000ff', width: 2 }
-        }
-      ],
-      legend: { data: ['我们的数据(原始)', '官方格式'] }
-    }
-
-    console.log('COMPARISON_CONFIG_SET')
-    chartInstance.setOption(comparisonConfig, { notMerge: true })
-    message.success('数据结构对比测试已加载，红线=我们的数据，蓝线=官方格式')
-  } else {
-    message.error('没有当前数据可供对比')
-  }
-}
-
-// 🧪 回归测试：测试之前工作的配置
-const testRegressionCheck = () => {
-  if (!chartInstance) {
-    message.error('图表实例不存在')
-    return
-  }
-
-  console.log('REGRESSION_TEST_START')
-
-  // 这是之前工作的确切配置
-  const workingConfig = {
-    title: { text: 'Smooth功能测试' },
-    xAxis: {
-      type: 'category',
-      data: ['A', 'B', 'C', 'D', 'E', 'F', 'G']
-    },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: '直线连接',
-        type: 'line',
-        smooth: false,
-        data: [10, 50, 20, 80, 30, 90, 40],
-        lineStyle: { color: '#ff0000', width: 3 }
-      },
-      {
-        name: '平滑连接',
-        type: 'line',
-        smooth: true,
-        data: [15, 45, 25, 75, 35, 85, 45],
-        lineStyle: { color: '#0000ff', width: 3 }
-      }
-    ],
-    legend: { data: ['直线连接', '平滑连接'] }
-  }
-
-  console.log('REGRESSION_CONFIG_EXACT_COPY')
-  console.log('REGRESSION_SERIES_0_SMOOTH:', workingConfig.series[0].smooth)
-  console.log('REGRESSION_SERIES_1_SMOOTH:', workingConfig.series[1].smooth)
-
-  // 清空图表并重新设置
-  chartInstance.clear()
-  chartInstance.setOption(workingConfig, { notMerge: true })
-
-  // 验证设置后的配置
-  setTimeout(() => {
-    const actualConfig = chartInstance.getOption()
-    console.log('REGRESSION_VERIFY_SERIES_0_SMOOTH:', actualConfig.series[0].smooth)
-    console.log('REGRESSION_VERIFY_SERIES_1_SMOOTH:', actualConfig.series[1].smooth)
-  }, 100)
-
-  message.success('回归测试：之前工作的配置已加载')
-}
-
-// 🔍 Stack属性干扰确认测试
-const testPropertyInterference = () => {
-  if (!chartInstance) {
-    message.error('图表实例不存在')
-    return
-  }
-
-  if (!transformationStore.finalResult || !transformationStore.finalResult.series) {
-    message.error('没有当前数据可供测试')
-    return
-  }
-
-  console.log('STACK_INTERFERENCE_TEST_START')
-
-  const ourSeries = transformationStore.finalResult.series[0]
-  console.log('OUR_SERIES_ALL_PROPERTIES:', Object.keys(ourSeries))
-  console.log('OUR_SERIES_STACK_VALUE:', ourSeries.stack)
-  console.log('OUR_SERIES_DATA_TYPE:', typeof ourSeries.data)
-  console.log('OUR_SERIES_DATA_LENGTH:', ourSeries.data?.length)
-  console.log('OUR_SERIES_DATA_SAMPLE:', ourSeries.data?.slice(0, 5))
-  console.log('OUR_SERIES_DATA_SAMPLE_TYPES:', ourSeries.data?.slice(0, 5).map(d => typeof d))
-
-  // 精确测试stack属性的影响
-  const baseConfig = {
-    title: { text: 'Stack属性干扰确认' },
-    xAxis: transformationStore.finalResult.xAxis,
-    yAxis: transformationStore.finalResult.yAxis,
-    series: []
-  }
-
-  // 转换数据为数字类型（防止字符串数据导致的问题）
-  const numericData = ourSeries.data?.map(d => Number(d)) || []
-  console.log('NUMERIC_DATA_SAMPLE:', numericData.slice(0, 5))
-  console.log('NUMERIC_DATA_TYPES:', numericData.slice(0, 5).map(d => typeof d))
-
-  // 测试1：无stack属性 + 数字数据
-  const noStackSeries = {
-    name: '无Stack+数字',
-    type: 'line',
-    smooth: true,
-    data: numericData,
-    lineStyle: { color: '#00ff00', width: 3 }
-  }
-
-  // 测试2：无stack属性 + 原始数据
-  const originalDataSeries = {
-    name: '无Stack+原始',
-    type: 'line',
-    smooth: true,
-    data: ourSeries.data,
-    lineStyle: { color: '#ff0000', width: 3 }
-  }
-
-  // 测试3：简单测试数据
-  const simpleDataSeries = {
-    name: '简单数据',
-    type: 'line',
-    smooth: true,
-    data: [10, 50, 20, 80, 30, 90, 40],
-    lineStyle: { color: '#0000ff', width: 3 }
-  }
-
-  // 测试4：有stack但不同值
-  const differentStackSeries = {
-    name: '不同Stack',
-    type: 'line',
-    smooth: true,
-    stack: 'Different',
-    data: numericData,
-    lineStyle: { color: '#ff8800', width: 3 }
-  }
-
-  baseConfig.series = [noStackSeries, originalDataSeries, simpleDataSeries, differentStackSeries]
-  baseConfig.legend = { data: ['无Stack+数字', '无Stack+原始', '简单数据', '不同Stack'] }
-
-  console.log('NO_STACK_NUMERIC:', noStackSeries)
-  console.log('ORIGINAL_DATA:', originalDataSeries)
-  console.log('SIMPLE_DATA:', simpleDataSeries)
-  console.log('DIFFERENT_STACK:', differentStackSeries)
-
-  chartInstance.setOption(baseConfig, { notMerge: true })
-  message.success('数据类型测试：绿线=数字数据，红线=原始数据，蓝线=简单数据，橙线=不同Stack')
-}
-
-// 🔧 直接修复测试：使用当前数据但移除stack
-const testDirectFix = () => {
-  if (!chartInstance) {
-    message.error('图表实例不存在')
-    return
-  }
-
-  if (!transformationStore.finalResult || !transformationStore.finalResult.series) {
-    message.error('没有当前数据可供测试')
-    return
-  }
-
-  console.log('DIRECT_FIX_TEST_START')
-
-  // 使用当前的完整配置，但移除stack属性
-  const fixedConfig = JSON.parse(JSON.stringify(transformationStore.finalResult))
-
-  if (fixedConfig.series) {
-    fixedConfig.series.forEach((series: any, index: number) => {
-      if (series.type === 'line') {
-        console.log(`BEFORE_FIX_${index}: smooth=${series.smooth} stack=${series.stack}`)
-
-        // 强制设置smooth并移除stack
-        series.smooth = true
-        if (series.stack) {
-          delete series.stack
-          console.log(`AFTER_FIX_${index}: 已移除stack属性`)
-        }
-
-        console.log(`AFTER_FIX_${index}: smooth=${series.smooth} stack=${series.stack}`)
-      }
-    })
-  }
-
-  fixedConfig.title = { text: '直接修复测试' }
-
-  // 🔧 关键修复：使用更明显的测试数据
-  if (fixedConfig.series) {
-    fixedConfig.series.forEach((series: any, index: number) => {
-      if (series.type === 'line') {
-        // 使用更明显的波动数据
-        series.data = [10, 80, 20, 90, 15, 85, 25, 95, 30]
-        console.log(`ENHANCED_DATA_${index}: 使用增强测试数据`)
-      }
-    })
-  }
-
-  console.log('DIRECT_FIX_CONFIG:', fixedConfig)
-  chartInstance.setOption(fixedConfig, { notMerge: true })
-  message.success('直接修复测试：使用增强数据，应该显示明显的平滑曲线')
-}
 
 // 🧪 测试堆叠功能的独立函数
 const testStackFunction = () => {

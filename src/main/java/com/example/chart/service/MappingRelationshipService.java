@@ -637,7 +637,6 @@ public class MappingRelationshipService {
             return Arrays.asList("50%", "50%");
         }
 
-        // 🔧 提供更好的演示数据，适合展示平滑折线图效果
         return Arrays.asList(120, 280, 150, 320, 180, 380, 220);
     }
 
@@ -657,7 +656,6 @@ public class MappingRelationshipService {
             case "Search Engine":
                 return Arrays.asList(820, 932, 901, 934, 1290, 1330, 1320);
             default:
-                // 🔧 提供更有波动性的默认数据，便于展示平滑效果
                 return Arrays.asList(180, 350, 120, 420, 200, 380, 250);
         }
     }

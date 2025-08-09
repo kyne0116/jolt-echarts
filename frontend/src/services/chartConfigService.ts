@@ -168,15 +168,9 @@ class ChartConfigService {
           // 应用smooth配置
           if (config.smooth !== undefined) {
             series.smooth = config.smooth;
-            console.log(
-              `🔧 [配置服务] series[${index}] smooth: ${config.smooth}`
-            );
 
             // 🔧 关键修复：如果启用smooth，移除stack属性（两者冲突）
             if (config.smooth === true && series.stack) {
-              console.log(
-                `🔧 [配置服务] series[${index}] 移除stack以启用smooth`
-              );
               delete series.stack;
             }
           }
@@ -184,9 +178,6 @@ class ChartConfigService {
           // 应用stack配置（仅在不启用smooth时）
           if (config.stack !== undefined && config.smooth !== true) {
             series.stack = config.stack;
-            console.log(
-              `🔧 [配置服务] series[${index}] stack: ${config.stack}`
-            );
           }
 
           // 应用areaStyle配置
