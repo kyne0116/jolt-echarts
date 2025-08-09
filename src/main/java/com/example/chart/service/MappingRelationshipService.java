@@ -506,7 +506,7 @@ public class MappingRelationshipService {
         for (String placeholder : placeholders) {
             Map<String, Object> mapping = (Map<String, Object>) chartMapping.get(placeholder);
             if (mapping != null) {
-                Object mockData = generateMockData(mapping);
+                Object mockData = generateMockData(mapping, chartId);
                 queryResults.put(placeholder, mockData);
             }
         }
@@ -517,7 +517,7 @@ public class MappingRelationshipService {
     /**
      * 根据映射信息生成Mock数据
      */
-    private Object generateMockData(Map<String, Object> mapping) {
+    private Object generateMockData(Map<String, Object> mapping, String chartId) {
         String dataType = (String) mapping.get("dataType");
         // 优先使用fieldName，如果不存在则使用columnName（向后兼容）
         String columnName = (String) mapping.get("fieldName");
@@ -554,7 +554,7 @@ public class MappingRelationshipService {
                     String value = (String) conditions.get("filterValue");
                     return Boolean.parseBoolean(value);
                 }
-                return generateBooleanData(columnName);
+                return generateBooleanData(columnName, chartId);
 
             case "object":
                 return generateObjectData(columnName, conditions);
@@ -637,7 +637,8 @@ public class MappingRelationshipService {
             return Arrays.asList("50%", "50%");
         }
 
-        return Arrays.asList(1, 2, 3, 4, 5);
+        // 🔧 提供更好的演示数据，适合展示平滑折线图效果
+        return Arrays.asList(120, 280, 150, 320, 180, 380, 220);
     }
 
     /**
@@ -656,7 +657,8 @@ public class MappingRelationshipService {
             case "Search Engine":
                 return Arrays.asList(820, 932, 901, 934, 1290, 1330, 1320);
             default:
-                return Arrays.asList(100, 200, 300, 400, 500, 600, 700);
+                // 🔧 提供更有波动性的默认数据，便于展示平滑效果
+                return Arrays.asList(180, 350, 120, 420, 200, 380, 250);
         }
     }
 
@@ -670,12 +672,25 @@ public class MappingRelationshipService {
     /**
      * 生成布尔类型的Mock数据
      */
-    private Boolean generateBooleanData(String columnName) {
+    private Boolean generateBooleanData(String columnName, String chartId) {
         switch (columnName) {
             case "boundary_gap":
                 return false; // 折线图通常不需要边界间隙
             case "smooth_style":
-                return true; // 默认使用平滑样式
+                // 🔧 根据图表类型设置平滑样式
+                if ("basic_line_chart".equals(chartId)) {
+                    System.out.println("🔧 [SMOOTH_STYLE] 基础折线图 -> smooth: false");
+                    return false; // 基础折线图：直线连接
+                } else if ("smooth_line_chart".equals(chartId)) {
+                    System.out.println("🔧 [SMOOTH_STYLE] 平滑折线图 -> smooth: true");
+                    return true; // 平滑折线图：曲线连接
+                } else if ("stacked_line_chart".equals(chartId)) {
+                    System.out.println("🔧 [SMOOTH_STYLE] 堆叠折线图 -> smooth: false");
+                    return false; // 堆叠折线图：直线连接（突出堆叠效果）
+                } else {
+                    System.out.println("🔧 [SMOOTH_STYLE] 其他图表类型(" + chartId + ") -> smooth: true");
+                    return true; // 其他图表类型默认使用平滑样式
+                }
             default:
                 return false;
         }

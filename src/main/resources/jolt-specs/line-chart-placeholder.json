@@ -11,7 +11,8 @@
           "values": "series[&1].data",
           "seriesName": "series[&1].name",
           "seriesType": "series[&1].type",
-          "stackGroup": "series[&1].stack"
+          "stackGroup": "series[&1].stack",
+          "smoothStyle": "series[&1].smooth"
         }
       }
     }

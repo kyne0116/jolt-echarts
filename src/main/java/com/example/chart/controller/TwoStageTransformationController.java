@@ -50,63 +50,6 @@ public class TwoStageTransformationController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * 验证完整的两阶段转换流程
-     */
-//    @GetMapping("/validate/{chartId}")
-//    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> validateTwoStageTransformation(
-//            @PathVariable String chartId) {
-//        logger.info("🔍 [验证转换] 开始验证图表: {}", chartId);
-//        long startTime = System.currentTimeMillis();
-//
-//        try {
-//            logger.debug("📊 [验证转换] 调用验证服务，chartId: {}", chartId);
-//
-//            TwoStageTransformationService.TransformationResult result = transformationService
-//                    .validateFullProcess(chartId);
-//
-//            Map<String, Object> response = new HashMap<>();
-//            response.put("success", result.isSuccess());
-//            response.put("message", result.getMessage());
-//            response.put("finalEChartsConfig", result.getResult());
-//
-//            if (result.getPlaceholders() != null) {
-//                response.put("processedPlaceholders", result.getPlaceholders());
-//                logger.debug("🏷️ [验证转换] 处理的占位符数量: {}", result.getPlaceholders().size());
-//            }
-//
-//            if (result.getQueryResults() != null) {
-//                response.put("queryResults", result.getQueryResults());
-//                logger.debug("📋 [验证转换] 查询结果包含 {} 项数据", result.getQueryResults().size());
-//            }
-//
-//            // 添加转换流程信息
-//            Map<String, Object> transformationInfo = transformationService.getTransformationInfo(chartId);
-//            response.put("transformationInfo", transformationInfo);
-//
-//            long duration = System.currentTimeMillis() - startTime;
-//            logger.info("✅ [验证转换] 验证完成，耗时: {}ms, 成功: {}, 图表: {}",
-//                       duration, result.isSuccess(), chartId);
-//
-//            if (logger.isDebugEnabled()) {
-//                logger.debug("📤 [验证转换] 响应数据: success={}, message={}, placeholders={}, queryResults={}",
-//                           result.isSuccess(), result.getMessage(),
-//                           result.getPlaceholders() != null ? result.getPlaceholders().size() : 0,
-//                           result.getQueryResults() != null ? result.getQueryResults().size() : 0);
-//            }
-//
-//            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
-//
-//        } catch (Exception e) {
-//            long duration = System.currentTimeMillis() - startTime;
-//            logger.error("❌ [验证转换] 验证失败，耗时: {}ms, 图表: {}, 错误: {}", duration, chartId, e.getMessage(), e);
-//
-//            Map<String, Object> errorResponse = new HashMap<>();
-//            errorResponse.put("success", false);
-//            errorResponse.put("error", e.getMessage());
-//            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
-//        }
-//    }
 
     /**
      * 获取图表类型信息
@@ -402,13 +345,13 @@ public class TwoStageTransformationController {
         logger.info("🗺️ [映射信息] 获取映射关系信息: {}", chartId);
         
         try {
-            // 初始化映射关系（如果还没有）
-            if (mappingService.getChartMappings(chartId).isEmpty()) {
-                logger.debug("🔄 [映射信息] 初始化映射关系: {}", chartId);
-                mappingService.initializeSampleMappings();
+            // 检查映射关系是否存在（不再自动初始化）
+            Map<String, Object> mappings = mappingService.getChartMappings(chartId);
+            if (mappings.isEmpty()) {
+                logger.error("❌ [映射信息] 映射关系未初始化: {}", chartId);
+                throw new IllegalStateException("映射关系未初始化，请先调用 /mappings/reload 接口");
             }
 
-            Map<String, Object> mappings = mappingService.getChartMappings(chartId);
             Map<String, Integer> summary = mappingService.getMappingsSummary();
 
             Map<String, Object> response = new HashMap<>();
@@ -437,82 +380,6 @@ public class TwoStageTransformationController {
         }
     }
 
-    /**
-     * 测试占位符管理功能
-     */
-    @PostMapping("/placeholder/test")
-    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> testPlaceholderManager(
-            @RequestBody Map<String, Object> testData) {
-        logger.info("🧪 [占位符测试] 开始测试占位符管理功能");
-        long startTime = System.currentTimeMillis();
-        
-        try {
-            // 输入数据日志
-            if (logger.isDebugEnabled()) {
-                int dataSize = objectMapper.writeValueAsString(testData).length();
-                logger.debug("📥 [占位符测试] 输入数据大小: {}KB", dataSize / 1024.0);
-                
-                if (logger.isTraceEnabled()) {
-                    logger.trace("📥 [占位符测试] 输入数据: {}", 
-                               objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(testData));
-                }
-            }
-            
-            // 提取占位符
-            Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(testData);
-            logger.debug("🏷️ [占位符测试] 提取到 {} 个占位符", placeholders.size());
-
-            // 创建示例替换值
-            Map<String, Object> sampleValues = placeholderManager.createSamplePlaceholderValues();
-            logger.debug("🎲 [占位符测试] 生成 {} 个示例替换值", sampleValues.size());
-
-            // 执行替换
-            Object replacedData = placeholderManager.replacePlaceholdersInJson(testData, sampleValues);
-
-            // 验证占位符
-            java.util.List<String> missingPlaceholders = placeholderManager.validatePlaceholders(testData,
-                    sampleValues);
-            
-            boolean validationPassed = missingPlaceholders.isEmpty();
-            logger.debug("✅ [占位符测试] 验证结果: {}, 缺失占位符: {}个", 
-                       validationPassed ? "通过" : "失败", missingPlaceholders.size());
-            
-            if (!validationPassed && logger.isDebugEnabled()) {
-                logger.debug("⚠️ [占位符测试] 缺失的占位符: {}", missingPlaceholders);
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("originalData", testData);
-            response.put("extractedPlaceholders", placeholders);
-            response.put("sampleValues", sampleValues);
-            response.put("replacedData", replacedData);
-            response.put("missingPlaceholders", missingPlaceholders);
-            response.put("validationPassed", validationPassed);
-            
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("✅ [占位符测试] 测试完成，耗时: {}ms, 占位符: {}个, 验证: {}", 
-                       duration, placeholders.size(), validationPassed ? "通过" : "失败");
-            
-            // 输出数据日志
-            if (logger.isTraceEnabled()) {
-                logger.trace("📤 [占位符测试] 替换后数据: {}", 
-                           objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(replacedData));
-                logger.trace("📤 [占位符测试] 示例替换值: {}", 
-                           objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(sampleValues));
-            }
-
-            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
-
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            logger.error("❌ [占位符测试] 测试异常，耗时: {}ms, 错误: {}", duration, e.getMessage(), e);
-            
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("INTERNAL_ERROR", e.getMessage()));
-        }
-    }
 
     /**
      * 重新加载映射关系
@@ -592,14 +459,18 @@ public class TwoStageTransformationController {
                         for (java.io.File jsonFile : jsonFiles) {
                             String fileName = jsonFile.getName();
                             String displayName = fileName.replace(".json", "");
+                            String filePath = categoryName + "/" + fileName;
+                            String chartId = generateChartIdFromFilePath(filePath);
 
                             Map<String, String> fileInfo = new HashMap<>();
                             fileInfo.put("fileName", fileName);
                             fileInfo.put("displayName", displayName);
-                            fileInfo.put("filePath", categoryName + "/" + fileName);
+                            fileInfo.put("filePath", filePath);
+                            fileInfo.put("chartId", chartId);
+                            fileInfo.put("status", getChartImplementationStatus(chartId));
                             files.add(fileInfo);
                             
-                            logger.trace("📄 [目录扫描] 添加文件: {} -> {}", fileName, displayName);
+                            logger.trace("📄 [目录扫描] 添加文件: {} -> {} (chartId: {})", fileName, displayName, chartId);
                         }
                     } else {
                         logger.debug("📁 [目录扫描] 类别 '{}' 不包含JSON文件", categoryName);
@@ -641,6 +512,92 @@ public class TwoStageTransformationController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
             return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("SCAN_ERROR", e.getMessage()));
+        }
+    }
+
+    /**
+     * 根据文件路径生成chartId
+     */
+    private String generateChartIdFromFilePath(String filePath) {
+        Map<String, String> pathToIdMapping = new HashMap<>();
+        
+        // 映射关系
+        pathToIdMapping.put("折线图/基础折线图.json", "basic_line_chart");
+        pathToIdMapping.put("折线图/基础平滑折线图.json", "smooth_line_chart");
+        pathToIdMapping.put("折线图/折线图堆叠.json", "stacked_line_chart");
+        pathToIdMapping.put("柱状图/基础柱状图.json", "basic_bar_chart");
+        pathToIdMapping.put("柱状图/堆叠柱状图.json", "stacked_bar_chart");
+        pathToIdMapping.put("饼图/富文本标签.json", "basic_pie_chart");
+        pathToIdMapping.put("饼图/圆角环形图.json", "doughnut_chart");
+        pathToIdMapping.put("雷达图/基础雷达图.json", "basic_radar_chart");
+        pathToIdMapping.put("仪表盘/基础仪表盘.json", "basic_gauge_chart");
+        pathToIdMapping.put("仪表盘/进度仪表盘.json", "progress_gauge_chart");
+        pathToIdMapping.put("仪表盘/等级仪表盘.json", "grade_gauge_chart");
+        
+        return pathToIdMapping.getOrDefault(filePath, filePath.replace(".json", "").replaceAll("[/\\\\]", "_"));
+    }
+
+    /**
+     * 获取图表实现状态
+     */
+    private String getChartImplementationStatus(String chartId) {
+        java.util.Set<String> implementedCharts = java.util.Set.of(
+            "stacked_line_chart", "basic_bar_chart", "stacked_bar_chart", 
+            "basic_line_chart", "smooth_line_chart", "basic_pie_chart", 
+            "doughnut_chart", "basic_radar_chart", "basic_gauge_chart",
+            "progress_gauge_chart", "grade_gauge_chart"
+        );
+        
+        java.util.Set<String> plannedCharts = java.util.Set.of(
+            "basic_area_chart", "rose_chart", "filled_radar_chart"
+        );
+        
+        if (implementedCharts.contains(chartId)) {
+            return "implemented";
+        } else if (plannedCharts.contains(chartId)) {
+            return "planned";
+        } else {
+            return "unknown";
+        }
+    }
+
+    /**
+     * 获取图表分类列表（错误恢复时使用）
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<com.example.api.ApiResponse<Map<String, Object>>> getCategories() {
+        logger.info("📁 [分类获取] 获取图表分类列表");
+        
+        try {
+            Map<String, Object> response = new HashMap<>();
+            java.util.List<Map<String, String>> categories = new java.util.ArrayList<>();
+            
+            // 定义分类信息
+            String[][] categoryData = {
+                {"折线图", "Line Chart", "LineChartOutlined"},
+                {"柱状图", "Bar Chart", "BarChartOutlined"},
+                {"饼图", "Pie Chart", "PieChartOutlined"},
+                {"雷达图", "Radar Chart", "RadarChartOutlined"},
+                {"仪表盘", "Gauge Chart", "DashboardOutlined"}
+            };
+            
+            for (String[] data : categoryData) {
+                Map<String, String> category = new HashMap<>();
+                category.put("name", data[0]);
+                category.put("displayName", data[1]);
+                category.put("iconName", data[2]);
+                categories.add(category);
+            }
+            
+            response.put("categories", categories);
+            response.put("totalCategories", categories.size());
+            
+            logger.info("✅ [分类获取] 返回 {} 个分类", categories.size());
+            return ResponseEntity.ok(com.example.api.ApiResponse.ok(response));
+            
+        } catch (Exception e) {
+            logger.error("❌ [分类获取] 获取分类失败: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(com.example.api.ApiResponse.error("CATEGORY_ERROR", e.getMessage()));
         }
     }
 

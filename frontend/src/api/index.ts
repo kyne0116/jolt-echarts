@@ -144,6 +144,9 @@ export const twoStageApi = {
   // 扫描ECharts目录结构
   scanEChartsDirectory: () =>
     request.get("/chart/two-stage/echarts-directory").then(unwrap),
+
+  // 获取图表分类列表（错误恢复用）
+  getCategories: () => request.get("/chart/two-stage/categories").then(unwrap),
 };
 
 // 图表验证API（原有的）
@@ -220,6 +223,20 @@ export const dataSourceApi = {
   // 查询预览
   queryPreview: (body: any) =>
     request.post("/datasource/query/preview", body).then(unwrap),
+};
+
+// 图表配置API
+export const chartConfigApi = {
+  // 获取图表类型映射配置
+  getChartTypes: () => request.get("/chart/config/chart-types").then(unwrap),
+
+  // 获取图表特定配置
+  getChartSpecificConfig: (chartId: string) =>
+    request.get(`/chart/config/chart-specific/${chartId}`).then(unwrap),
+
+  // 获取图表预处理规则
+  getPreprocessingRules: () =>
+    request.get("/chart/config/preprocessing-rules").then(unwrap),
 };
 
 export default api;

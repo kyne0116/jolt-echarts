@@ -17,15 +17,21 @@
   "series": [
     {
       "data": [
+        100,
+        300,
         150,
-        230,
-        224,
-        218,
-        135,
-        147,
-        260
+        400,
+        200,
+        350,
+        250
       ],
-      "type": "line"
+      "type": "line",
+      "smooth": false,
+      "symbol": "circle",
+      "symbolSize": 6,
+      "lineStyle": {
+        "width": 2
+      }
     }
   ]
 }

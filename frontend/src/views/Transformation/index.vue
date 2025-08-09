@@ -65,20 +65,6 @@
                 </a-select>
               </div>
 
-              <!-- 两阶段转换按钮 -->
-              <div class="transform-button-section">
-                <a-button
-                  type="primary"
-                  size="middle"
-                  :loading="transformationStore.loading"
-                  :disabled="!selectedChartFile || !selectedTemplateType"
-                  @click="executeFullTransformation"
-                  block
-                >
-                  <PlayCircleOutlined />
-                  两阶段转换
-                </a-button>
-              </div>
             </a-space>
           </div>
         </a-col>
@@ -132,16 +118,6 @@
       <div class="action-section">
         <a-space size="middle">
           <a-button
-            type="primary"
-            :loading="transformationStore.loading"
-            @click="executeFullTransformation"
-            size="middle"
-          >
-            <PlayCircleOutlined />
-            执行转换
-          </a-button>
-
-          <a-button
             :disabled="transformationStore.loading"
             @click="resetTransformation"
             size="middle"
@@ -189,51 +165,122 @@
             :class="{ active: transformationStore.isCompleted }"
           >
           <template #extra>
-            <a-space>
-              <a-tag v-if="transformationStore.finalResult" color="green">
-                数据就绪
-              </a-tag>
-              <a-tag v-if="chartInstance" color="blue">
-                图表已初始化
-              </a-tag>
-              <a-tag v-if="chartZoom !== 1" color="orange">
-                缩放: {{ Math.round(chartZoom * 100) }}%
-              </a-tag>
-              <a-button
-                type="link"
-                size="small"
-                @click="initChart"
-                title="重新初始化图表"
-              >
-                <ReloadOutlined />
-              </a-button>
-              <a-button
-                type="link"
-                size="small"
-                :disabled="!transformationStore.finalResult"
-                @click="refreshChart"
-                title="刷新图表"
-              >
-                <ReloadOutlined />
-              </a-button>
-              <a-button
-                type="link"
-                size="small"
-                :disabled="!chartInstance || chartZoom === 1"
-                @click="resetChartZoom"
-                title="重置缩放"
-              >
-                <CompressOutlined />
-              </a-button>
-              <a-button
-                type="link"
-                size="small"
-                :disabled="!transformationStore.finalResult"
-                @click="downloadChart"
-                title="下载图表"
-              >
-                <DownloadOutlined />
-              </a-button>
+            <a-space direction="vertical" size="small" style="width: 100%;">
+              <!-- 状态标签 -->
+              <a-space>
+                <a-tag v-if="transformationStore.finalResult" color="green">
+                  数据就绪
+                </a-tag>
+                <a-tag v-if="chartInstance" color="blue">
+                  图表已初始化
+                </a-tag>
+                <a-tag v-if="chartZoom !== 1" color="orange">
+                  缩放: {{ Math.round(chartZoom * 100) }}%
+                </a-tag>
+              </a-space>
+
+              <!-- 基础功能按钮 -->
+              <a-space wrap>
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="initChart"
+                  title="重新初始化图表"
+                >
+                  <ReloadOutlined />
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!transformationStore.finalResult"
+                  @click="refreshChart"
+                  title="刷新图表"
+                >
+                  <ReloadOutlined />
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance || chartZoom === 1"
+                  @click="resetChartZoom"
+                  title="重置缩放"
+                >
+                  <CompressOutlined />
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!transformationStore.finalResult"
+                  @click="downloadChart"
+                  title="下载图表"
+                >
+                  <DownloadOutlined />
+                </a-button>
+              </a-space>
+
+              <!-- 测试功能按钮 -->
+              <a-space wrap>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testOfficialExample"
+                  title="官方ECharts示例"
+                  style="color: #1890ff;"
+                >
+                  📊 官方
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testSmoothFunction"
+                  title="简单平滑测试"
+                  style="color: #52c41a;"
+                >
+                  🧪 简单
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testDataStructureComparison"
+                  title="数据结构对比"
+                  style="color: #722ed1;"
+                >
+                  🔍 对比
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testRegressionCheck"
+                  title="回归测试"
+                  style="color: #fa541c;"
+                >
+                  🔄 回归
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testPropertyInterference"
+                  title="属性干扰诊断"
+                  style="color: #eb2f96;"
+                >
+                  🔬 诊断
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testDirectFix"
+                  title="直接修复测试"
+                  style="color: #13c2c2;"
+                >
+                  🔧 修复
+                </a-button>
+              </a-space>
             </a-space>
           </template>
 
@@ -469,6 +516,7 @@
 
 <script setup lang="ts">
 import { twoStageApi } from '@/api'
+import chartConfigService from '@/services/chartConfigService'
 import { useTransformationStore } from '@/stores'
 import {
     BarChartOutlined,
@@ -483,7 +531,6 @@ import {
     LoadingOutlined,
     MinusOutlined,
     PieChartOutlined,
-    PlayCircleOutlined,
     PlusOutlined,
     RadarChartOutlined,
     ReloadOutlined
@@ -550,9 +597,16 @@ const loadEChartsDirectory = async () => {
     console.error('❌ 加载ECharts目录结构失败:', error)
     message.error(`加载目录结构失败: ${error.message || '未知错误'}`)
 
-    // 错误恢复：使用默认数据
-    directoryCategories.value = ['折线图', '柱状图', '饼图', '雷达图', '仪表盘']
-    message.warning('已切换到默认图表分类')
+    // 错误恢复：尝试使用后端备用接口
+    try {
+      await loadCategoriesFromBackup()
+      message.warning('已切换到备用分类数据')
+    } catch (backupError) {
+      console.error('❌ 备用接口也失败了:', backupError)
+      // 最终回退到硬编码数据
+      directoryCategories.value = ['折线图', '柱状图', '饼图', '雷达图', '仪表盘']
+      message.warning('已切换到本地默认分类')
+    }
 
     // 即使在错误恢复情况下，也尝试初始化默认选择
     try {
@@ -573,7 +627,7 @@ const initializeDefaultSelections = async () => {
     // 如果已有存储的图表ID，优先使用
     if (transformationStore.currentChartId) {
       console.log('📋 发现已存储的图表ID，尝试恢复选择:', transformationStore.currentChartId)
-      initializeTemplateTypeFromChartId(transformationStore.currentChartId)
+      await initializeTemplateTypeFromChartId(transformationStore.currentChartId)
       return
     }
 
@@ -666,7 +720,7 @@ const loadChartInfoWithFallback = async (filePath: string) => {
     console.log('🔄 使用回退方案加载图表信息:', filePath)
 
     // 生成基本的图表信息
-    const chartId = generateChartIdFromFilePath(filePath)
+    const chartId = await generateChartIdFromFilePath(filePath)
     const displayName = getDisplayNameFromFilePath(filePath)
 
     // 设置基本的图表信息
@@ -688,16 +742,20 @@ const loadChartInfoWithFallback = async (filePath: string) => {
   }
 }
 
-// 获取分类图标
+// 获取分类图标（动态获取，不再使用硬编码映射）
 const getCategoryIcon = (category: string) => {
-  const iconMap: Record<string, any> = {
+  // 预定义的图标映射（保留作为回退方案）
+  const defaultIconMap: Record<string, any> = {
     '折线图': LineChartOutlined,
     '柱状图': BarChartOutlined,
     '饼图': PieChartOutlined,
     '雷达图': RadarChartOutlined,
     '仪表盘': DashboardOutlined
   }
-  return iconMap[category] || BarChartOutlined
+  
+  // TODO: 可以从后端返回的分类数据中获取图标信息
+  // 目前先使用默认映射，后续可扩展为动态获取
+  return defaultIconMap[category] || BarChartOutlined
 }
 
 // 窗口宽度监听（用于调试布局）
@@ -870,7 +928,7 @@ const handleChartFileChange = async (filePath: string) => {
     const loadingMessage = message.loading('正在切换图表文件...', 0)
 
     // 根据文件路径生成chartId（用于后端API调用）
-    const chartId = generateChartIdFromFilePath(filePath)
+    const chartId = await generateChartIdFromFilePath(filePath)
 
     // 同步到store
     transformationStore.setChartId(chartId)
@@ -918,25 +976,69 @@ const handleChartFileChange = async (filePath: string) => {
   }
 }
 
-// 根据文件路径生成chartId
-const generateChartIdFromFilePath = (filePath: string): string => {
-  // 将文件路径转换为chartId格式
-  // 例如：折线图/基础折线图.json -> basic_line_chart
-  const pathMap: Record<string, string> = {
-    '折线图/基础折线图.json': 'basic_line_chart',
-    '折线图/基础平滑折线图.json': 'smooth_line_chart',
-    '折线图/折线图堆叠.json': 'stacked_line_chart',
-    '柱状图/基础柱状图.json': 'basic_bar_chart',
-    '柱状图/堆叠柱状图.json': 'stacked_bar_chart',
-    '饼图/富文本标签.json': 'basic_pie_chart',
-    '饼图/圆角环形图.json': 'doughnut_chart',
-    '雷达图/基础雷达图.json': 'basic_radar_chart',
-    '仪表盘/基础仪表盘.json': 'basic_gauge_chart',
-    '仪表盘/进度仪表盘.json': 'progress_gauge_chart',
-    '仪表盘/等级仪表盘.json': 'grade_gauge_chart'
+// 从后端备用接口加载分类数据
+const loadCategoriesFromBackup = async () => {
+  console.log('🔄 尝试从备用接口加载分类数据')
+  
+  const response = await twoStageApi.getCategories()
+  console.log('📂 备用接口返回的分类数据:', response)
+  
+  if (response.categories && Array.isArray(response.categories)) {
+    // 提取分类名称
+    directoryCategories.value = response.categories.map((cat: any) => cat.name)
+    
+    // 可选：保存图标映射信息
+    const icons: Record<string, any> = {}
+    response.categories.forEach((cat: any) => {
+      if (cat.iconName) {
+        icons[cat.name] = cat.iconName
+      }
+    })
+    
+    console.log('✅ 成功从备用接口加载分类:', directoryCategories.value)
+    return response
+  } else {
+    throw new Error('备用接口返回的分类数据格式不正确')
   }
+}
 
-  return pathMap[filePath] || filePath.replace(/[\/\s\.]/g, '_').toLowerCase()
+// 根据文件路径生成chartId（使用配置服务）
+const generateChartIdFromFilePath = async (filePath: string): Promise<string> => {
+  try {
+    // 首先尝试使用配置服务获取chartId
+    console.log(`📋 [配置服务] 尝试获取文件路径映射: ${filePath}`)
+    const chartId = await chartConfigService.generateChartIdFromFilePath(filePath)
+    console.log(`📋 [配置服务] 文件路径映射成功: ${filePath} -> ${chartId}`)
+    return chartId
+  } catch (error) {
+    console.error(`❌ [配置服务] 获取chartId失败: ${filePath}`, error)
+
+    // 使用临时硬编码映射作为回退
+    const hardcodedMapping: Record<string, string> = {
+      '折线图/基础折线图.json': 'basic_line_chart',
+      '折线图/基础平滑折线图.json': 'smooth_line_chart',
+      '折线图/折线图堆叠.json': 'stacked_line_chart',
+      '柱状图/基础柱状图.json': 'basic_bar_chart',
+      '柱状图/堆叠柱状图.json': 'stacked_bar_chart',
+      '饼图/富文本标签.json': 'basic_pie_chart',
+      '饼图/圆角环形图.json': 'doughnut_chart',
+      '雷达图/基础雷达图.json': 'basic_radar_chart',
+      '仪表盘/基础仪表盘.json': 'basic_gauge_chart',
+      '仪表盘/进度仪表盘.json': 'progress_gauge_chart',
+      '仪表盘/等级仪表盘.json': 'grade_gauge_chart'
+    }
+
+    const mappedId = hardcodedMapping[filePath]
+    if (mappedId) {
+      console.log(`📋 [硬编码映射] 使用硬编码映射: ${filePath} -> ${mappedId}`)
+      return mappedId
+    }
+
+    // 最后的回退方案
+    const fallbackId = filePath.replace(/[\/\s\.]/g, '_').toLowerCase()
+    console.warn(`⚠️ 使用最终回退方案: ${filePath} -> ${fallbackId}`)
+    return fallbackId
+  }
 }
 
 // 从文件路径获取显示名称
@@ -950,42 +1052,6 @@ const getDisplayNameFromFilePath = (filePath: string): string => {
 
 
 
-const executeFullTransformation = async () => {
-  try {
-    transformationStore.loading = true
-    transformationStore.error = null
-
-    // 步骤1：获取模板
-    const templateResp = await twoStageApi.getTemplate(transformationStore.currentChartId)
-    transformationStore.universalTemplate = templateResp.template
-    transformationStore.updateStepStatus('template', 'completed', templateResp)
-
-    // 步骤2：第一阶段
-    const stage1Resp = await twoStageApi.stage1Transform(
-      transformationStore.currentChartId,
-      transformationStore.universalTemplate
-    )
-    transformationStore.stage1Output = stage1Resp.echartsStructure
-    transformationStore.updateStepStatus('stage1', 'completed', stage1Resp)
-
-    // 步骤3：第二阶段
-    const stage2Resp = await twoStageApi.stage2Transform(
-      transformationStore.currentChartId,
-      transformationStore.stage1Output
-    )
-    transformationStore.stage2Output = stage2Resp.finalEChartsConfig
-    transformationStore.finalResult = stage2Resp.finalEChartsConfig
-    transformationStore.updateStepStatus('stage2', 'completed', stage2Resp)
-    transformationStore.updateStepStatus('complete', 'completed', stage2Resp.finalEChartsConfig)
-
-    message.success('转换执行成功！')
-  } catch (error: any) {
-    console.error('转换失败:', error)
-    message.error(`转换执行失败: ${error.message}`)
-  } finally {
-    transformationStore.loading = false
-  }
-}
 
 
 
@@ -1021,9 +1087,8 @@ const testAllFunctionality = async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
     debugCurrentState()
 
-    // 2. 测试完整转换流程
-    console.log('2️⃣ 测试完整转换流程...')
-    await executeFullTransformation()
+    // 2. 图表已在文件选择时自动转换
+    console.log('2️⃣ 图表已自动转换...')
     await new Promise(resolve => setTimeout(resolve, 1000))
     debugCurrentState()
 
@@ -1090,26 +1155,16 @@ const getTemplateTypeColor = (templateType: string) => {
   return colorMap[templateType] || 'default'
 }
 
-// 获取ECharts示例文件路径
-const getEChartsFilePath = (chartId: string) => {
-  const filePathMap: Record<string, string> = {
-    'basic_line_chart': '折线图/基础折线图.json',
-    'smooth_line_chart': '折线图/基础平滑折线图.json',
-    'stacked_line_chart': '折线图/折线图堆叠.json',
-    'basic_bar_chart': '柱状图/基础柱状图.json',
-    'stacked_bar_chart': '柱状图/堆叠柱状图.json',
-    'basic_area_chart': '待创建',
-    'basic_pie_chart': '饼图/富文本标签.json',
-    'doughnut_chart': '饼图/圆角环形图.json',
-    'rose_chart': '待创建',
-    'pie_chart': '饼图/富文本标签.json',
-    'basic_radar_chart': '雷达图/基础雷达图.json',
-    'filled_radar_chart': '待创建',
-    'basic_gauge_chart': '仪表盘/基础仪表盘.json',
-    'progress_gauge_chart': '仪表盘/进度仪表盘.json',
-    'grade_gauge_chart': '仪表盘/等级仪表盘.json'
+// 获取ECharts示例文件路径（使用配置服务）
+const getEChartsFilePath = async (chartId: string): Promise<string> => {
+  try {
+    const filePath = await chartConfigService.getEChartsFilePath(chartId)
+    console.log(`📋 [配置服务] 图表ID映射: ${chartId} -> ${filePath}`)
+    return filePath
+  } catch (error) {
+    console.error(`❌ [配置服务] 获取文件路径失败: ${chartId}`, error)
+    return '未知'
   }
-  return filePathMap[chartId] || '未知'
 }
 
 // 获取JOLT SPEC文件路径
@@ -1134,23 +1189,24 @@ const getJoltFilePath = (chartId: string) => {
   return filePathMap[chartId] || '未知'
 }
 
-// 获取实现状态
+// 获取实现状态（从后端数据获取，不再使用硬编码）
 const getImplementationStatus = (chartId: string) => {
-  const implementedCharts = [
-    'basic_line_chart', 'smooth_line_chart', 'stacked_line_chart',
-    'basic_bar_chart', 'stacked_bar_chart',
-    'basic_pie_chart', 'doughnut_chart', 'pie_chart',
-    'basic_radar_chart', 'basic_gauge_chart', 'progress_gauge_chart', 'grade_gauge_chart'
-  ]
-  const plannedCharts = ['basic_area_chart', 'rose_chart', 'filled_radar_chart']
-
-  if (implementedCharts.includes(chartId)) {
-    return '已实现'
-  } else if (plannedCharts.includes(chartId)) {
-    return '计划中'
-  } else {
-    return '未知'
+  // 从后端数据中查找对应的状态
+  const allCharts = Object.values(echartsDirectoryStructure.value).flat()
+  const chart = allCharts.find((c: any) => c.chartId === chartId)
+  
+  if (chart && chart.status) {
+    // 将英文状态转换为中文显示
+    const statusMap: Record<string, string> = {
+      'implemented': '已实现',
+      'planned': '计划中',
+      'unknown': '未知'
+    }
+    return statusMap[chart.status] || chart.status
   }
+  
+  // 如果后端没有提供状态信息，返回未知
+  return '未知'
 }
 
 // 获取实现状态颜色
@@ -1246,7 +1302,9 @@ const initChart = () => {
 
         // 如果已有数据，立即渲染
         if (transformationStore.finalResult) {
-          updateChart()
+          updateChart().catch(error => {
+            console.error('图表渲染失败:', error)
+          })
         }
 
         // 监听窗口大小变化
@@ -1293,7 +1351,7 @@ const showChartError = (errorMessage: string) => {
   }
 }
 
-const updateChart = () => {
+const updateChart = async () => {
   if (!chartInstance) {
     console.warn('图表实例不存在，尝试重新初始化')
     initChart()
@@ -1306,27 +1364,92 @@ const updateChart = () => {
   }
 
   try {
-    console.log('🎨 开始渲染图表，数据:', transformationStore.finalResult)
+    console.log('🎨 开始渲染图表，原始数据:', transformationStore.finalResult)
 
-    // 数据验证和预处理
-    const chartData = preprocessChartData(transformationStore.finalResult)
+    // 🔍 检查原始数据
+    if (transformationStore.finalResult?.series) {
+      transformationStore.finalResult.series.forEach((series: any, index: number) => {
+        console.log(`ORIGINAL_SERIES_${index}: type=${series.type} smooth=${series.smooth} name=${series.name}`)
+      })
+    }
+
+    console.log(`CURRENT_CHART_ID: ${transformationStore.currentChartId}`)
+    console.log(`EXPECTED_SMOOTH: ${transformationStore.currentChartId === 'smooth_line_chart' ? 'true' : 'false'}`)
+
+    // 数据验证和预处理（使用配置服务）
+    const chartData = await preprocessChartData(transformationStore.finalResult)
     if (!validateChartData(chartData)) {
       throw new Error('图表数据格式不正确')
+    }
+
+    // 🔍 检查预处理后的数据
+    if (chartData?.series) {
+      chartData.series.forEach((series: any, index: number) => {
+        console.log(`PROCESSED_SERIES_${index}: type=${series.type} smooth=${series.smooth} name=${series.name}`)
+        console.log(`PROCESSED_DATA_${index}: count=${series.data?.length} sample=${JSON.stringify(series.data?.slice(0, 3))}`)
+
+        if (transformationStore.currentChartId === 'smooth_line_chart' && series.type === 'line') {
+          if (series.smooth !== true) {
+            console.log(`ERROR_SMOOTH_WRONG: expected=true actual=${series.smooth}`)
+          } else {
+            console.log(`SUCCESS_SMOOTH_CORRECT: ${series.smooth}`)
+          }
+
+          // 检查数据点是否足够用于平滑
+          if (series.data && series.data.length < 3) {
+            console.log(`WARNING_INSUFFICIENT_DATA: count=${series.data.length} need>=3`)
+          }
+        }
+      })
     }
 
     // 清除之前的图表
     chartInstance.clear()
 
-    // 设置新的配置，使用notMerge确保完全替换
+    // 设置新的配置
+    console.log('SETOPTION_START: notMerge=true')
+
     chartInstance.setOption(chartData, {
       notMerge: true,
       lazyUpdate: false,
       silent: false
     })
 
-    // 强制重新渲染
+    console.log('SETOPTION_COMPLETE')
+
+    // 🔧 强制刷新图表以确保配置生效
+    chartInstance.resize()
+
+    // 简单验证
+    setTimeout(() => {
+      const actualConfig = chartInstance.getOption()
+      if (actualConfig.series && actualConfig.series[0]) {
+        console.log(`FINAL_CHECK: smooth=${actualConfig.series[0].smooth}`)
+      }
+    }, 100)
+
+    console.log('CHART_RENDER_SUCCESS')
+
+    // 🔍 验证ECharts实例中的配置
     setTimeout(() => {
       if (chartInstance && !chartInstance.isDisposed()) {
+        const currentOption = chartInstance.getOption()
+        console.log('🔍 [SMOOTH_DEBUG] ECharts实例中的实际配置:', currentOption)
+
+        // 🔍 检查ECharts版本和smooth属性支持
+        console.log('🔍 [ECHARTS_INFO] ECharts版本:', echarts.version)
+
+        // 🔍 验证smooth属性是否被正确应用
+        if (currentOption.series && Array.isArray(currentOption.series)) {
+          currentOption.series.forEach((series: any, index: number) => {
+            console.log(`🔍 [SMOOTH_VERIFY] ECharts实例series[${index}]:`, {
+              type: series.type,
+              smooth: series.smooth,
+              name: series.name
+            })
+          })
+        }
+
         chartInstance.resize()
       }
     }, 50)
@@ -1342,41 +1465,56 @@ const updateChart = () => {
   }
 }
 
-// 预处理图表数据
-const preprocessChartData = (data: any): any => {
+// 预处理图表数据（使用配置服务）
+const preprocessChartData = async (data: any): Promise<any> => {
   if (!data || typeof data !== 'object') {
+    console.log('🔧 [预处理] 数据为空或非对象，直接返回:', data)
     return data
   }
 
   try {
-    // 深拷贝数据避免修改原始数据
-    const processedData = JSON.parse(JSON.stringify(data))
+    const currentChartId = transformationStore.currentChartId
+    console.log(`🔧 [预处理] 当前图表ID: ${currentChartId}`)
 
-    // 确保基本配置存在
-    if (!processedData.animation) {
-      processedData.animation = true
+    if (!currentChartId) {
+      console.warn('⚠️ [配置服务] 当前图表ID为空，跳过配置服务预处理')
+      return data
     }
 
-    // 确保图表有合适的尺寸配置
-    if (!processedData.grid && (processedData.xAxis || processedData.yAxis)) {
-      processedData.grid = {
-        left: '10%',
-        right: '10%',
-        top: '15%',
-        bottom: '15%',
-        containLabel: true
-      }
+    // 检查配置服务是否可用
+    if (typeof chartConfigService === 'undefined') {
+      console.error('❌ [配置服务] chartConfigService 未定义，使用原始数据')
+      return data
     }
 
-    // 为雷达图添加默认配置
-    if (processedData.radar && !processedData.radar.radius) {
-      processedData.radar.radius = '60%'
+    // 使用配置服务进行预处理
+    console.log(`🔧 [配置服务] 开始预处理图表数据: ${currentChartId}`)
+    console.log(`🔧 [配置服务] 原始数据:`, data)
+
+    const processedData = await chartConfigService.preprocessChartData(currentChartId, data)
+
+    console.log(`✅ [配置服务] 图表数据预处理完成: ${currentChartId}`)
+    console.log(`✅ [配置服务] 处理后数据:`, processedData)
+
+    // 🔧 关键修复：平滑折线图移除stack属性
+    if (currentChartId === 'smooth_line_chart' && processedData.series) {
+      processedData.series.forEach((series: any, index: number) => {
+        if (series.type === 'line') {
+          console.log(`SMOOTH_CHECK_${index}: smooth=${series.smooth} stack=${series.stack}`)
+
+          // 移除stack属性，因为它与smooth冲突
+          if (series.stack) {
+            console.log(`REMOVE_STACK_${index}: 移除stack属性以启用smooth`)
+            delete series.stack
+          }
+        }
+      })
     }
 
-    console.log('🔧 图表数据预处理完成:', processedData)
     return processedData
   } catch (error) {
-    console.warn('⚠️ 图表数据预处理失败，使用原始数据:', error)
+    console.error('❌ [配置服务] 预处理失败，使用原始数据:', error)
+    console.error('❌ [配置服务] 错误详情:', error.stack)
     return data
   }
 }
@@ -1416,9 +1554,520 @@ const validateChartData = (data: any): boolean => {
   }
 }
 
-const refreshChart = () => {
-  updateChart()
-  message.success('图表已刷新')
+const refreshChart = async () => {
+  try {
+    await updateChart()
+    message.success('图表已刷新')
+  } catch (error) {
+    console.error('图表刷新失败:', error)
+    message.error('图表刷新失败')
+  }
+}
+
+// 🧪 官方ECharts示例对比测试
+const testOfficialExample = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  console.log('OFFICIAL_EXAMPLE_TEST_START')
+
+  // 官方ECharts平滑折线图示例 (https://echarts.apache.org/examples/zh/editor.html?c=line-smooth)
+  const officialConfig = {
+    title: {
+      text: '官方ECharts平滑折线图示例'
+    },
+    tooltip: {
+      trigger: 'axis'
+    },
+    legend: {
+      data: ['邮件营销', '联盟广告', '视频广告', '直接访问', '搜索引擎']
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    toolbox: {
+      feature: {
+        saveAsImage: {}
+      }
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        name: '邮件营销',
+        type: 'line',
+        stack: 'Total',
+        smooth: true,
+        lineStyle: {
+          width: 0
+        },
+        showSymbol: false,
+        areaStyle: {
+          opacity: 0.8
+        },
+        emphasis: {
+          focus: 'series'
+        },
+        data: [140, 232, 101, 264, 90, 340, 250]
+      },
+      {
+        name: '联盟广告',
+        type: 'line',
+        stack: 'Total',
+        smooth: true,
+        lineStyle: {
+          width: 0
+        },
+        showSymbol: false,
+        areaStyle: {
+          opacity: 0.8
+        },
+        emphasis: {
+          focus: 'series'
+        },
+        data: [120, 282, 111, 234, 220, 340, 310]
+      }
+    ]
+  }
+
+  console.log('OFFICIAL_CONFIG_SET')
+  console.log('OFFICIAL_SERIES_0_SMOOTH:', officialConfig.series[0].smooth)
+  console.log('OFFICIAL_SERIES_1_SMOOTH:', officialConfig.series[1].smooth)
+
+  chartInstance.setOption(officialConfig, { notMerge: true })
+  message.success('官方ECharts示例已加载，应该看到平滑的区域图')
+}
+
+// 🧪 简化的平滑测试
+const testSmoothFunction = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  console.log('SIMPLE_SMOOTH_TEST_START')
+
+  // 最简单的平滑测试配置
+  const simpleConfig = {
+    title: { text: '简单平滑测试' },
+    xAxis: {
+      type: 'category',
+      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        name: 'Smooth Line',
+        type: 'line',
+        smooth: true,
+        data: [820, 932, 901, 934, 1290, 1330, 1320]
+      }
+    ]
+  }
+
+  console.log('SIMPLE_CONFIG_SET')
+  console.log('SIMPLE_SERIES_SMOOTH:', simpleConfig.series[0].smooth)
+  console.log('SIMPLE_SERIES_DATA:', simpleConfig.series[0].data)
+
+  chartInstance.setOption(simpleConfig, { notMerge: true })
+  message.success('简单平滑测试已加载')
+}
+
+// 🧪 数据结构对比测试
+const testDataStructureComparison = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  console.log('DATA_STRUCTURE_COMPARISON_START')
+
+  if (transformationStore.finalResult && transformationStore.finalResult.series) {
+    const ourData = transformationStore.finalResult
+
+    console.log('OUR_DATA_STRUCTURE:')
+    console.log('- Title:', ourData.title)
+    console.log('- XAxis:', ourData.xAxis)
+    console.log('- YAxis:', ourData.yAxis)
+    console.log('- Series count:', ourData.series.length)
+
+    ourData.series.forEach((series, index) => {
+      console.log(`- Series[${index}]:`)
+      console.log(`  - name: ${series.name}`)
+      console.log(`  - type: ${series.type}`)
+      console.log(`  - smooth: ${series.smooth}`)
+      console.log(`  - data length: ${series.data?.length}`)
+      console.log(`  - data sample: ${JSON.stringify(series.data?.slice(0, 3))}`)
+      console.log(`  - other props: ${Object.keys(series).filter(k => !['name', 'type', 'smooth', 'data'].includes(k)).join(', ')}`)
+    })
+
+    // 创建对比配置：我们的数据 vs 官方格式
+    const comparisonConfig = {
+      title: { text: '数据结构对比测试' },
+      xAxis: ourData.xAxis,
+      yAxis: ourData.yAxis,
+      series: [
+        // 我们的原始数据
+        {
+          ...ourData.series[0],
+          name: '我们的数据(原始)',
+          lineStyle: { color: '#ff0000', width: 2 }
+        },
+        // 简化为官方格式
+        {
+          name: '官方格式',
+          type: 'line',
+          smooth: true,
+          data: ourData.series[0].data,
+          lineStyle: { color: '#0000ff', width: 2 }
+        }
+      ],
+      legend: { data: ['我们的数据(原始)', '官方格式'] }
+    }
+
+    console.log('COMPARISON_CONFIG_SET')
+    chartInstance.setOption(comparisonConfig, { notMerge: true })
+    message.success('数据结构对比测试已加载，红线=我们的数据，蓝线=官方格式')
+  } else {
+    message.error('没有当前数据可供对比')
+  }
+}
+
+// 🧪 回归测试：测试之前工作的配置
+const testRegressionCheck = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  console.log('REGRESSION_TEST_START')
+
+  // 这是之前工作的确切配置
+  const workingConfig = {
+    title: { text: 'Smooth功能测试' },
+    xAxis: {
+      type: 'category',
+      data: ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        name: '直线连接',
+        type: 'line',
+        smooth: false,
+        data: [10, 50, 20, 80, 30, 90, 40],
+        lineStyle: { color: '#ff0000', width: 3 }
+      },
+      {
+        name: '平滑连接',
+        type: 'line',
+        smooth: true,
+        data: [15, 45, 25, 75, 35, 85, 45],
+        lineStyle: { color: '#0000ff', width: 3 }
+      }
+    ],
+    legend: { data: ['直线连接', '平滑连接'] }
+  }
+
+  console.log('REGRESSION_CONFIG_EXACT_COPY')
+  console.log('REGRESSION_SERIES_0_SMOOTH:', workingConfig.series[0].smooth)
+  console.log('REGRESSION_SERIES_1_SMOOTH:', workingConfig.series[1].smooth)
+
+  // 清空图表并重新设置
+  chartInstance.clear()
+  chartInstance.setOption(workingConfig, { notMerge: true })
+
+  // 验证设置后的配置
+  setTimeout(() => {
+    const actualConfig = chartInstance.getOption()
+    console.log('REGRESSION_VERIFY_SERIES_0_SMOOTH:', actualConfig.series[0].smooth)
+    console.log('REGRESSION_VERIFY_SERIES_1_SMOOTH:', actualConfig.series[1].smooth)
+  }, 100)
+
+  message.success('回归测试：之前工作的配置已加载')
+}
+
+// 🔍 Stack属性干扰确认测试
+const testPropertyInterference = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  if (!transformationStore.finalResult || !transformationStore.finalResult.series) {
+    message.error('没有当前数据可供测试')
+    return
+  }
+
+  console.log('STACK_INTERFERENCE_TEST_START')
+
+  const ourSeries = transformationStore.finalResult.series[0]
+  console.log('OUR_SERIES_ALL_PROPERTIES:', Object.keys(ourSeries))
+  console.log('OUR_SERIES_STACK_VALUE:', ourSeries.stack)
+  console.log('OUR_SERIES_DATA_TYPE:', typeof ourSeries.data)
+  console.log('OUR_SERIES_DATA_LENGTH:', ourSeries.data?.length)
+  console.log('OUR_SERIES_DATA_SAMPLE:', ourSeries.data?.slice(0, 5))
+  console.log('OUR_SERIES_DATA_SAMPLE_TYPES:', ourSeries.data?.slice(0, 5).map(d => typeof d))
+
+  // 精确测试stack属性的影响
+  const baseConfig = {
+    title: { text: 'Stack属性干扰确认' },
+    xAxis: transformationStore.finalResult.xAxis,
+    yAxis: transformationStore.finalResult.yAxis,
+    series: []
+  }
+
+  // 转换数据为数字类型（防止字符串数据导致的问题）
+  const numericData = ourSeries.data?.map(d => Number(d)) || []
+  console.log('NUMERIC_DATA_SAMPLE:', numericData.slice(0, 5))
+  console.log('NUMERIC_DATA_TYPES:', numericData.slice(0, 5).map(d => typeof d))
+
+  // 测试1：无stack属性 + 数字数据
+  const noStackSeries = {
+    name: '无Stack+数字',
+    type: 'line',
+    smooth: true,
+    data: numericData,
+    lineStyle: { color: '#00ff00', width: 3 }
+  }
+
+  // 测试2：无stack属性 + 原始数据
+  const originalDataSeries = {
+    name: '无Stack+原始',
+    type: 'line',
+    smooth: true,
+    data: ourSeries.data,
+    lineStyle: { color: '#ff0000', width: 3 }
+  }
+
+  // 测试3：简单测试数据
+  const simpleDataSeries = {
+    name: '简单数据',
+    type: 'line',
+    smooth: true,
+    data: [10, 50, 20, 80, 30, 90, 40],
+    lineStyle: { color: '#0000ff', width: 3 }
+  }
+
+  // 测试4：有stack但不同值
+  const differentStackSeries = {
+    name: '不同Stack',
+    type: 'line',
+    smooth: true,
+    stack: 'Different',
+    data: numericData,
+    lineStyle: { color: '#ff8800', width: 3 }
+  }
+
+  baseConfig.series = [noStackSeries, originalDataSeries, simpleDataSeries, differentStackSeries]
+  baseConfig.legend = { data: ['无Stack+数字', '无Stack+原始', '简单数据', '不同Stack'] }
+
+  console.log('NO_STACK_NUMERIC:', noStackSeries)
+  console.log('ORIGINAL_DATA:', originalDataSeries)
+  console.log('SIMPLE_DATA:', simpleDataSeries)
+  console.log('DIFFERENT_STACK:', differentStackSeries)
+
+  chartInstance.setOption(baseConfig, { notMerge: true })
+  message.success('数据类型测试：绿线=数字数据，红线=原始数据，蓝线=简单数据，橙线=不同Stack')
+}
+
+// 🔧 直接修复测试：使用当前数据但移除stack
+const testDirectFix = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  if (!transformationStore.finalResult || !transformationStore.finalResult.series) {
+    message.error('没有当前数据可供测试')
+    return
+  }
+
+  console.log('DIRECT_FIX_TEST_START')
+
+  // 使用当前的完整配置，但移除stack属性
+  const fixedConfig = JSON.parse(JSON.stringify(transformationStore.finalResult))
+
+  if (fixedConfig.series) {
+    fixedConfig.series.forEach((series: any, index: number) => {
+      if (series.type === 'line') {
+        console.log(`BEFORE_FIX_${index}: smooth=${series.smooth} stack=${series.stack}`)
+
+        // 强制设置smooth并移除stack
+        series.smooth = true
+        if (series.stack) {
+          delete series.stack
+          console.log(`AFTER_FIX_${index}: 已移除stack属性`)
+        }
+
+        console.log(`AFTER_FIX_${index}: smooth=${series.smooth} stack=${series.stack}`)
+      }
+    })
+  }
+
+  fixedConfig.title = { text: '直接修复测试' }
+
+  // 🔧 关键修复：使用更明显的测试数据
+  if (fixedConfig.series) {
+    fixedConfig.series.forEach((series: any, index: number) => {
+      if (series.type === 'line') {
+        // 使用更明显的波动数据
+        series.data = [10, 80, 20, 90, 15, 85, 25, 95, 30]
+        console.log(`ENHANCED_DATA_${index}: 使用增强测试数据`)
+      }
+    })
+  }
+
+  console.log('DIRECT_FIX_CONFIG:', fixedConfig)
+  chartInstance.setOption(fixedConfig, { notMerge: true })
+  message.success('直接修复测试：使用增强数据，应该显示明显的平滑曲线')
+}
+
+// 🧪 测试堆叠功能的独立函数
+const testStackFunction = () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  console.log('🧪 [STACK_TEST] 开始测试堆叠功能')
+
+  // 创建堆叠折线图测试配置
+  const stackTestConfig = {
+    title: { text: '堆叠折线图测试' },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        name: 'Email',
+        type: 'line',
+        stack: 'Total',
+        areaStyle: {},
+        data: [120, 132, 101, 134, 90, 230, 210]
+      },
+      {
+        name: 'Union Ads',
+        type: 'line',
+        stack: 'Total',
+        areaStyle: {},
+        data: [220, 182, 191, 234, 290, 330, 310]
+      },
+      {
+        name: 'Video Ads',
+        type: 'line',
+        stack: 'Total',
+        areaStyle: {},
+        data: [150, 232, 201, 154, 190, 330, 410]
+      }
+    ],
+    legend: { data: ['Email', 'Union Ads', 'Video Ads'] }
+  }
+
+  console.log('🧪 [STACK_TEST] 堆叠测试配置:', stackTestConfig)
+
+  chartInstance.setOption(stackTestConfig, { notMerge: true })
+  message.success('堆叠折线图测试已加载，应该看到三个区域垂直堆叠的效果')
+}
+
+// 🧪 测试配置服务的独立函数
+const testConfigService = async () => {
+  console.log('🧪 [CONFIG_TEST] 开始测试配置服务')
+
+  try {
+    // 测试图表类型映射
+    const mappings = await chartConfigService.getChartTypeMappings()
+    console.log('✅ [CONFIG_TEST] 图表类型映射:', mappings)
+
+    // 测试特定配置
+    const config = await chartConfigService.getChartSpecificConfig('basic_line_chart')
+    console.log('✅ [CONFIG_TEST] 基础折线图配置:', config)
+
+    // 测试文件路径映射
+    const chartId = await chartConfigService.generateChartIdFromFilePath('折线图/基础折线图.json')
+    console.log('✅ [CONFIG_TEST] 文件路径映射:', chartId)
+
+    message.success('配置服务测试完成，请查看控制台日志')
+  } catch (error) {
+    console.error('❌ [CONFIG_TEST] 配置服务测试失败:', error)
+    message.error('配置服务测试失败')
+  }
+}
+
+// 🧪 专门测试平滑折线图的函数
+const testSmoothLineChart = async () => {
+  console.log('🧪 [SMOOTH_TEST] 开始测试平滑折线图配置')
+
+  try {
+    // 1. 测试文件路径到图表ID的映射
+    const filePath = '折线图/基础平滑折线图.json'
+    const chartId = await generateChartIdFromFilePath(filePath)
+    console.log(`🧪 [SMOOTH_TEST] 文件路径映射: ${filePath} -> ${chartId}`)
+
+    // 2. 测试图表特定配置获取
+    const config = await chartConfigService.getChartSpecificConfig(chartId)
+    console.log(`🧪 [SMOOTH_TEST] 图表配置:`, config)
+
+    // 3. 测试预处理功能
+    const testData = {
+      title: { text: '平滑折线图测试' },
+      xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E'] },
+      yAxis: { type: 'value' },
+      series: [
+        {
+          name: '测试数据',
+          type: 'line',
+          data: [10, 50, 20, 80, 30]
+        }
+      ]
+    }
+
+    console.log(`🧪 [SMOOTH_TEST] 原始数据:`, testData)
+    const processedData = await chartConfigService.preprocessChartData(chartId, testData)
+    console.log(`🧪 [SMOOTH_TEST] 处理后数据:`, processedData)
+
+    // 4. 检查smooth属性是否正确设置
+    if (processedData.series && processedData.series[0]) {
+      const smoothValue = processedData.series[0].smooth
+      console.log(`🧪 [SMOOTH_TEST] series[0].smooth = ${smoothValue}`)
+
+      if (smoothValue === true) {
+        console.log('✅ [SMOOTH_TEST] smooth属性设置正确')
+
+        // 5. 直接渲染测试图表
+        if (chartInstance) {
+          chartInstance.setOption(processedData, { notMerge: true })
+          message.success('平滑折线图测试完成，应该看到平滑曲线')
+        }
+      } else {
+        console.error(`❌ [SMOOTH_TEST] smooth属性错误: 期望true，实际${smoothValue}`)
+        message.error(`smooth属性错误: 期望true，实际${smoothValue}`)
+      }
+    } else {
+      console.error('❌ [SMOOTH_TEST] 处理后数据缺少series')
+      message.error('处理后数据缺少series')
+    }
+
+  } catch (error) {
+    console.error('❌ [SMOOTH_TEST] 平滑折线图测试失败:', error)
+    message.error('平滑折线图测试失败')
+  }
 }
 
 const downloadChart = () => {
@@ -1522,8 +2171,8 @@ const handleChartMouseUp = () => {
 
 // 仅用于下载/预览真实数据后的图表，不再注入假数据
 const testChart = () => {
-  console.log('开始测试图表功能（调用后端API执行真实两阶段转换）')
-  executeFullTransformation()
+  console.log('图表会在选择文件时自动转换，无需手动调用')
+  message.info('图表会在选择文件时自动转换')
 }
 
 // 监听最终结果变化
@@ -1539,7 +2188,9 @@ watch(
           initChart()
         } else {
           console.log('🔄 更新现有图表')
-          updateChart()
+          updateChart().catch(error => {
+            console.error('图表更新失败:', error)
+          })
         }
       }, 100)
     } else {
@@ -1614,6 +2265,21 @@ onMounted(async () => {
   console.log('🚀 页面开始挂载...')
   await nextTick()
 
+  // 检查配置服务可用性
+  console.log('🔧 [配置服务] 检查服务可用性...')
+  try {
+    if (typeof chartConfigService !== 'undefined') {
+      console.log('✅ [配置服务] 服务可用')
+      // 预热配置服务
+      await chartConfigService.getChartTypeMappings()
+      console.log('✅ [配置服务] 预热完成')
+    } else {
+      console.error('❌ [配置服务] 服务不可用，将使用硬编码回退')
+    }
+  } catch (error) {
+    console.error('❌ [配置服务] 初始化失败:', error)
+  }
+
   // 首先加载ECharts目录结构（包含默认选择初始化）
   console.log('📂 开始加载目录结构...')
   await loadEChartsDirectory()
@@ -1639,22 +2305,27 @@ onMounted(async () => {
 })
 
 // 根据图表ID初始化模板类型选择
-const initializeTemplateTypeFromChartId = (chartId: string) => {
+const initializeTemplateTypeFromChartId = async (chartId: string) => {
   // 在新的目录结构中查找对应的分类和文件
   for (const [categoryName, files] of Object.entries(echartsDirectoryStructure.value)) {
-    const foundFile = files.find(file => {
-      const generatedId = generateChartIdFromFilePath(file.filePath)
-      return generatedId === chartId
-    })
+    // 使用 Promise.all 来并行处理所有文件的 chartId 生成
+    const fileChartIds = await Promise.all(
+      files.map(async file => ({
+        file,
+        generatedId: await generateChartIdFromFilePath(file.filePath)
+      }))
+    )
 
-    if (foundFile) {
+    const foundFileData = fileChartIds.find(({ generatedId }) => generatedId === chartId)
+
+    if (foundFileData) {
       selectedTemplateType.value = categoryName
       availableCharts.value = files.map(file => ({
         id: file.displayName,
         name: file.displayName,
         filePath: file.filePath
       }))
-      selectedChartFile.value = foundFile.filePath
+      selectedChartFile.value = foundFileData.file.filePath
       break
     }
   }
@@ -1791,15 +2462,6 @@ onUnmounted(() => {
   margin-bottom: 2px;
 }
 
-/* 转换按钮区域 */
-.transform-button-section {
-  margin-top: 8px;
-}
-
-.transform-button-section .ant-btn {
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
-}
 
 /* 图表信息面板 - 紧凑化 */
 .chart-info-panel {

@@ -364,84 +364,7 @@ public class TwoStageTransformationService {
         return specFile;
     }
 
-    /**
-     * 创建带占位符的通用JSON模板
-     */
-    public Map<String, Object> createUniversalTemplateWithPlaceholders() {
-        Map<String, Object> template = new HashMap<>();
 
-        // 图表元数据
-        Map<String, Object> chartMeta = new HashMap<>();
-        chartMeta.put("chartId", "stacked_line_chart");
-        chartMeta.put("chartType", "${chart_type}");
-        chartMeta.put("title", "${chart_title}");
-        chartMeta.put("dataSource", "marketing_db");
-        template.put("chartMeta", chartMeta);
-
-        // 类别数据
-        template.put("categories", "${category_field}");
-
-        // 系列数据
-        List<Map<String, Object>> series = new ArrayList<>();
-
-        // 创建5个系列的模板
-        for (int i = 1; i <= 5; i++) {
-            Map<String, Object> seriesItem = new HashMap<>();
-            seriesItem.put("seriesId", "series_" + i);
-            seriesItem.put("seriesName", "${series_name_" + i + "}");
-            seriesItem.put("seriesType", "${chart_type}");
-            seriesItem.put("stackGroup", "${stack_group}");
-            seriesItem.put("values", "${series_data_" + i + "}");
-            series.add(seriesItem);
-        }
-
-        template.put("series", series);
-
-        // 样式配置
-        Map<String, Object> styleConfig = new HashMap<>();
-        styleConfig.put("showLegend", true);
-        styleConfig.put("showTooltip", true);
-        styleConfig.put("showGrid", true);
-        template.put("styleConfig", styleConfig);
-
-        return template;
-    }
-
-    /**
-     * 验证完整转换流程
-     */
-    public TransformationResult validateFullProcess(String chartId) {
-        try {
-            System.out.println("=== 验证完整转换流程 ===");
-
-            // 初始化映射关系
-            mappingService.initializeSampleMappings();
-
-            // 创建带占位符的模板
-            Map<String, Object> template = createUniversalTemplateWithPlaceholders();
-            System.out.println("创建模板完成，包含占位符: " +
-                    placeholderManager.extractPlaceholdersFromJson(template));
-
-            // 执行完整转换
-            TransformationResult result = executeFullTransformation(chartId, template);
-
-            if (result.isSuccess()) {
-                // 验证最终结果
-                Set<String> remainingPlaceholders = placeholderManager.extractPlaceholdersFromJson(result.getResult());
-                if (remainingPlaceholders.isEmpty()) {
-                    result.setMessage("✅ 完整转换验证成功，所有占位符已替换");
-                } else {
-                    result.setMessage("⚠️ 转换完成但仍有未替换的占位符: " + remainingPlaceholders);
-                }
-            }
-
-            return result;
-
-        } catch (Exception e) {
-            System.err.println("验证过程失败: " + e.getMessage());
-            return new TransformationResult(false, "验证失败: " + e.getMessage(), null);
-        }
-    }
 
     /**
      * 获取转换流程的详细信息
@@ -454,8 +377,8 @@ public class TwoStageTransformationService {
         if (templateService != null) {
             template = templateService.getTemplateByChartId(chartId);
         } else {
-            // 兼容旧测试用例
-            template = createUniversalTemplateWithPlaceholders();
+            // 如果templateService未注入，返回空模板
+            template = new HashMap<>();
         }
         Set<String> templatePlaceholders = placeholderManager.extractPlaceholdersFromJson(template);
 

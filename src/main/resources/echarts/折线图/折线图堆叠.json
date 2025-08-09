@@ -46,6 +46,7 @@
       "name": "Email",
       "type": "line",
       "stack": "Total",
+      "areaStyle": {},
       "data": [
         120,
         132,
@@ -60,6 +61,7 @@
       "name": "Union Ads",
       "type": "line",
       "stack": "Total",
+      "areaStyle": {},
       "data": [
         220,
         182,
@@ -74,6 +76,7 @@
       "name": "Video Ads",
       "type": "line",
       "stack": "Total",
+      "areaStyle": {},
       "data": [
         150,
         232,
@@ -88,6 +91,7 @@
       "name": "Direct",
       "type": "line",
       "stack": "Total",
+      "areaStyle": {},
       "data": [
         320,
         332,
@@ -102,6 +106,7 @@
       "name": "Search Engine",
       "type": "line",
       "stack": "Total",
+      "areaStyle": {},
       "data": [
         820,
         932,

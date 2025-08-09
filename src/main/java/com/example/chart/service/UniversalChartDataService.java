@@ -72,10 +72,89 @@ public class UniversalChartDataService {
     public List<UniversalChartDataView> getDataByChartType(String chartType) {
         List<UniversalChartDataView> allData = getAllData();
 
-        // 根据图表类型过滤数据
+        // 根据图表类型过滤数据并调整配置
         return allData.stream()
                 .filter(data -> isDataSuitableForChartType(data, chartType))
+                .map(data -> adjustDataForChartType(data, chartType))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据图表类型调整数据配置
+     */
+    private UniversalChartDataView adjustDataForChartType(UniversalChartDataView data, String chartType) {
+        // 创建数据副本以避免修改原始数据
+        UniversalChartDataView adjustedData = new UniversalChartDataView();
+
+        // 复制所有基础属性
+        copyBasicProperties(adjustedData, data);
+
+        // 根据图表类型设置特定配置
+        if ("basic_line_chart".equals(chartType)) {
+            adjustedData.setSmoothStyle(false); // 基础折线图：直线连接
+        } else if ("smooth_line_chart".equals(chartType)) {
+            adjustedData.setSmoothStyle(true); // 平滑折线图：曲线连接
+        } else {
+            // 其他图表类型保持原有逻辑
+            adjustedData.setSmoothStyle(data.getSmoothStyle());
+        }
+
+        return adjustedData;
+    }
+
+    /**
+     * 复制基础属性
+     */
+    private void copyBasicProperties(UniversalChartDataView target, UniversalChartDataView source) {
+        // 基础信息字段
+        target.setId(source.getId());
+        target.setTitle(source.getTitle());
+        target.setChartType(source.getChartType());
+        target.setTheme(source.getTheme());
+        target.setDescription(source.getDescription());
+        target.setDataSource(source.getDataSource());
+        target.setCreatedAt(source.getCreatedAt());
+        target.setUpdatedAt(source.getUpdatedAt());
+
+        // 时间维度字段
+        target.setDate(source.getDate());
+        target.setDayName(source.getDayName());
+        target.setMonth(source.getMonth());
+        target.setMonthName(source.getMonthName());
+        target.setYear(source.getYear());
+        target.setQuarter(source.getQuarter());
+        target.setWeekNumber(source.getWeekNumber());
+        target.setTimestamp(source.getTimestamp());
+
+        // 分类数据字段
+        target.setCategory(source.getCategory());
+        target.setSubCategory(source.getSubCategory());
+        target.setChannelName(source.getChannelName());
+        target.setChannelType(source.getChannelType());
+        target.setProductName(source.getProductName());
+        target.setProductType(source.getProductType());
+        target.setRegion(source.getRegion());
+        target.setDepartment(source.getDepartment());
+
+        // 数值字段
+        target.setValue(source.getValue());
+        target.setConversionCount(source.getConversionCount());
+        target.setClickCount(source.getClickCount());
+        target.setViewCount(source.getViewCount());
+        target.setPercentage(source.getPercentage());
+        target.setRatio(source.getRatio());
+        target.setAmount(source.getAmount());
+        target.setQuantity(source.getQuantity());
+
+        // 配置字段
+        target.setColor(source.getColor());
+        target.setStyle(source.getStyle());
+        target.setRadius(source.getRadius());
+        target.setCenter(source.getCenter());
+        target.setStackGroup(source.getStackGroup());
+        target.setBoundaryGap(source.getBoundaryGap());
+        target.setExtraConfig(source.getExtraConfig());
+        // 注意：smoothStyle 在 adjustDataForChartType 中单独设置
     }
 
     /**
