@@ -165,25 +165,59 @@ class ChartConfigService {
       // 应用图表特定配置
       if (processedData.series && Array.isArray(processedData.series)) {
         processedData.series.forEach((series: any, index: number) => {
-          // 应用smooth配置
-          if (config.smooth !== undefined) {
-            series.smooth = config.smooth;
+          // 饼图特殊处理
+          if (chartId.includes("pie") || chartId.includes("doughnut")) {
+            // 确保饼图类型正确
+            series.type = "pie";
 
-            // 🔧 关键修复：如果启用smooth，移除stack属性（两者冲突）
-            if (config.smooth === true && series.stack) {
-              delete series.stack;
+            // 应用饼图特定配置
+            if (config.radius !== undefined) {
+              series.radius = config.radius;
             }
-          }
+            if (config.center !== undefined) {
+              series.center = config.center;
+            }
 
-          // 应用stack配置（仅在不启用smooth时）
-          if (config.stack !== undefined && config.smooth !== true) {
-            series.stack = config.stack;
-          }
+            // 圆环图特殊配置
+            if (chartId === "doughnut_chart") {
+              series.avoidLabelOverlap = false;
+              series.label = {
+                show: false,
+                position: "center",
+              };
+              series.emphasis = {
+                label: {
+                  show: true,
+                  fontSize: 30,
+                  fontWeight: "bold",
+                },
+              };
+              series.labelLine = {
+                show: false,
+              };
+            }
+          } else {
+            // 折线图/柱状图处理
+            // 应用smooth配置
+            if (config.smooth !== undefined) {
+              series.smooth = config.smooth;
 
-          // 应用areaStyle配置
-          if (config.areaStyle !== undefined && config.areaStyle !== null) {
-            series.areaStyle = config.areaStyle;
-            console.log(`🔧 [配置服务] series[${index}] 添加areaStyle`);
+              // 🔧 关键修复：如果启用smooth，移除stack属性（两者冲突）
+              if (config.smooth === true && series.stack) {
+                delete series.stack;
+              }
+            }
+
+            // 应用stack配置（仅在不启用smooth时）
+            if (config.stack !== undefined && config.smooth !== true) {
+              series.stack = config.stack;
+            }
+
+            // 应用areaStyle配置
+            if (config.areaStyle !== undefined && config.areaStyle !== null) {
+              series.areaStyle = config.areaStyle;
+              console.log(`🔧 [配置服务] series[${index}] 添加areaStyle`);
+            }
           }
         });
       }

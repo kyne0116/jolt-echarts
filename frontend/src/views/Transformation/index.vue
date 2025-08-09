@@ -216,6 +216,26 @@
                 >
                   <DownloadOutlined />
                 </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testPieChart"
+                  title="测试基础饼图"
+                  style="color: #fa8c16;"
+                >
+                  🥧 饼图
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  :disabled="!chartInstance"
+                  @click="testDoughnutChart"
+                  title="测试圆环图"
+                  style="color: #722ed1;"
+                >
+                  🍩 圆环
+                </a-button>
               </a-space>
 
 
@@ -286,11 +306,11 @@
         <a-col :xs="24" :sm="24" :md="12" :lg="16" :xl="16" style="height: 100%;">
           <a-row :gutter="[12, 12]" class="data-flow" style="height: 100%;">
             <!-- 通用JSON模板 -->
-            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" style="height: 100%;">
+            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
               <a-card
               title="通用JSON模板（含占位符）"
               class="data-card"
-              :class="{ active: currentStepIndex >= 0 }"
+              :class="{ active: !!transformationStore.universalTemplate }"
             >
               <template #extra>
                 <a-space>
@@ -322,11 +342,11 @@
           </a-col>
 
             <!-- 第一阶段输出 -->
-            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" style="height: 100%;">
+            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
               <a-card
               title="第一阶段输出（ECharts结构，保持占位符）"
               class="data-card"
-              :class="{ active: currentStepIndex >= 1 }"
+              :class="{ active: !!transformationStore.stage1Output }"
             >
               <template #extra>
                 <a-space>
@@ -358,11 +378,11 @@
           </a-col>
 
             <!-- 第二阶段输出 -->
-            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" style="height: 100%;">
+            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
               <a-card
               title="第二阶段输出（最终ECharts配置）"
               class="data-card"
-              :class="{ active: currentStepIndex >= 2 }"
+              :class="{ active: !!transformationStore.stage2Output }"
             >
               <template #extra>
                 <a-space>
@@ -392,50 +412,49 @@
               </div>
             </a-card>
           </a-col>
+
+            <!-- 最终结果 -->
+            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
+              <a-card
+              title="最终结果（用于图表渲染）"
+              class="data-card"
+              :class="{ active: transformationStore.isCompleted }"
+            >
+              <template #extra>
+                <a-space>
+                  <a-tag v-if="transformationStore.finalResult" color="green">
+                    渲染就绪
+                  </a-tag>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="copyToClipboard(transformationStore.finalResult)"
+                  >
+                    <CopyOutlined />
+                  </a-button>
+                </a-space>
+              </template>
+
+              <div class="json-viewer">
+                <vue-json-pretty
+                  v-if="transformationStore.finalResult"
+                  :data="transformationStore.finalResult"
+                  :show-length="true"
+                  :show-line="true"
+                  :highlight-mouseover-node="true"
+                  :highlight-selected-node="true"
+                />
+                <a-empty v-else description="等待转换完成" />
+              </div>
+            </a-card>
+          </a-col>
           </a-row>
         </a-col>
       </a-row>
     </div>
 
 
-    
-    <!-- 进度指示器 -->
-    <a-card class="progress-panel" title="转换进度">
-      <div class="progress-content">
-        <a-steps
-          :current="currentStepIndex"
-          :status="stepStatus"
-          class="transformation-steps"
-        >
-          <a-step
-            v-for="step in transformationStore.steps"
-            :key="step.id"
-            :title="step.name"
-            :description="step.description"
-            :status="getStepStatus(step)"
-          >
-            <template #icon>
-              <LoadingOutlined v-if="step.status === 'running'" />
-              <CheckCircleOutlined v-else-if="step.status === 'completed'" />
-              <CloseCircleOutlined v-else-if="step.status === 'error'" />
-              <ClockCircleOutlined v-else />
-            </template>
-          </a-step>
-        </a-steps>
-        
-        <div class="progress-info">
-          <a-progress
-            :percent="transformationStore.progress"
-            :status="transformationStore.hasError ? 'exception' : 'active'"
-            :show-info="true"
-          />
-          
-          <div class="execution-time" v-if="transformationStore.executionTime > 0">
-            执行时间: {{ transformationStore.executionTime }}ms
-          </div>
-        </div>
-      </div>
-    </a-card>
+
 
     <!-- 错误信息 - 仅在有错误时显示 -->
     <a-alert
@@ -458,15 +477,11 @@ import chartConfigService from '@/services/chartConfigService'
 import { useTransformationStore } from '@/stores'
 import {
     BarChartOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    CloseCircleOutlined,
     CompressOutlined,
     CopyOutlined,
     DashboardOutlined,
     DownloadOutlined,
     LineChartOutlined,
-    LoadingOutlined,
     MinusOutlined,
     PieChartOutlined,
     PlusOutlined,
@@ -726,17 +741,6 @@ const getDropdownContainer = (triggerNode?: HTMLElement) => {
 }
 
 // 计算属性
-const currentStepIndex = computed(() => {
-  const currentStep = transformationStore.currentStep
-  return transformationStore.steps.findIndex(step => step.id === currentStep?.id)
-})
-
-const stepStatus = computed(() => {
-  if (transformationStore.hasError) return 'error'
-  if (transformationStore.isCompleted) return 'finish'
-  if (transformationStore.loading) return 'process'
-  return 'wait'
-})
 
 const templatePlaceholderCount = computed(() => {
   if (!transformationStore.universalTemplate) return 0
@@ -753,18 +757,6 @@ const stage1PlaceholderCount = computed(() => {
 })
 
 // 方法
-const getStepStatus = (step: any) => {
-  switch (step.status) {
-    case 'completed':
-      return 'finish'
-    case 'running':
-      return 'process'
-    case 'error':
-      return 'error'
-    default:
-      return 'wait'
-  }
-}
 
 // 处理模板类型变化（一级下拉框）
 const handleTemplateTypeChange = async (categoryName: string) => {
@@ -1376,6 +1368,34 @@ const preprocessChartData = async (data: any): Promise<any> => {
       })
     }
 
+    // 🔧 饼图特殊处理：确保数据格式正确
+    if ((currentChartId === 'basic_pie_chart' || currentChartId === 'doughnut_chart') && processedData.series) {
+      processedData.series.forEach((series: any) => {
+        // 确保饼图类型正确
+        series.type = 'pie'
+
+        // 确保数据格式正确（饼图需要 {value, name} 格式）
+        if (series.data && Array.isArray(series.data)) {
+          series.data = series.data.map((item: any, index: number) => {
+            if (typeof item === 'number') {
+              // 如果是数字，转换为 {value, name} 格式
+              return {
+                value: item,
+                name: `数据${index + 1}`
+              }
+            } else if (typeof item === 'object' && item.value !== undefined) {
+              // 如果已经是对象格式，确保有name属性
+              return {
+                value: item.value,
+                name: item.name || `数据${index + 1}`
+              }
+            }
+            return item
+          })
+        }
+      })
+    }
+
     return processedData
   } catch (error) {
     console.error('❌ [配置服务] 预处理失败，使用原始数据:', error)
@@ -1533,6 +1553,50 @@ const testSmoothLineChart = async () => {
   }
 }
 
+// 🧪 测试饼图功能
+const testPieChart = async () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  try {
+    console.log('🧪 [PIE_TEST] 开始测试饼图功能')
+
+    // 从后端获取饼图测试数据
+    const testData = await chartConfigApi.getTestData('basic_pie_chart')
+    console.log('🧪 [PIE_TEST] 从后端获取测试数据:', testData)
+
+    chartInstance.setOption(testData, { notMerge: true })
+    message.success('基础饼图测试已加载')
+  } catch (error) {
+    console.error('❌ [PIE_TEST] 获取测试数据失败:', error)
+    message.error('获取饼图测试数据失败，请检查后端服务')
+  }
+}
+
+// 🧪 测试圆环图功能
+const testDoughnutChart = async () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  try {
+    console.log('🧪 [DOUGHNUT_TEST] 开始测试圆环图功能')
+
+    // 从后端获取圆环图测试数据
+    const testData = await chartConfigApi.getTestData('doughnut_chart')
+    console.log('🧪 [DOUGHNUT_TEST] 从后端获取测试数据:', testData)
+
+    chartInstance.setOption(testData, { notMerge: true })
+    message.success('圆环图测试已加载')
+  } catch (error) {
+    console.error('❌ [DOUGHNUT_TEST] 获取测试数据失败:', error)
+    message.error('获取圆环图测试数据失败，请检查后端服务')
+  }
+}
+
 // 🧪 验证硬编码整改效果
 const verifyHardcodingRefactor = async () => {
   console.log('🔍 [验证] 开始验证硬编码整改效果')
@@ -1670,6 +1734,11 @@ watch(
   () => transformationStore.finalResult,
   (newResult) => {
     console.log('📊 监听到finalResult变化:', !!newResult)
+    console.log('🎯 四个卡片数据状态检查:')
+    console.log('- 通用模板:', !!transformationStore.universalTemplate)
+    console.log('- 第一阶段输出:', !!transformationStore.stage1Output)
+    console.log('- 第二阶段输出:', !!transformationStore.stage2Output)
+    console.log('- 最终结果:', !!transformationStore.finalResult)
     if (newResult) {
       // 延迟初始化，确保DOM已更新
       setTimeout(() => {
@@ -2153,64 +2222,22 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.progress-panel {
-  flex-shrink: 0;
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-  margin-top: 12px;
-}
 
-.progress-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 
-.transformation-steps {
-  margin-bottom: 16px;
-}
 
-.transformation-steps .ant-steps {
-  font-size: 12px;
-}
 
-.transformation-steps .ant-steps-item-title {
-  font-size: 13px !important;
-  line-height: 1.4 !important;
-}
 
-.transformation-steps .ant-steps-item-description {
-  font-size: 11px !important;
-  color: #8c8c8c !important;
-}
 
-.progress-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
 
-.execution-time {
-  font-size: 13px;
-  color: #666;
-  white-space: nowrap;
-  padding: 4px 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  border: 1px solid #e8e8e8;
-}
 
-/* 主要内容区域 - 占据剩余空间 */
+/* 主要内容区域 - 占据剩余空间，优化高度分配 */
 .main-content-area {
   margin-bottom: 12px;
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: calc(100vh - 120px); /* 为四个数据流卡片提供更多垂直空间 */
 }
 
 /* 图表预览卡片 - 适应新的高度分配 */
@@ -2276,7 +2303,8 @@ onUnmounted(() => {
 
 .data-card {
   height: 100%;
-  min-height: 400px;
+  min-height: 500px; /* 增加最小高度，为数据内容提供更多空间 */
+  max-height: calc(100vh - 180px); /* 限制最大高度，避免超出视窗 */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   position: relative;
@@ -2346,7 +2374,8 @@ onUnmounted(() => {
 
 .json-viewer {
   flex: 1;
-  min-height: 300px;
+  min-height: 400px; /* 增加最小高度，为JSON内容提供更多空间 */
+  max-height: calc(100vh - 300px); /* 优化最大高度 */
   overflow: auto;
   border: 1px solid #e8e8e8;
   border-radius: 6px;

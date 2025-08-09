@@ -178,9 +178,25 @@ public class ChartConfigController {
         basicRules.put("smooth", false);
         basicRules.put("requiresAreaStyle", false);
 
+        // 饼图规则
+        Map<String, Object> pieRules = new HashMap<>();
+        pieRules.put("type", "pie");
+        pieRules.put("radius", "50%");
+        pieRules.put("center", Arrays.asList("50%", "50%"));
+        pieRules.put("requiresValueName", true);
+
+        // 圆环图规则
+        Map<String, Object> doughnutRules = new HashMap<>();
+        doughnutRules.put("type", "pie");
+        doughnutRules.put("radius", Arrays.asList("40%", "70%"));
+        doughnutRules.put("center", Arrays.asList("50%", "50%"));
+        doughnutRules.put("requiresValueName", true);
+
         rules.put("stacked_line_chart", stackedRules);
         rules.put("smooth_line_chart", smoothRules);
         rules.put("basic_line_chart", basicRules);
+        rules.put("basic_pie_chart", pieRules);
+        rules.put("doughnut_chart", doughnutRules);
 
         logger.info("✅ [配置接口] 返回预处理规则");
         return ResponseEntity.ok(ApiResponse.ok(rules));
@@ -302,6 +318,56 @@ public class ChartConfigController {
                                 "stack", "Total",
                                 "areaStyle", new HashMap<>(),
                                 "data", Arrays.asList(150, 232, 201, 154, 190, 330, 410))));
+                break;
+
+            case "basic_pie_chart":
+                // 基础饼图测试数据
+                testData.put("title", Map.of("text", "基础饼图测试"));
+                testData.put("tooltip", Map.of(
+                        "trigger", "item",
+                        "formatter", "{a} <br/>{b}: {c} ({d}%)"));
+                testData.put("series", Arrays.asList(
+                        Map.of(
+                                "name", "访问来源",
+                                "type", "pie",
+                                "radius", "50%",
+                                "center", Arrays.asList("50%", "50%"),
+                                "data", Arrays.asList(
+                                        Map.of("value", 335, "name", "直接访问"),
+                                        Map.of("value", 310, "name", "邮件营销"),
+                                        Map.of("value", 234, "name", "联盟广告"),
+                                        Map.of("value", 135, "name", "视频广告"),
+                                        Map.of("value", 1548, "name", "搜索引擎")))));
+                break;
+
+            case "doughnut_chart":
+                // 圆环图测试数据
+                testData.put("title", Map.of("text", "圆环图测试"));
+                testData.put("tooltip", Map.of(
+                        "trigger", "item",
+                        "formatter", "{a} <br/>{b}: {c} ({d}%)"));
+                testData.put("series", Arrays.asList(
+                        Map.of(
+                                "name", "访问来源",
+                                "type", "pie",
+                                "radius", Arrays.asList("40%", "70%"),
+                                "center", Arrays.asList("50%", "50%"),
+                                "avoidLabelOverlap", false,
+                                "label", Map.of(
+                                        "show", false,
+                                        "position", "center"),
+                                "emphasis", Map.of(
+                                        "label", Map.of(
+                                                "show", true,
+                                                "fontSize", 30,
+                                                "fontWeight", "bold")),
+                                "labelLine", Map.of("show", false),
+                                "data", Arrays.asList(
+                                        Map.of("value", 335, "name", "直接访问"),
+                                        Map.of("value", 310, "name", "邮件营销"),
+                                        Map.of("value", 234, "name", "联盟广告"),
+                                        Map.of("value", 135, "name", "视频广告"),
+                                        Map.of("value", 1548, "name", "搜索引擎")))));
                 break;
 
             default:
