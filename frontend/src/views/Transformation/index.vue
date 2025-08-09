@@ -7,450 +7,360 @@
 
 
 
-    <!-- 精简后的配置区域 - 无标题版本 -->
-    <div class="config-header-compact">
-      <!-- 主要配置区域 -->
-      <a-row :gutter="[24, 16]" class="config-section" align="top">
-        <!-- 左侧：图表选择区域 -->
-        <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-          <div class="chart-selector-panel">
-            <a-space direction="vertical" size="middle" style="width: 100%">
-              <!-- 一级下拉框：图表分类 -->
-              <div class="selector-item">
-                <label class="selector-label">图表分类</label>
-                <a-select
-                  v-model:value="selectedTemplateType"
-                  style="width: 100%"
-                  size="middle"
-                  @change="handleTemplateTypeChange"
-                  placeholder="请选择图表分类"
-                  :get-popup-container="getDropdownContainer"
-                  :loading="directoryCategories.length === 0"
-                  show-search
-                  :filter-option="false"
-                >
-                  <a-select-option
-                    v-for="category in directoryCategories"
-                    :key="category"
-                    :value="category"
-                  >
-                    <component
-                      :is="getCategoryIcon(category)"
-                      style="margin-right: 8px"
-                    />
-                    {{ category }}
-                  </a-select-option>
-                </a-select>
-              </div>
 
-              <!-- 二级下拉框：具体图表 -->
-              <div class="selector-item">
-                <label class="selector-label">具体图表</label>
-                <a-select
-                  v-model:value="selectedChartFile"
-                  style="width: 100%"
-                  size="middle"
-                  @change="handleChartFileChange"
-                  placeholder="请选择具体图表"
-                  :disabled="!selectedTemplateType"
-                  :get-popup-container="getDropdownContainer"
-                >
-                  <a-select-option
-                    v-for="chart in availableCharts"
-                    :key="chart.filePath"
-                    :value="chart.filePath"
-                  >
-                    {{ chart.name }}
-                  </a-select-option>
-                </a-select>
-              </div>
 
-            </a-space>
-          </div>
-        </a-col>
-
-        <!-- 右侧：图表信息展示区域 -->
-        <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-          <div class="chart-info-panel">
-            <div v-if="chartInfo && selectedChartFile" class="info-content">
-              <a-descriptions :column="1" size="small" bordered>
-                <a-descriptions-item label="图表名称">
-                  <div class="info-value-with-subtitle">
-                    <div class="main-value">{{ chartInfo.chartName }}</div>
-                    <div class="sub-value">{{ getChartTypeEnglish(chartInfo.chartCategory) }}</div>
-                  </div>
-                </a-descriptions-item>
-                
-                <a-descriptions-item label="模板类型">
-                  <a-tag :color="getTemplateTypeColor(chartInfo.templateType)" size="small">
-                    {{ chartInfo.templateType.toUpperCase() }}
-                  </a-tag>
-                  <span class="template-type-name">{{ chartInfo.templateTypeName }}</span>
-                </a-descriptions-item>
-                
-                <a-descriptions-item label="ECharts文件">
-                  <code class="file-path-code">{{ selectedChartFile }}</code>
-                </a-descriptions-item>
-                
-                <a-descriptions-item label="JOLT文件">
-                  <code class="file-path-code">{{ getJoltFilePath(transformationStore.currentChartId) }}</code>
-                </a-descriptions-item>
-                
-                <a-descriptions-item label="实现状态">
-                  <a-tag :color="getImplementationStatusColor(transformationStore.currentChartId)" size="small">
-                    {{ getImplementationStatus(transformationStore.currentChartId) }}
-                  </a-tag>
-                </a-descriptions-item>
-              </a-descriptions>
-            </div>
-            <div v-else class="info-placeholder">
-              <a-empty description="请选择图表以查看详细信息" :image="false">
-                <template #image>
-                  <BarChartOutlined style="font-size: 32px; color: #d9d9d9;" />
-                </template>
-              </a-empty>
-            </div>
-          </div>
-        </a-col>
-      </a-row>
-
-      <!-- 操作按钮区域 -->
-      <div class="action-section">
-        <a-space size="middle">
-          <a-button
-            :disabled="transformationStore.loading"
-            @click="resetTransformation"
-            size="middle"
-          >
-            <ReloadOutlined />
-            重置
-          </a-button>
-
-          <a-button
-            type="default"
-            @click="testChart"
-            size="middle"
-          >
-            <BarChartOutlined />
-            测试图表
-          </a-button>
-
-          <a-button
-            type="dashed"
-            @click="testAllFunctionality"
-            size="middle"
-          >
-            🧪 全面测试
-          </a-button>
-
-          <a-button
-            type="text"
-            @click="debugCurrentState"
-            size="middle"
-          >
-            🔍 调试状态
-          </a-button>
-        </a-space>
-      </div>
-    </div>
-
-    <!-- 主要内容区域 - 新的布局结构 -->
+    <!-- 主要内容区域 - 左右分栏布局 -->
     <div class="main-content-area">
-      <a-row :gutter="[16, 16]" style="height: 100%;">
-        <!-- 左侧：图表预览区域 -->
-        <a-col :xs="24" :sm="24" :md="12" :lg="8" :xl="8" style="height: 100%;">
+      <a-row :gutter="16" style="height: 100%;">
+        <!-- 左侧区域：控件和数据流 -->
+        <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12" style="height: 100%;">
+          <div class="left-panel">
+            <!-- 左上：图表选择控件 -->
+            <div class="chart-selector-section">
+              <a-card title="图表选择" size="small" class="selector-card">
+                <div class="selector-content">
+                  <a-row :gutter="12">
+                    <a-col :span="12">
+                      <div class="selector-item">
+                        <label class="selector-label">图表分类</label>
+                        <a-select
+                          v-model:value="selectedTemplateType"
+                          placeholder="请选择图表分类"
+                          @change="handleTemplateTypeChange"
+                          style="width: 100%"
+                          size="small"
+                        >
+                          <a-select-option
+                            v-for="category in directoryCategories"
+                            :key="category"
+                            :value="category"
+                          >
+                            {{ category }}
+                          </a-select-option>
+                        </a-select>
+                      </div>
+                    </a-col>
+                    <a-col :span="12">
+                      <div class="selector-item">
+                        <label class="selector-label">具体图表</label>
+                        <a-select
+                          v-model:value="selectedChartFile"
+                          placeholder="请选择具体图表"
+                          @change="handleChartFileChange"
+                          style="width: 100%"
+                          size="small"
+                          :disabled="!selectedTemplateType"
+                        >
+                          <a-select-option
+                            v-for="chart in availableCharts"
+                            :key="chart.id"
+                            :value="chart.filePath"
+                          >
+                            {{ chart.name }}
+                          </a-select-option>
+                        </a-select>
+                      </div>
+                    </a-col>
+                  </a-row>
+                </div>
+              </a-card>
+            </div>
+
+            <!-- 左中：图表信息展示 -->
+            <div class="chart-info-section">
+              <a-card title="图表信息" size="small" class="info-card">
+                <div class="info-content" v-if="transformationStore.currentChartId">
+                  <a-descriptions :column="2" size="small">
+                    <a-descriptions-item label="图表名称">
+                      {{ selectedChartFile ? selectedChartFile.split('/').pop().replace('.json', '') : '未选择' }}
+                    </a-descriptions-item>
+                    <a-descriptions-item label="模板类型">
+                      {{ selectedTemplateType || '未知' }}
+                    </a-descriptions-item>
+                    <a-descriptions-item label="实现状态">
+                      <a-tag :color="getImplementationStatusColor(transformationStore.currentChartId)" size="small">
+                        {{ getImplementationStatus(transformationStore.currentChartId) }}
+                      </a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="图表ID">
+                      {{ transformationStore.currentChartId || '未生成' }}
+                    </a-descriptions-item>
+                  </a-descriptions>
+                </div>
+                <div v-else class="info-placeholder">
+                  <a-empty description="请选择图表以查看详细信息" :image="false" size="small">
+                    <template #image>
+                      <BarChartOutlined style="font-size: 24px; color: #d9d9d9;" />
+                    </template>
+                  </a-empty>
+                </div>
+              </a-card>
+            </div>
+
+            <!-- 左下：数据流卡片重构 -->
+            <div class="data-flow-section">
+              <a-card title="数据流状态" size="small" class="data-flow-card">
+                <div class="data-flow-content">
+                  <!-- 通用JSON模板 -->
+                  <div class="flow-item" :class="{ active: !!transformationStore.universalTemplate }">
+                    <div class="flow-header">
+                      <span class="flow-title">通用JSON模板</span>
+                      <a-space size="small">
+                        <a-tag v-if="transformationStore.universalTemplate" color="green" size="small">
+                          已生成
+                        </a-tag>
+                        <a-button
+                          type="link"
+                          size="small"
+                          @click="copyToClipboard(transformationStore.universalTemplate)"
+                          :disabled="!transformationStore.universalTemplate"
+                        >
+                          <CopyOutlined />
+                        </a-button>
+                      </a-space>
+                    </div>
+                    <div class="flow-actions">
+                      <a-button
+                        size="small"
+                        @click="showDataPreview('template', transformationStore.universalTemplate)"
+                        :disabled="!transformationStore.universalTemplate"
+                      >
+                        数据预览
+                      </a-button>
+                      <a-button
+                        size="small"
+                        @click="copyToClipboard(transformationStore.universalTemplate)"
+                        :disabled="!transformationStore.universalTemplate"
+                      >
+                        复制数据
+                      </a-button>
+                    </div>
+                  </div>
+
+                  <!-- 第一阶段输出 -->
+                  <div class="flow-item" :class="{ active: !!transformationStore.stage1Output }">
+                    <div class="flow-header">
+                      <span class="flow-title">第一阶段输出</span>
+                      <a-space size="small">
+                        <a-tag v-if="transformationStore.stage1Output" color="blue" size="small">
+                          转换完成
+                        </a-tag>
+                        <a-button
+                          type="link"
+                          size="small"
+                          @click="copyToClipboard(transformationStore.stage1Output)"
+                          :disabled="!transformationStore.stage1Output"
+                        >
+                          <CopyOutlined />
+                        </a-button>
+                      </a-space>
+                    </div>
+                    <div class="flow-actions">
+                      <a-button
+                        size="small"
+                        @click="showDataPreview('stage1', transformationStore.stage1Output)"
+                        :disabled="!transformationStore.stage1Output"
+                      >
+                        数据预览
+                      </a-button>
+                      <a-button
+                        size="small"
+                        @click="copyToClipboard(transformationStore.stage1Output)"
+                        :disabled="!transformationStore.stage1Output"
+                      >
+                        复制数据
+                      </a-button>
+                    </div>
+                  </div>
+
+                  <!-- 第二阶段输出 -->
+                  <div class="flow-item" :class="{ active: !!transformationStore.stage2Output }">
+                    <div class="flow-header">
+                      <span class="flow-title">第二阶段输出</span>
+                      <a-space size="small">
+                        <a-tag v-if="transformationStore.stage2Output" color="purple" size="small">
+                          转换完成
+                        </a-tag>
+                        <a-button
+                          type="link"
+                          size="small"
+                          @click="copyToClipboard(transformationStore.stage2Output)"
+                          :disabled="!transformationStore.stage2Output"
+                        >
+                          <CopyOutlined />
+                        </a-button>
+                      </a-space>
+                    </div>
+                    <div class="flow-actions">
+                      <a-button
+                        size="small"
+                        @click="showDataPreview('stage2', transformationStore.stage2Output)"
+                        :disabled="!transformationStore.stage2Output"
+                      >
+                        数据预览
+                      </a-button>
+                      <a-button
+                        size="small"
+                        @click="copyToClipboard(transformationStore.stage2Output)"
+                        :disabled="!transformationStore.stage2Output"
+                      >
+                        复制数据
+                      </a-button>
+                    </div>
+                  </div>
+
+                  <!-- 最终结果 -->
+                  <div class="flow-item" :class="{ active: !!transformationStore.finalResult }">
+                    <div class="flow-header">
+                      <span class="flow-title">最终结果</span>
+                      <a-space size="small">
+                        <a-tag v-if="transformationStore.finalResult" color="green" size="small">
+                          渲染就绪
+                        </a-tag>
+                        <a-button
+                          type="link"
+                          size="small"
+                          @click="copyToClipboard(transformationStore.finalResult)"
+                          :disabled="!transformationStore.finalResult"
+                        >
+                          <CopyOutlined />
+                        </a-button>
+                      </a-space>
+                    </div>
+                    <div class="flow-actions">
+                      <a-button
+                        size="small"
+                        @click="showDataPreview('final', transformationStore.finalResult)"
+                        :disabled="!transformationStore.finalResult"
+                      >
+                        数据预览
+                      </a-button>
+                      <a-button
+                        size="small"
+                        @click="copyToClipboard(transformationStore.finalResult)"
+                        :disabled="!transformationStore.finalResult"
+                      >
+                        复制数据
+                      </a-button>
+                    </div>
+                  </div>
+                </div>
+              </a-card>
+            </div>
+          </div>
+        </a-col>
+
+        <!-- 右侧区域：图表预览 -->
+        <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12" style="height: 100%;">
           <a-card
             title="图表预览"
             class="chart-preview-card"
-            :class="{ active: transformationStore.isCompleted }"
+            :class="{ active: transformationStore.finalResult }"
           >
           <template #extra>
-            <a-space direction="vertical" size="small" style="width: 100%;">
-              <!-- 状态标签 -->
-              <a-space>
-                <a-tag v-if="transformationStore.finalResult" color="green">
-                  数据就绪
-                </a-tag>
-                <a-tag v-if="chartInstance" color="blue">
-                  图表已初始化
-                </a-tag>
-                <a-tag v-if="chartZoom !== 1" color="orange">
-                  缩放: {{ Math.round(chartZoom * 100) }}%
-                </a-tag>
-              </a-space>
-
-              <!-- 基础功能按钮 -->
-              <a-space wrap>
-                <a-button
-                  type="link"
-                  size="small"
-                  @click="initChart"
-                  title="重新初始化图表"
-                >
-                  <ReloadOutlined />
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!transformationStore.finalResult"
-                  @click="refreshChart"
-                  title="刷新图表"
-                >
-                  <ReloadOutlined />
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance || chartZoom === 1"
-                  @click="resetChartZoom"
-                  title="重置缩放"
-                >
-                  <CompressOutlined />
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!transformationStore.finalResult"
-                  @click="downloadChart"
-                  title="下载图表"
-                >
-                  <DownloadOutlined />
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testPieChart"
-                  title="测试基础饼图"
-                  style="color: #fa8c16;"
-                >
-                  🥧 饼图
-                </a-button>
-                <a-button
-                  type="link"
-                  size="small"
-                  :disabled="!chartInstance"
-                  @click="testDoughnutChart"
-                  title="测试圆环图"
-                  style="color: #722ed1;"
-                >
-                  🍩 圆环
-                </a-button>
-              </a-space>
-
-
+            <a-space>
+              <a-tag v-if="transformationStore.finalResult" color="green">
+                渲染就绪
+              </a-tag>
+              <a-tag v-if="chartInstance" color="blue">
+                图表已初始化
+              </a-tag>
+              <a-tag v-if="chartZoom !== 1" color="orange">
+                缩放: {{ Math.round(chartZoom * 100) }}%
+              </a-tag>
+              <a-button
+                type="link"
+                size="small"
+                @click="initChart"
+                title="重新初始化图表"
+              >
+                <ReloadOutlined />
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!transformationStore.finalResult"
+                @click="refreshChart"
+                title="刷新图表"
+              >
+                <ReloadOutlined />
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!chartInstance || chartZoom === 1"
+                @click="resetChartZoom"
+                title="重置缩放"
+              >
+                <CompressOutlined />
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!transformationStore.finalResult"
+                @click="downloadChart"
+                title="下载图表"
+              >
+                <DownloadOutlined />
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!chartInstance"
+                @click="testPieChart"
+                title="测试基础饼图"
+                style="color: #fa8c16;"
+              >
+                🥧 饼图
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!chartInstance"
+                @click="testDoughnutChart"
+                title="测试圆环图"
+                style="color: #722ed1;"
+              >
+                🍩 圆环
+              </a-button>
             </a-space>
           </template>
 
           <div class="chart-wrapper">
-            <!-- 缩放控制按钮 -->
-            <div class="chart-zoom-controls" v-if="chartInstance">
-              <a-button-group size="small">
-                <a-button @click="zoomIn" :disabled="chartZoom >= 3" title="放大">
-                  <PlusOutlined />
-                </a-button>
-                <a-button @click="zoomOut" :disabled="chartZoom <= 0.5" title="缩小">
-                  <MinusOutlined />
-                </a-button>
-                <a-button @click="resetChartZoom" :disabled="chartZoom === 1" title="重置">
-                  <CompressOutlined />
-                </a-button>
-              </a-button-group>
-            </div>
-
-            <!-- 可滚动的图表容器 -->
-            <div class="chart-scroll-container">
-              <!-- 图表容器始终存在，但根据状态显示不同内容 -->
-              <div
-                ref="chartContainer"
-                class="chart-container"
-                :style="{
-                  display: transformationStore.finalResult ? 'block' : 'none',
-                  transform: `scale(${chartZoom})`,
-                  transformOrigin: 'top left',
-                  width: `${100 / chartZoom}%`,
-                  height: `${100 / chartZoom}%`
-                }"
-                @wheel="handleChartWheel"
-                @mousedown="handleChartMouseDown"
-                @mousemove="handleChartMouseMove"
-                @mouseup="handleChartMouseUp"
-                @mouseleave="handleChartMouseUp"
-              ></div>
-
-              <!-- 等待转换完成状态 -->
-              <div
-                v-if="!transformationStore.finalResult"
-                class="chart-empty-state"
-              >
-                <a-empty description="等待转换完成">
-                  <template #image>
-                    <BarChartOutlined style="font-size: 48px; color: #d9d9d9;" />
-                  </template>
-                </a-empty>
-              </div>
-
-              <!-- 图表初始化中状态覆盖层 -->
-              <div
-                v-if="transformationStore.finalResult && !chartInstance"
-                class="chart-loading-overlay"
-              >
-                <a-spin size="large" tip="正在渲染图表..." />
-              </div>
+            <div
+              ref="chartContainer"
+              class="chart-container"
+              :style="{ transform: `scale(${chartZoom})` }"
+            ></div>
+            <div v-if="!transformationStore.finalResult" class="chart-empty">
+              <a-empty description="请选择图表类型并执行转换" />
             </div>
           </div>
         </a-card>
       </a-col>
 
-        <!-- 右侧：数据流展示区域 -->
-        <a-col :xs="24" :sm="24" :md="12" :lg="16" :xl="16" style="height: 100%;">
-          <a-row :gutter="[12, 12]" class="data-flow" style="height: 100%;">
-            <!-- 通用JSON模板 -->
-            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
-              <a-card
-              title="通用JSON模板（含占位符）"
-              class="data-card"
-              :class="{ active: !!transformationStore.universalTemplate }"
-            >
-              <template #extra>
-                <a-space>
-                  <a-tag v-if="templatePlaceholderCount > 0" color="blue">
-                    {{ templatePlaceholderCount }} 个占位符
-                  </a-tag>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="copyToClipboard(transformationStore.universalTemplate)"
-                  >
-                    <CopyOutlined />
-                  </a-button>
-                </a-space>
-              </template>
-
-              <div class="json-viewer">
-                <vue-json-pretty
-                  v-if="transformationStore.universalTemplate"
-                  :data="transformationStore.universalTemplate"
-                  :show-length="true"
-                  :show-line="true"
-                  :highlight-mouseover-node="true"
-                  :highlight-selected-node="true"
-                />
-                <a-empty v-else description="暂无数据" />
-              </div>
-            </a-card>
-          </a-col>
-
-            <!-- 第一阶段输出 -->
-            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
-              <a-card
-              title="第一阶段输出（ECharts结构，保持占位符）"
-              class="data-card"
-              :class="{ active: !!transformationStore.stage1Output }"
-            >
-              <template #extra>
-                <a-space>
-                  <a-tag v-if="stage1PlaceholderCount > 0" color="orange">
-                    {{ stage1PlaceholderCount }} 个占位符
-                  </a-tag>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="copyToClipboard(transformationStore.stage1Output)"
-                  >
-                    <CopyOutlined />
-                  </a-button>
-                </a-space>
-              </template>
-
-              <div class="json-viewer">
-                <vue-json-pretty
-                  v-if="transformationStore.stage1Output"
-                  :data="transformationStore.stage1Output"
-                  :show-length="true"
-                  :show-line="true"
-                  :highlight-mouseover-node="true"
-                  :highlight-selected-node="true"
-                />
-                <a-empty v-else description="暂无数据" />
-              </div>
-            </a-card>
-          </a-col>
-
-            <!-- 第二阶段输出 -->
-            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
-              <a-card
-              title="第二阶段输出（最终ECharts配置）"
-              class="data-card"
-              :class="{ active: !!transformationStore.stage2Output }"
-            >
-              <template #extra>
-                <a-space>
-                  <a-tag v-if="transformationStore.isCompleted" color="green">
-                    转换完成
-                  </a-tag>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="copyToClipboard(transformationStore.stage2Output)"
-                  >
-                    <CopyOutlined />
-                  </a-button>
-                </a-space>
-              </template>
-
-              <div class="json-viewer">
-                <vue-json-pretty
-                  v-if="transformationStore.stage2Output"
-                  :data="transformationStore.stage2Output"
-                  :show-length="true"
-                  :show-line="true"
-                  :highlight-mouseover-node="true"
-                  :highlight-selected-node="true"
-                />
-                <a-empty v-else description="等待第二阶段转换完成" />
-              </div>
-            </a-card>
-          </a-col>
-
-            <!-- 最终结果 -->
-            <a-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6" style="height: 100%;">
-              <a-card
-              title="最终结果（用于图表渲染）"
-              class="data-card"
-              :class="{ active: transformationStore.isCompleted }"
-            >
-              <template #extra>
-                <a-space>
-                  <a-tag v-if="transformationStore.finalResult" color="green">
-                    渲染就绪
-                  </a-tag>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="copyToClipboard(transformationStore.finalResult)"
-                  >
-                    <CopyOutlined />
-                  </a-button>
-                </a-space>
-              </template>
-
-              <div class="json-viewer">
-                <vue-json-pretty
-                  v-if="transformationStore.finalResult"
-                  :data="transformationStore.finalResult"
-                  :show-length="true"
-                  :show-line="true"
-                  :highlight-mouseover-node="true"
-                  :highlight-selected-node="true"
-                />
-                <a-empty v-else description="等待转换完成" />
-              </div>
-            </a-card>
-          </a-col>
-          </a-row>
-        </a-col>
       </a-row>
+
+      <!-- 数据预览模态弹窗 -->
+      <a-modal
+        v-model:open="dataPreviewVisible"
+        :title="dataPreviewTitle"
+        width="80%"
+        :footer="null"
+        class="data-preview-modal"
+      >
+        <div class="modal-json-viewer">
+          <vue-json-pretty
+            v-if="dataPreviewContent"
+            :data="dataPreviewContent"
+            :show-length="true"
+            :show-line="true"
+            :highlight-mouseover-node="true"
+            :highlight-selected-node="true"
+          />
+          <a-empty v-else description="暂无数据" />
+        </div>
+      </a-modal>
     </div>
 
 
@@ -482,9 +392,7 @@ import {
     DashboardOutlined,
     DownloadOutlined,
     LineChartOutlined,
-    MinusOutlined,
     PieChartOutlined,
-    PlusOutlined,
     RadarChartOutlined,
     ReloadOutlined
 } from '@ant-design/icons-vue'
@@ -518,6 +426,11 @@ const availableCharts = ref<Array<{id: string, name: string, filePath: string}>>
 // ECharts目录结构数据
 const echartsDirectoryStructure = ref<Record<string, Array<{fileName: string, displayName: string, filePath: string}>>>({})
 const directoryCategories = ref<string[]>([])
+
+// 数据预览模态弹窗状态
+const dataPreviewVisible = ref(false)
+const dataPreviewTitle = ref('')
+const dataPreviewContent = ref<any>(null)
 
 // 加载ECharts目录结构
 const loadEChartsDirectory = async () => {
@@ -757,6 +670,48 @@ const stage1PlaceholderCount = computed(() => {
 })
 
 // 方法
+
+// 数据预览功能
+const showDataPreview = (type: string, data: any) => {
+  if (!data) {
+    message.warning('暂无数据可预览')
+    return
+  }
+
+  const titleMap = {
+    template: '通用JSON模板（含占位符）',
+    stage1: '第一阶段输出（ECharts结构，保持占位符）',
+    stage2: '第二阶段输出（最终ECharts配置）',
+    final: '最终结果（用于图表渲染）'
+  }
+
+  dataPreviewTitle.value = titleMap[type] || '数据预览'
+  dataPreviewContent.value = data
+  dataPreviewVisible.value = true
+}
+
+// 执行转换功能
+const executeTransformation = async () => {
+  if (!transformationStore.currentChartId) {
+    message.warning('请先选择图表类型')
+    return
+  }
+
+  try {
+    transformationStore.loading = true
+    message.info('开始执行转换...')
+
+    // 这里调用实际的转换逻辑
+    await transformationStore.executeTransformation()
+
+    message.success('转换完成！')
+  } catch (error: any) {
+    console.error('转换失败:', error)
+    message.error(`转换失败: ${error.message}`)
+  } finally {
+    transformationStore.loading = false
+  }
+}
 
 // 处理模板类型变化（一级下拉框）
 const handleTemplateTypeChange = async (categoryName: string) => {
@@ -2230,14 +2185,237 @@ onUnmounted(() => {
 
 
 
-/* 主要内容区域 - 占据剩余空间，优化高度分配 */
+/* 页面头部样式 */
+.page-header-compact {
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.header-left h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.header-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.header-right {
+  flex-shrink: 0;
+}
+
+/* 主要内容区域 - 左右分栏布局 */
 .main-content-area {
   margin-bottom: 12px;
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 120px); /* 为四个数据流卡片提供更多垂直空间 */
+  min-height: calc(100vh - 120px); /* 优化高度分配 */
+}
+
+/* 左侧面板样式 */
+.left-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 图表选择区域 */
+.chart-selector-section {
+  flex-shrink: 0;
+}
+
+.selector-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+.selector-content {
+  padding: 8px 0;
+}
+
+.selector-item {
+  margin-bottom: 8px;
+}
+
+.selector-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+/* 图表信息区域 */
+.chart-info-section {
+  flex-shrink: 0;
+}
+
+.info-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+.info-content {
+  padding: 8px 0;
+}
+
+.info-placeholder {
+  padding: 16px;
+  text-align: center;
+}
+
+/* 数据流区域 */
+.data-flow-section {
+  flex: 1;
+  overflow: hidden;
+}
+
+.data-flow-card {
+  height: 100%;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+.data-flow-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* 数据流项目样式 */
+.flow-item {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.flow-item.active {
+  border-color: #1890ff;
+  background: #f6ffed;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+}
+
+.flow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.flow-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.flow-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 数据预览模态弹窗样式 */
+.data-preview-modal .ant-modal-body {
+  padding: 16px;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.modal-json-viewer {
+  height: 60vh;
+  overflow: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 16px;
+  background: #fafbfc;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header-compact {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .header-left h2 {
+    font-size: 18px;
+  }
+
+  .header-subtitle {
+    font-size: 13px;
+  }
+
+  .main-content-area {
+    min-height: calc(100vh - 140px);
+  }
+
+  .left-panel {
+    gap: 8px;
+  }
+
+  .flow-item {
+    padding: 8px;
+  }
+
+  .flow-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .flow-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .modal-json-viewer {
+    height: 50vh;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 576px) {
+  .page-header-compact {
+    padding: 12px 16px;
+  }
+
+  .selector-content .ant-row {
+    flex-direction: column;
+  }
+
+  .selector-content .ant-col {
+    width: 100% !important;
+    margin-bottom: 8px;
+  }
+
+  .flow-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .flow-actions .ant-btn {
+    width: 100%;
+  }
 }
 
 /* 图表预览卡片 - 适应新的高度分配 */
