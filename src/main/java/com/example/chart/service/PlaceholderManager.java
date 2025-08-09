@@ -1,15 +1,22 @@
 package com.example.chart.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 占位符管理器
@@ -27,8 +34,9 @@ public class PlaceholderManager {
      */
     public Set<String> extractPlaceholders(String content) {
         Set<String> placeholders = new HashSet<>();
-        if (content == null) return placeholders;
-        
+        if (content == null)
+            return placeholders;
+
         Matcher matcher = PATTERN.matcher(content);
         while (matcher.find()) {
             placeholders.add(matcher.group(0)); // 包含 ${} 的完整占位符
@@ -43,11 +51,20 @@ public class PlaceholderManager {
         Set<String> placeholders = new HashSet<>();
         try {
             String jsonString = objectMapper.writeValueAsString(jsonObj);
-            return extractPlaceholders(jsonString);
+            placeholders = extractPlaceholders(jsonString);
+            System.out.println("📋 [PlaceholderManager] 提取占位符数量: " + placeholders.size() + ", 列表: " + placeholders);
+            return placeholders;
         } catch (Exception e) {
-            System.err.println("提取占位符时出错: " + e.getMessage());
+            System.err.println("❌ [PlaceholderManager] 提取占位符时出错: " + e.getMessage());
             return placeholders;
         }
+    }
+
+    /**
+     * 统一的占位符计数方法
+     */
+    public int countPlaceholders(Object jsonObj) {
+        return extractPlaceholdersFromJson(jsonObj).size();
     }
 
     /**
@@ -93,7 +110,7 @@ public class PlaceholderManager {
         for (Map.Entry<String, Object> entry : values.entrySet()) {
             String placeholder = entry.getKey();
             Object value = entry.getValue();
-            
+
             if (isValidPlaceholder(placeholder)) {
                 String valueStr = convertValueToString(value);
                 result = result.replace(placeholder, valueStr);
@@ -124,13 +141,13 @@ public class PlaceholderManager {
             // 处理文本节点中的占位符
             String text = node.asText();
             String replacedText = replacePlaceholders(text, values);
-            
+
             // 如果整个字符串就是一个占位符，尝试保持原始数据类型
             if (isValidPlaceholder(text) && values.containsKey(text)) {
                 Object value = values.get(text);
                 return objectMapper.valueToTree(value);
             }
-            
+
             return new TextNode(replacedText);
         } else if (node.isArray()) {
             // 处理数组节点
@@ -149,7 +166,7 @@ public class PlaceholderManager {
             });
             return objectNode;
         }
-        
+
         return node; // 其他类型节点直接返回
     }
 
@@ -180,13 +197,13 @@ public class PlaceholderManager {
     public List<String> validatePlaceholders(Object jsonObj, Map<String, Object> values) {
         Set<String> placeholders = extractPlaceholdersFromJson(jsonObj);
         List<String> missingPlaceholders = new ArrayList<>();
-        
+
         for (String placeholder : placeholders) {
             if (!values.containsKey(placeholder)) {
                 missingPlaceholders.add(placeholder);
             }
         }
-        
+
         return missingPlaceholders;
     }
 
@@ -195,7 +212,7 @@ public class PlaceholderManager {
      */
     public Map<String, Object> createSamplePlaceholderValues() {
         Map<String, Object> values = new HashMap<>();
-        
+
         // 基础数据占位符
         values.put("${chart_title}", "动态营销渠道分析");
         values.put("${category_field}", Arrays.asList("周一", "周二", "周三", "周四", "周五", "周六", "周日"));
@@ -204,18 +221,18 @@ public class PlaceholderManager {
         values.put("${series_name_3}", "视频广告");
         values.put("${series_name_4}", "直接访问");
         values.put("${series_name_5}", "搜索引擎");
-        
+
         // 数值数据占位符
         values.put("${series_data_1}", Arrays.asList(120, 132, 101, 134, 90, 230, 210));
         values.put("${series_data_2}", Arrays.asList(220, 182, 191, 234, 290, 330, 310));
         values.put("${series_data_3}", Arrays.asList(150, 232, 201, 154, 190, 330, 410));
         values.put("${series_data_4}", Arrays.asList(320, 332, 301, 334, 390, 330, 320));
         values.put("${series_data_5}", Arrays.asList(820, 932, 901, 934, 1290, 1330, 1320));
-        
+
         // 配置占位符
         values.put("${stack_group}", "Total");
         values.put("${chart_type}", "line");
-        
+
         return values;
     }
 }

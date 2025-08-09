@@ -1,0 +1,84 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "chart_title": "title.text",
+      "chart_type": "series[0].type",
+      "chart_theme": "theme",
+      "radar_indicators": "radar.indicator",
+      "radar_shape": "radar.shape",
+      "radar_radius": "radar.radius",
+      "radar_data": "series[0].data",
+      "area_style": "series[0].areaStyle",
+      "legend_config": "legend",
+      "tooltip_config": "tooltip",
+      "grid_config": "grid",
+      "toolbox_config": "toolbox"
+    }
+  },
+  {
+    "operation": "default",
+    "spec": {
+      "title": {
+        "text": "${chart_title}",
+        "left": "center",
+        "textStyle": {
+          "fontSize": 18,
+          "fontWeight": "bold"
+        }
+      },
+      "tooltip": {
+        "trigger": "item",
+        "formatter": "{a} <br/>{b}: {c}"
+      },
+      "legend": {
+        "orient": "vertical",
+        "left": "left",
+        "data": []
+      },
+      "radar": {
+        "indicator": "${radar_indicators}",
+        "shape": "${radar_shape}",
+        "radius": "${radar_radius}",
+        "splitNumber": 5,
+        "axisName": {
+          "color": "#666"
+        },
+        "splitLine": {
+          "lineStyle": {
+            "color": "#ddd"
+          }
+        },
+        "splitArea": {
+          "show": false
+        }
+      },
+      "series": [
+        {
+          "name": "雷达图",
+          "type": "radar",
+          "data": "${radar_data}",
+          "areaStyle": "${area_style}",
+          "lineStyle": {
+            "width": 2
+          },
+          "symbol": "circle",
+          "symbolSize": 6
+        }
+      ],
+      "toolbox": {
+        "show": true,
+        "feature": {
+          "saveAsImage": {
+            "show": true,
+            "title": "保存为图片"
+          },
+          "restore": {
+            "show": true,
+            "title": "还原"
+          }
+        }
+      }
+    }
+  }
+]

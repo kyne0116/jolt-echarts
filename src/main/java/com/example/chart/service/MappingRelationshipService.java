@@ -7,22 +7,112 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.example.chart.model.UniversalChartDataView;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 映射关系管理服务
- * 负责占位符与数据库字段的映射关系管理
+ * 负责占位符与统一数据视图字段的映射关系管理
+ * 重构后使用单一数据源 UniversalChartDataView
  */
 @Service
 public class MappingRelationshipService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 模拟映射关系存储（生产环境中应该是数据库）
+    // 统一数据视图映射关系存储
     private final Map<String, Map<String, Object>> chartMappings = new HashMap<>();
+
+    // 字段提取器映射 - 用于从UniversalChartDataView中提取数据
+    private final Map<String, Function<UniversalChartDataView, Object>> fieldExtractors = new HashMap<>();
+
+    @Autowired
+    private UniversalChartDataService dataService;
+
+    // 初始化状态管理
+    private volatile boolean initialized = false;
+    private final Object initLock = new Object();
+
+    public MappingRelationshipService() {
+        // 构造函数中不执行初始化，等待@PostConstruct
+    }
+
+    @PostConstruct
+    public void initialize() {
+        synchronized (initLock) {
+            if (!initialized) {
+                try {
+                    initializeFieldExtractors();
+                    initializeUniversalMappings();
+                    initialized = true;
+                    System.out.println("✅ 映射关系服务初始化完成，支持图表类型数量: " + chartMappings.size());
+                } catch (Exception e) {
+                    System.err.println("❌ 映射关系服务初始化失败: " + e.getMessage());
+                    throw new RuntimeException("映射关系服务初始化失败", e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 初始化字段提取器
+     */
+    private void initializeFieldExtractors() {
+        // 基础信息字段提取器
+        fieldExtractors.put("title", UniversalChartDataView::getTitle);
+        fieldExtractors.put("chart_type", UniversalChartDataView::getChartType);
+        fieldExtractors.put("theme", UniversalChartDataView::getTheme);
+        fieldExtractors.put("description", UniversalChartDataView::getDescription);
+
+        // 时间维度字段提取器
+        fieldExtractors.put("date", data -> data.getDate() != null ? data.getDate().toString() : null);
+        fieldExtractors.put("day_name", UniversalChartDataView::getDayName);
+        fieldExtractors.put("month", UniversalChartDataView::getMonth);
+        fieldExtractors.put("year", UniversalChartDataView::getYear);
+
+        // 分类数据字段提取器
+        fieldExtractors.put("category", UniversalChartDataView::getCategory);
+        fieldExtractors.put("channel_name", UniversalChartDataView::getChannelName);
+        fieldExtractors.put("product_name", UniversalChartDataView::getProductName);
+        fieldExtractors.put("region", UniversalChartDataView::getRegion);
+
+        // 数值字段提取器
+        fieldExtractors.put("value", UniversalChartDataView::getValue);
+        fieldExtractors.put("conversion_count", UniversalChartDataView::getConversionCount);
+        fieldExtractors.put("click_count", UniversalChartDataView::getClickCount);
+        fieldExtractors.put("percentage", UniversalChartDataView::getPercentage);
+        fieldExtractors.put("amount", UniversalChartDataView::getAmount);
+
+        // 配置字段提取器
+        fieldExtractors.put("color", UniversalChartDataView::getColor);
+        fieldExtractors.put("style", UniversalChartDataView::getStyle);
+        fieldExtractors.put("radius", UniversalChartDataView::getRadius);
+        fieldExtractors.put("stack_group", UniversalChartDataView::getStackGroup);
+        fieldExtractors.put("smooth_style", UniversalChartDataView::getSmoothStyle);
+        fieldExtractors.put("boundary_gap", UniversalChartDataView::getBoundaryGap);
+    }
+
+    /**
+     * 创建统一字段映射
+     */
+    private Map<String, Object> createUniversalFieldMapping(String placeholderName, String viewName,
+            String fieldName, String dataType) {
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("placeholderName", placeholderName);
+        mapping.put("viewName", viewName);
+        mapping.put("fieldName", fieldName);
+        mapping.put("dataType", dataType);
+        mapping.put("extractorKey", fieldName);
+        return mapping;
+    }
 
     /**
      * 映射关系数据结构
@@ -97,86 +187,96 @@ public class MappingRelationshipService {
     }
 
     /**
-     * 初始化示例映射关系 - 更新为新的通用模板格式
+     * 初始化示例映射关系 - 保持向后兼容
      */
     public void initializeSampleMappings() {
-        // 通用模板的映射关系（适用于所有图表类型）
+        initializeUniversalMappings();
+    }
+
+    /**
+     * 初始化统一数据视图映射关系
+     */
+    public void initializeUniversalMappings() {
+        // 初始化字段提取器
+        initializeFieldExtractors();
+
+        // 通用模板的映射关系（基于UniversalChartDataView）
         Map<String, Object> universalMappings = new HashMap<>();
 
         // 图表基本信息映射
-        universalMappings.put("${chart_title}", createFieldMapping(
-                "${chart_title}", "chart_config", "title", "string"));
-        universalMappings.put("${chart_type}", createFieldMapping(
-                "${chart_type}", "chart_config", "chart_type", "string"));
-        universalMappings.put("${chart_theme}", createFieldMapping(
-                "${chart_theme}", "chart_config", "theme", "string"));
+        universalMappings.put("${chart_title}", createUniversalFieldMapping(
+                "${chart_title}", "universal_chart_data_view", "title", "string"));
+        universalMappings.put("${chart_type}", createUniversalFieldMapping(
+                "${chart_type}", "universal_chart_data_view", "chart_type", "string"));
+        universalMappings.put("${chart_theme}", createUniversalFieldMapping(
+                "${chart_theme}", "universal_chart_data_view", "theme", "string"));
 
         // 数据结构映射
-        universalMappings.put("${categories}", createFieldMapping(
-                "${categories}", "marketing_data", "day_name", "array"));
+        universalMappings.put("${categories}", createUniversalFieldMapping(
+                "${categories}", "universal_chart_data_view", "day_name", "array"));
 
-        // 系列名称映射（新格式）
-        universalMappings.put("${series_1_name}", createFieldMapping(
-                "${series_1_name}", "marketing_data", "channel_name", "string", "Email"));
-        universalMappings.put("${series_2_name}", createFieldMapping(
-                "${series_2_name}", "marketing_data", "channel_name", "string", "Union Ads"));
-        universalMappings.put("${series_3_name}", createFieldMapping(
-                "${series_3_name}", "marketing_data", "channel_name", "string", "Video Ads"));
-        universalMappings.put("${series_4_name}", createFieldMapping(
-                "${series_4_name}", "marketing_data", "channel_name", "string", "Direct"));
-        universalMappings.put("${series_5_name}", createFieldMapping(
-                "${series_5_name}", "marketing_data", "channel_name", "string", "Search Engine"));
+        // 系列名称映射（基于统一数据视图）
+        universalMappings.put("${series_1_name}", createUniversalFieldMapping(
+                "${series_1_name}", "universal_chart_data_view", "channel_name", "string"));
+        universalMappings.put("${series_2_name}", createUniversalFieldMapping(
+                "${series_2_name}", "universal_chart_data_view", "channel_name", "string"));
+        universalMappings.put("${series_3_name}", createUniversalFieldMapping(
+                "${series_3_name}", "universal_chart_data_view", "channel_name", "string"));
+        universalMappings.put("${series_4_name}", createUniversalFieldMapping(
+                "${series_4_name}", "universal_chart_data_view", "channel_name", "string"));
+        universalMappings.put("${series_5_name}", createUniversalFieldMapping(
+                "${series_5_name}", "universal_chart_data_view", "channel_name", "string"));
 
-        // 系列数据映射（新格式）
-        universalMappings.put("${series_1_data}", createFieldMapping(
-                "${series_1_data}", "marketing_data", "conversion_count", "array", "Email"));
-        universalMappings.put("${series_2_data}", createFieldMapping(
-                "${series_2_data}", "marketing_data", "conversion_count", "array", "Union Ads"));
-        universalMappings.put("${series_3_data}", createFieldMapping(
-                "${series_3_data}", "marketing_data", "conversion_count", "array", "Video Ads"));
-        universalMappings.put("${series_4_data}", createFieldMapping(
-                "${series_4_data}", "marketing_data", "conversion_count", "array", "Direct"));
-        universalMappings.put("${series_5_data}", createFieldMapping(
-                "${series_5_data}", "marketing_data", "conversion_count", "array", "Search Engine"));
+        // 系列数据映射（基于统一数据视图）
+        universalMappings.put("${series_1_data}", createUniversalFieldMapping(
+                "${series_1_data}", "universal_chart_data_view", "conversion_count", "array"));
+        universalMappings.put("${series_2_data}", createUniversalFieldMapping(
+                "${series_2_data}", "universal_chart_data_view", "conversion_count", "array"));
+        universalMappings.put("${series_3_data}", createUniversalFieldMapping(
+                "${series_3_data}", "universal_chart_data_view", "conversion_count", "array"));
+        universalMappings.put("${series_4_data}", createUniversalFieldMapping(
+                "${series_4_data}", "universal_chart_data_view", "conversion_count", "array"));
+        universalMappings.put("${series_5_data}", createUniversalFieldMapping(
+                "${series_5_data}", "universal_chart_data_view", "conversion_count", "array"));
 
         // 系列样式映射
-        universalMappings.put("${series_1_style}", createFieldMapping(
-                "${series_1_style}", "chart_config", "series_style", "string", "smooth"));
-        universalMappings.put("${series_2_style}", createFieldMapping(
-                "${series_2_style}", "chart_config", "series_style", "string", "smooth"));
-        universalMappings.put("${series_3_style}", createFieldMapping(
-                "${series_3_style}", "chart_config", "series_style", "string", "smooth"));
-        universalMappings.put("${series_4_style}", createFieldMapping(
-                "${series_4_style}", "chart_config", "series_style", "string", "smooth"));
-        universalMappings.put("${series_5_style}", createFieldMapping(
-                "${series_5_style}", "chart_config", "series_style", "string", "smooth"));
+        universalMappings.put("${series_1_style}", createUniversalFieldMapping(
+                "${series_1_style}", "universal_chart_data_view", "style", "string"));
+        universalMappings.put("${series_2_style}", createUniversalFieldMapping(
+                "${series_2_style}", "universal_chart_data_view", "style", "string"));
+        universalMappings.put("${series_3_style}", createUniversalFieldMapping(
+                "${series_3_style}", "universal_chart_data_view", "style", "string"));
+        universalMappings.put("${series_4_style}", createUniversalFieldMapping(
+                "${series_4_style}", "universal_chart_data_view", "style", "string"));
+        universalMappings.put("${series_5_style}", createUniversalFieldMapping(
+                "${series_5_style}", "universal_chart_data_view", "style", "string"));
 
-        // 新增：分类模板专用占位符映射
+        // 分类模板专用占位符映射
         // 坐标轴配置映射
-        universalMappings.put("${boundary_gap}", createFieldMapping(
-                "${boundary_gap}", "chart_config", "boundary_gap", "boolean", "false"));
+        universalMappings.put("${boundary_gap}", createUniversalFieldMapping(
+                "${boundary_gap}", "universal_chart_data_view", "boundary_gap", "boolean"));
 
         // 系列配置映射
-        universalMappings.put("${series_type}", createFieldMapping(
-                "${series_type}", "chart_config", "series_type", "string", "line"));
-        universalMappings.put("${stack_group}", createFieldMapping(
-                "${stack_group}", "chart_config", "stack_group", "string", "Total"));
-        universalMappings.put("${smooth_style}", createFieldMapping(
-                "${smooth_style}", "chart_config", "smooth_style", "boolean", "true"));
+        universalMappings.put("${series_type}", createUniversalFieldMapping(
+                "${series_type}", "universal_chart_data_view", "chart_type", "string"));
+        universalMappings.put("${stack_group}", createUniversalFieldMapping(
+                "${stack_group}", "universal_chart_data_view", "stack_group", "string"));
+        universalMappings.put("${smooth_style}", createUniversalFieldMapping(
+                "${smooth_style}", "universal_chart_data_view", "smooth_style", "boolean"));
 
         // 工具箱配置映射
-        universalMappings.put("${toolbox_config}", createFieldMapping(
-                "${toolbox_config}", "chart_config", "toolbox_config", "string", "default"));
+        universalMappings.put("${toolbox_config}", createUniversalFieldMapping(
+                "${toolbox_config}", "universal_chart_data_view", "extra_config", "string"));
 
         // 饼图专用占位符映射
-        universalMappings.put("${radius_config}", createFieldMapping(
-                "${radius_config}", "chart_config", "radius_config", "string", "50%"));
-        universalMappings.put("${center_config}", createFieldMapping(
-                "${center_config}", "chart_config", "center_config", "array", "['50%', '50%']"));
-        universalMappings.put("${pie_data}", createFieldMapping(
-                "${pie_data}", "marketing_data", "pie_data", "array"));
-        universalMappings.put("${rose_type}", createFieldMapping(
-                "${rose_type}", "chart_config", "rose_type", "string", "false"));
+        universalMappings.put("${radius_config}", createUniversalFieldMapping(
+                "${radius_config}", "universal_chart_data_view", "radius", "string"));
+        universalMappings.put("${center_config}", createUniversalFieldMapping(
+                "${center_config}", "universal_chart_data_view", "center", "array"));
+        universalMappings.put("${pie_data}", createUniversalFieldMapping(
+                "${pie_data}", "universal_chart_data_view", "value", "array"));
+        universalMappings.put("${rose_type}", createUniversalFieldMapping(
+                "${rose_type}", "universal_chart_data_view", "extra_config", "string"));
 
         // 雷达图专用占位符映射
         universalMappings.put("${radar_config}", createFieldMapping(
@@ -213,9 +313,29 @@ public class MappingRelationshipService {
                 "${brush_config}", "chart_config", "brush_config", "string"));
 
         // 为所有图表类型使用相同的通用映射
+        // CARTESIAN类型图表
+        chartMappings.put("basic_line_chart", universalMappings);
+        chartMappings.put("smooth_line_chart", universalMappings);
         chartMappings.put("stacked_line_chart", universalMappings);
         chartMappings.put("basic_bar_chart", universalMappings);
-        chartMappings.put("pie_chart", universalMappings);
+        chartMappings.put("stacked_bar_chart", universalMappings);
+        chartMappings.put("basic_area_chart", universalMappings);
+
+        // PIE类型图表
+        chartMappings.put("basic_pie_chart", universalMappings);
+        chartMappings.put("doughnut_chart", universalMappings);
+        chartMappings.put("rose_chart", universalMappings);
+        chartMappings.put("pie_chart", universalMappings); // 兼容版本
+
+        // RADAR类型图表
+        chartMappings.put("basic_radar_chart", universalMappings);
+        chartMappings.put("filled_radar_chart", universalMappings);
+
+        // GAUGE类型图表
+        chartMappings.put("basic_gauge_chart", universalMappings);
+        chartMappings.put("progress_gauge_chart", universalMappings);
+        chartMappings.put("grade_gauge_chart", universalMappings);
+
         chartMappings.put("universal", universalMappings); // 通用模板
 
         System.out.println("✅ 初始化通用映射关系完成，包含 " + universalMappings.size() + " 个映射项");
@@ -244,6 +364,97 @@ public class MappingRelationshipService {
         }
 
         return mapping;
+    }
+
+    /**
+     * 从统一数据视图中提取占位符数据
+     */
+    public Map<String, Object> extractDataFromUniversalView(String chartId, Set<String> placeholders) {
+        Map<String, Object> extractedData = new HashMap<>();
+
+        if (dataService == null) {
+            // 如果数据服务未注入，返回模拟数据
+            return simulateDataQuery(chartId, placeholders);
+        }
+
+        try {
+            // 获取图表类型对应的数据
+            List<UniversalChartDataView> dataList = dataService.getDataByChartType(chartId);
+
+            for (String placeholder : placeholders) {
+                Object extractedValue = extractPlaceholderValue(placeholder, dataList);
+                extractedData.put(placeholder, extractedValue);
+            }
+
+        } catch (Exception e) {
+            System.err.println("从统一数据视图提取数据失败: " + e.getMessage());
+            // 回退到模拟数据
+            return simulateDataQuery(chartId, placeholders);
+        }
+
+        return extractedData;
+    }
+
+    /**
+     * 提取单个占位符的值
+     */
+    private Object extractPlaceholderValue(String placeholder, List<UniversalChartDataView> dataList) {
+        Map<String, Object> chartMapping = getChartMappings("universal");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapping = (Map<String, Object>) chartMapping.get(placeholder);
+
+        if (mapping == null || dataList.isEmpty()) {
+            return null;
+        }
+
+        String fieldName = (String) mapping.get("fieldName");
+        String dataType = (String) mapping.get("dataType");
+        Function<UniversalChartDataView, Object> extractor = fieldExtractors.get(fieldName);
+
+        if (extractor == null) {
+            return null;
+        }
+
+        // 根据数据类型处理返回值
+        if ("array".equals(dataType)) {
+            // 对于数组类型，收集所有数据
+            return dataList.stream()
+                    .map(extractor)
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList());
+        } else {
+            // 对于单值类型，返回第一个非空值
+            return dataList.stream()
+                    .map(extractor)
+                    .filter(java.util.Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+        }
+    }
+
+    /**
+     * 重新加载映射关系
+     */
+    public void reloadMappings() {
+        synchronized (initLock) {
+            try {
+                chartMappings.clear();
+                fieldExtractors.clear();
+                initializeFieldExtractors();
+                initializeUniversalMappings();
+                System.out.println("✅ 映射关系重新加载完成，支持图表类型数量: " + chartMappings.size());
+            } catch (Exception e) {
+                System.err.println("❌ 映射关系重新加载失败: " + e.getMessage());
+                throw new RuntimeException("映射关系重新加载失败", e);
+            }
+        }
+    }
+
+    /**
+     * 检查初始化状态
+     */
+    public boolean isInitialized() {
+        return initialized;
     }
 
     /**
@@ -308,8 +519,22 @@ public class MappingRelationshipService {
      */
     private Object generateMockData(Map<String, Object> mapping) {
         String dataType = (String) mapping.get("dataType");
-        String columnName = (String) mapping.get("columnName");
+        // 优先使用fieldName，如果不存在则使用columnName（向后兼容）
+        String columnName = (String) mapping.get("fieldName");
+        if (columnName == null) {
+            columnName = (String) mapping.get("columnName");
+        }
         Map<String, Object> conditions = (Map<String, Object>) mapping.get("queryConditions");
+
+        // 添加null检查
+        if (dataType == null) {
+            System.err.println("⚠️ dataType为null，使用默认值");
+            dataType = "string";
+        }
+        if (columnName == null) {
+            System.err.println("⚠️ columnName为null，使用默认值");
+            columnName = "default_column";
+        }
 
         switch (dataType) {
             case "string":

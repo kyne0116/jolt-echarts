@@ -1,0 +1,88 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "chart_title": "title.text",
+      "chart_type": "series[0].type",
+      "chart_theme": "theme",
+      "min_value": "series[0].min",
+      "max_value": "series[0].max",
+      "gauge_data": "series[0].data",
+      "detail_config": "series[0].detail",
+      "pointer_config": "series[0].pointer",
+      "axis_line_config": "series[0].axisLine",
+      "progress_config": "series[0].progress",
+      "tooltip_config": "tooltip"
+    }
+  },
+  {
+    "operation": "default",
+    "spec": {
+      "title": {
+        "text": "${chart_title}",
+        "left": "center",
+        "textStyle": {
+          "fontSize": 18,
+          "fontWeight": "bold"
+        }
+      },
+      "tooltip": {
+        "trigger": "item",
+        "formatter": "{a} <br/>{b}: {c}%"
+      },
+      "series": [
+        {
+          "name": "仪表盘",
+          "type": "gauge",
+          "min": "${min_value}",
+          "max": "${max_value}",
+          "progress": {
+            "show": true,
+            "width": 18
+          },
+          "axisLine": {
+            "lineStyle": {
+              "width": 18
+            }
+          },
+          "axisTick": {
+            "show": false
+          },
+          "splitLine": {
+            "length": 15,
+            "lineStyle": {
+              "width": 2,
+              "color": "#999"
+            }
+          },
+          "axisLabel": {
+            "distance": 25,
+            "color": "#999",
+            "fontSize": 12
+          },
+          "anchor": {
+            "show": true,
+            "showAbove": true,
+            "size": 25,
+            "itemStyle": {
+              "borderWidth": 10
+            }
+          },
+          "pointer": {
+            "itemStyle": {
+              "color": "auto"
+            }
+          },
+          "detail": {
+            "valueAnimation": true,
+            "formatter": "{value}%",
+            "color": "auto",
+            "fontSize": 20,
+            "offsetCenter": [0, "70%"]
+          },
+          "data": "${gauge_data}"
+        }
+      ]
+    }
+  }
+]

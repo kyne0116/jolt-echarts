@@ -7,45 +7,144 @@
 
 
 
-    <!-- 紧凑的页面标题和工具栏 -->
-    <div class="page-header-compact">
-      <div class="header-left">
-        <h2>两阶段转换演示</h2>
-        <span class="header-subtitle">从通用JSON模板到ECharts配置的完整转换流程</span>
-      </div>
+    <!-- 精简后的配置区域 - 无标题版本 -->
+    <div class="config-header-compact">
+      <!-- 主要配置区域 -->
+      <a-row :gutter="[24, 16]" class="config-section" align="top">
+        <!-- 左侧：图表选择区域 -->
+        <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
+          <div class="chart-selector-panel">
+            <a-space direction="vertical" size="middle" style="width: 100%">
+              <!-- 一级下拉框：图表分类 -->
+              <div class="selector-item">
+                <label class="selector-label">图表分类</label>
+                <a-select
+                  v-model:value="selectedTemplateType"
+                  style="width: 100%"
+                  size="middle"
+                  @change="handleTemplateTypeChange"
+                  placeholder="请选择图表分类"
+                  :get-popup-container="getDropdownContainer"
+                  :loading="directoryCategories.length === 0"
+                  show-search
+                  :filter-option="false"
+                >
+                  <a-select-option
+                    v-for="category in directoryCategories"
+                    :key="category"
+                    :value="category"
+                  >
+                    <component
+                      :is="getCategoryIcon(category)"
+                      style="margin-right: 8px"
+                    />
+                    {{ category }}
+                  </a-select-option>
+                </a-select>
+              </div>
 
-      <div class="header-toolbar">
-        <a-space>
-          <a-select
-            v-model:value="transformationStore.currentChartId"
-            style="width: 160px"
-            size="small"
-            @change="handleChartTypeChange"
-            placeholder="请选择图表类型"
-            :get-popup-container="(triggerNode: any) => triggerNode?.parentNode"
-            :dropdown-match-select-width="false"
-          >
-            <a-select-option value="stacked_line_chart">堆叠折线图</a-select-option>
-            <a-select-option value="basic_bar_chart">基础柱状图</a-select-option>
-            <a-select-option value="pie_chart">饼图</a-select-option>
-          </a-select>
+              <!-- 二级下拉框：具体图表 -->
+              <div class="selector-item">
+                <label class="selector-label">具体图表</label>
+                <a-select
+                  v-model:value="selectedChartFile"
+                  style="width: 100%"
+                  size="middle"
+                  @change="handleChartFileChange"
+                  placeholder="请选择具体图表"
+                  :disabled="!selectedTemplateType"
+                  :get-popup-container="getDropdownContainer"
+                >
+                  <a-select-option
+                    v-for="chart in availableCharts"
+                    :key="chart.filePath"
+                    :value="chart.filePath"
+                  >
+                    {{ chart.name }}
+                  </a-select-option>
+                </a-select>
+              </div>
 
+              <!-- 两阶段转换按钮 -->
+              <div class="transform-button-section">
+                <a-button
+                  type="primary"
+                  size="middle"
+                  :loading="transformationStore.loading"
+                  :disabled="!selectedChartFile || !selectedTemplateType"
+                  @click="executeFullTransformation"
+                  block
+                >
+                  <PlayCircleOutlined />
+                  两阶段转换
+                </a-button>
+              </div>
+            </a-space>
+          </div>
+        </a-col>
 
+        <!-- 右侧：图表信息展示区域 -->
+        <a-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
+          <div class="chart-info-panel">
+            <div v-if="chartInfo && selectedChartFile" class="info-content">
+              <a-descriptions :column="1" size="small" bordered>
+                <a-descriptions-item label="图表名称">
+                  <div class="info-value-with-subtitle">
+                    <div class="main-value">{{ chartInfo.chartName }}</div>
+                    <div class="sub-value">{{ getChartTypeEnglish(chartInfo.chartCategory) }}</div>
+                  </div>
+                </a-descriptions-item>
+                
+                <a-descriptions-item label="模板类型">
+                  <a-tag :color="getTemplateTypeColor(chartInfo.templateType)" size="small">
+                    {{ chartInfo.templateType.toUpperCase() }}
+                  </a-tag>
+                  <span class="template-type-name">{{ chartInfo.templateTypeName }}</span>
+                </a-descriptions-item>
+                
+                <a-descriptions-item label="ECharts文件">
+                  <code class="file-path-code">{{ selectedChartFile }}</code>
+                </a-descriptions-item>
+                
+                <a-descriptions-item label="JOLT文件">
+                  <code class="file-path-code">{{ getJoltFilePath(transformationStore.currentChartId) }}</code>
+                </a-descriptions-item>
+                
+                <a-descriptions-item label="实现状态">
+                  <a-tag :color="getImplementationStatusColor(transformationStore.currentChartId)" size="small">
+                    {{ getImplementationStatus(transformationStore.currentChartId) }}
+                  </a-tag>
+                </a-descriptions-item>
+              </a-descriptions>
+            </div>
+            <div v-else class="info-placeholder">
+              <a-empty description="请选择图表以查看详细信息" :image="false">
+                <template #image>
+                  <BarChartOutlined style="font-size: 32px; color: #d9d9d9;" />
+                </template>
+              </a-empty>
+            </div>
+          </div>
+        </a-col>
+      </a-row>
 
+      <!-- 操作按钮区域 -->
+      <div class="action-section">
+        <a-space size="middle">
           <a-button
             type="primary"
-            size="small"
             :loading="transformationStore.loading"
             @click="executeFullTransformation"
+            size="middle"
           >
             <PlayCircleOutlined />
             执行转换
           </a-button>
 
           <a-button
-            size="small"
             :disabled="transformationStore.loading"
             @click="resetTransformation"
+            size="middle"
           >
             <ReloadOutlined />
             重置
@@ -53,8 +152,8 @@
 
           <a-button
             type="default"
-            size="small"
             @click="testChart"
+            size="middle"
           >
             <BarChartOutlined />
             测试图表
@@ -62,16 +161,16 @@
 
           <a-button
             type="dashed"
-            size="small"
             @click="testAllFunctionality"
+            size="middle"
           >
             🧪 全面测试
           </a-button>
 
           <a-button
             type="text"
-            size="small"
             @click="debugCurrentState"
+            size="middle"
           >
             🔍 调试状态
           </a-button>
@@ -79,123 +178,16 @@
       </div>
     </div>
 
-    <!-- 数据流展示 -->
-    <a-row :gutter="[12, 12]" class="data-flow">
-      <!-- 通用JSON模板 -->
-      <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-        <a-card
-          title="通用JSON模板（含占位符）"
-          class="data-card"
-          :class="{ active: currentStepIndex >= 0 }"
-        >
-          <template #extra>
-            <a-space>
-              <a-tag v-if="templatePlaceholderCount > 0" color="blue">
-                {{ templatePlaceholderCount }} 个占位符
-              </a-tag>
-              <a-button
-                type="link"
-                size="small"
-                @click="copyToClipboard(transformationStore.universalTemplate)"
-              >
-                <CopyOutlined />
-              </a-button>
-            </a-space>
-          </template>
-
-          <div class="json-viewer">
-            <vue-json-pretty
-              v-if="transformationStore.universalTemplate"
-              :data="transformationStore.universalTemplate"
-              :show-length="true"
-              :show-line="true"
-              :highlight-mouseover-node="true"
-              :highlight-selected-node="true"
-            />
-            <a-empty v-else description="暂无数据" />
-          </div>
-        </a-card>
-      </a-col>
-
-      <!-- 第一阶段输出 -->
-      <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-        <a-card
-          title="第一阶段输出（ECharts结构，保持占位符）"
-          class="data-card"
-          :class="{ active: currentStepIndex >= 1 }"
-        >
-          <template #extra>
-            <a-space>
-              <a-tag v-if="stage1PlaceholderCount > 0" color="orange">
-                {{ stage1PlaceholderCount }} 个占位符
-              </a-tag>
-              <a-button
-                type="link"
-                size="small"
-                @click="copyToClipboard(transformationStore.stage1Output)"
-              >
-                <CopyOutlined />
-              </a-button>
-            </a-space>
-          </template>
-
-          <div class="json-viewer">
-            <vue-json-pretty
-              v-if="transformationStore.stage1Output"
-              :data="transformationStore.stage1Output"
-              :show-length="true"
-              :show-line="true"
-              :highlight-mouseover-node="true"
-              :highlight-selected-node="true"
-            />
-            <a-empty v-else description="暂无数据" />
-          </div>
-        </a-card>
-      </a-col>
-
-      <!-- 第二阶段输出 -->
-      <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-        <a-card
-          title="第二阶段输出（最终ECharts配置）"
-          class="data-card"
-          :class="{ active: currentStepIndex >= 2 }"
-        >
-          <template #extra>
-            <a-space>
-              <a-tag v-if="transformationStore.isCompleted" color="green">
-                转换完成
-              </a-tag>
-              <a-button
-                type="link"
-                size="small"
-                @click="copyToClipboard(transformationStore.stage2Output)"
-              >
-                <CopyOutlined />
-              </a-button>
-            </a-space>
-          </template>
-
-          <div class="json-viewer">
-            <vue-json-pretty
-              v-if="transformationStore.stage2Output"
-              :data="transformationStore.stage2Output"
-              :show-length="true"
-              :show-line="true"
-              :highlight-mouseover-node="true"
-              :highlight-selected-node="true"
-            />
-            <a-empty v-else description="等待第二阶段转换完成" />
-          </div>
-        </a-card>
-      </a-col>
-
-      <!-- 图表预览 -->
-      <a-col :xs="24" :sm="24" :md="12" :lg="6" :xl="6">
-        <a-card
-          title="图表预览"
-          class="data-card chart-preview-card"
-          :class="{ active: transformationStore.isCompleted }"
-        >
+    <!-- 主要内容区域 - 新的布局结构 -->
+    <div class="main-content-area">
+      <a-row :gutter="[16, 16]" style="height: 100%;">
+        <!-- 左侧：图表预览区域 -->
+        <a-col :xs="24" :sm="24" :md="12" :lg="8" :xl="8" style="height: 100%;">
+          <a-card
+            title="图表预览"
+            class="chart-preview-card"
+            :class="{ active: transformationStore.isCompleted }"
+          >
           <template #extra>
             <a-space>
               <a-tag v-if="transformationStore.finalResult" color="green">
@@ -204,6 +196,9 @@
               <a-tag v-if="chartInstance" color="blue">
                 图表已初始化
               </a-tag>
+              <a-tag v-if="chartZoom !== 1" color="orange">
+                缩放: {{ Math.round(chartZoom * 100) }}%
+              </a-tag>
               <a-button
                 type="link"
                 size="small"
@@ -211,62 +206,211 @@
                 title="重新初始化图表"
               >
                 <ReloadOutlined />
-                初始化
               </a-button>
               <a-button
                 type="link"
                 size="small"
                 :disabled="!transformationStore.finalResult"
                 @click="refreshChart"
+                title="刷新图表"
               >
                 <ReloadOutlined />
-                刷新
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!chartInstance || chartZoom === 1"
+                @click="resetChartZoom"
+                title="重置缩放"
+              >
+                <CompressOutlined />
               </a-button>
               <a-button
                 type="link"
                 size="small"
                 :disabled="!transformationStore.finalResult"
                 @click="downloadChart"
+                title="下载图表"
               >
                 <DownloadOutlined />
-                下载
               </a-button>
             </a-space>
           </template>
 
           <div class="chart-wrapper">
-            <!-- 图表容器始终存在，但根据状态显示不同内容 -->
-            <div
-              ref="chartContainer"
-              class="chart-container"
-              :style="{
-                display: transformationStore.finalResult ? 'block' : 'none'
-              }"
-            ></div>
-
-            <!-- 等待转换完成状态 -->
-            <div
-              v-if="!transformationStore.finalResult"
-              class="chart-empty-state"
-            >
-              <a-empty description="等待转换完成">
-                <template #image>
-                  <BarChartOutlined style="font-size: 48px; color: #d9d9d9;" />
-                </template>
-              </a-empty>
+            <!-- 缩放控制按钮 -->
+            <div class="chart-zoom-controls" v-if="chartInstance">
+              <a-button-group size="small">
+                <a-button @click="zoomIn" :disabled="chartZoom >= 3" title="放大">
+                  <PlusOutlined />
+                </a-button>
+                <a-button @click="zoomOut" :disabled="chartZoom <= 0.5" title="缩小">
+                  <MinusOutlined />
+                </a-button>
+                <a-button @click="resetChartZoom" :disabled="chartZoom === 1" title="重置">
+                  <CompressOutlined />
+                </a-button>
+              </a-button-group>
             </div>
 
-            <!-- 图表初始化中状态覆盖层 -->
-            <div
-              v-if="transformationStore.finalResult && !chartInstance"
-              class="chart-loading-overlay"
-            >
-              <a-spin size="large" tip="正在渲染图表..." />
+            <!-- 可滚动的图表容器 -->
+            <div class="chart-scroll-container">
+              <!-- 图表容器始终存在，但根据状态显示不同内容 -->
+              <div
+                ref="chartContainer"
+                class="chart-container"
+                :style="{
+                  display: transformationStore.finalResult ? 'block' : 'none',
+                  transform: `scale(${chartZoom})`,
+                  transformOrigin: 'top left',
+                  width: `${100 / chartZoom}%`,
+                  height: `${100 / chartZoom}%`
+                }"
+                @wheel="handleChartWheel"
+                @mousedown="handleChartMouseDown"
+                @mousemove="handleChartMouseMove"
+                @mouseup="handleChartMouseUp"
+                @mouseleave="handleChartMouseUp"
+              ></div>
+
+              <!-- 等待转换完成状态 -->
+              <div
+                v-if="!transformationStore.finalResult"
+                class="chart-empty-state"
+              >
+                <a-empty description="等待转换完成">
+                  <template #image>
+                    <BarChartOutlined style="font-size: 48px; color: #d9d9d9;" />
+                  </template>
+                </a-empty>
+              </div>
+
+              <!-- 图表初始化中状态覆盖层 -->
+              <div
+                v-if="transformationStore.finalResult && !chartInstance"
+                class="chart-loading-overlay"
+              >
+                <a-spin size="large" tip="正在渲染图表..." />
+              </div>
             </div>
           </div>
         </a-card>
       </a-col>
-    </a-row>
+
+        <!-- 右侧：数据流展示区域 -->
+        <a-col :xs="24" :sm="24" :md="12" :lg="16" :xl="16" style="height: 100%;">
+          <a-row :gutter="[12, 12]" class="data-flow" style="height: 100%;">
+            <!-- 通用JSON模板 -->
+            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" style="height: 100%;">
+              <a-card
+              title="通用JSON模板（含占位符）"
+              class="data-card"
+              :class="{ active: currentStepIndex >= 0 }"
+            >
+              <template #extra>
+                <a-space>
+                  <a-tag v-if="templatePlaceholderCount > 0" color="blue">
+                    {{ templatePlaceholderCount }} 个占位符
+                  </a-tag>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="copyToClipboard(transformationStore.universalTemplate)"
+                  >
+                    <CopyOutlined />
+                  </a-button>
+                </a-space>
+              </template>
+
+              <div class="json-viewer">
+                <vue-json-pretty
+                  v-if="transformationStore.universalTemplate"
+                  :data="transformationStore.universalTemplate"
+                  :show-length="true"
+                  :show-line="true"
+                  :highlight-mouseover-node="true"
+                  :highlight-selected-node="true"
+                />
+                <a-empty v-else description="暂无数据" />
+              </div>
+            </a-card>
+          </a-col>
+
+            <!-- 第一阶段输出 -->
+            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" style="height: 100%;">
+              <a-card
+              title="第一阶段输出（ECharts结构，保持占位符）"
+              class="data-card"
+              :class="{ active: currentStepIndex >= 1 }"
+            >
+              <template #extra>
+                <a-space>
+                  <a-tag v-if="stage1PlaceholderCount > 0" color="orange">
+                    {{ stage1PlaceholderCount }} 个占位符
+                  </a-tag>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="copyToClipboard(transformationStore.stage1Output)"
+                  >
+                    <CopyOutlined />
+                  </a-button>
+                </a-space>
+              </template>
+
+              <div class="json-viewer">
+                <vue-json-pretty
+                  v-if="transformationStore.stage1Output"
+                  :data="transformationStore.stage1Output"
+                  :show-length="true"
+                  :show-line="true"
+                  :highlight-mouseover-node="true"
+                  :highlight-selected-node="true"
+                />
+                <a-empty v-else description="暂无数据" />
+              </div>
+            </a-card>
+          </a-col>
+
+            <!-- 第二阶段输出 -->
+            <a-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8" style="height: 100%;">
+              <a-card
+              title="第二阶段输出（最终ECharts配置）"
+              class="data-card"
+              :class="{ active: currentStepIndex >= 2 }"
+            >
+              <template #extra>
+                <a-space>
+                  <a-tag v-if="transformationStore.isCompleted" color="green">
+                    转换完成
+                  </a-tag>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="copyToClipboard(transformationStore.stage2Output)"
+                  >
+                    <CopyOutlined />
+                  </a-button>
+                </a-space>
+              </template>
+
+              <div class="json-viewer">
+                <vue-json-pretty
+                  v-if="transformationStore.stage2Output"
+                  :data="transformationStore.stage2Output"
+                  :show-length="true"
+                  :show-line="true"
+                  :highlight-mouseover-node="true"
+                  :highlight-selected-node="true"
+                />
+                <a-empty v-else description="等待第二阶段转换完成" />
+              </div>
+            </a-card>
+          </a-col>
+          </a-row>
+        </a-col>
+      </a-row>
+    </div>
 
 
     
@@ -319,6 +463,7 @@
       style="margin-bottom: 16px;"
       @close="transformationStore.error = null"
     />
+
   </div>
 </template>
 
@@ -330,10 +475,17 @@ import {
     CheckCircleOutlined,
     ClockCircleOutlined,
     CloseCircleOutlined,
+    CompressOutlined,
     CopyOutlined,
+    DashboardOutlined,
     DownloadOutlined,
+    LineChartOutlined,
     LoadingOutlined,
+    MinusOutlined,
+    PieChartOutlined,
     PlayCircleOutlined,
+    PlusOutlined,
+    RadarChartOutlined,
     ReloadOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -350,12 +502,231 @@ const currentVersion = ref(new Date().toISOString().replace(/[-:T]/g, '').slice(
 // 响应式状态
 const chartContainer = ref<HTMLElement>()
 let chartInstance: echarts.ECharts | null = null
+const chartInfo = ref<any>(null)
+
+// 图表缩放和拖拽状态
+const chartZoom = ref(1)
+const isDragging = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
+const chartOffset = ref({ x: 0, y: 0 })
+
+// 二级联动下拉框状态
+const selectedTemplateType = ref<string>('')
+const selectedChartFile = ref<string>('')
+const availableCharts = ref<Array<{id: string, name: string, filePath: string}>>([])
+
+// ECharts目录结构数据
+const echartsDirectoryStructure = ref<Record<string, Array<{fileName: string, displayName: string, filePath: string}>>>({})
+const directoryCategories = ref<string[]>([])
+
+// 加载ECharts目录结构
+const loadEChartsDirectory = async () => {
+  try {
+    console.log('🔄 开始加载ECharts目录结构...')
+    const response = await twoStageApi.scanEChartsDirectory()
+
+    console.log('📦 API响应数据:', response)
+
+    // 由于unwrap函数已经提取了data，response就是data内容
+    if (response && response.directoryStructure) {
+      echartsDirectoryStructure.value = response.directoryStructure
+      directoryCategories.value = Object.keys(response.directoryStructure)
+
+      console.log('✅ ECharts目录结构加载成功:', {
+        categories: directoryCategories.value,
+        totalFiles: response.totalFiles,
+        directoryStructure: response.directoryStructure
+      })
+
+      // 自动初始化默认选择
+      await initializeDefaultSelections()
+
+      message.success(`已加载 ${directoryCategories.value.length} 个图表分类，共 ${response.totalFiles} 个图表文件`)
+    } else {
+      console.warn('⚠️ 响应数据结构异常:', response)
+      throw new Error('目录结构数据格式不正确')
+    }
+  } catch (error: any) {
+    console.error('❌ 加载ECharts目录结构失败:', error)
+    message.error(`加载目录结构失败: ${error.message || '未知错误'}`)
+
+    // 错误恢复：使用默认数据
+    directoryCategories.value = ['折线图', '柱状图', '饼图', '雷达图', '仪表盘']
+    message.warning('已切换到默认图表分类')
+
+    // 即使在错误恢复情况下，也尝试初始化默认选择
+    try {
+      await initializeDefaultSelections()
+    } catch (initError) {
+      console.error('❌ 错误恢复时初始化默认选择失败:', initError)
+    }
+  }
+}
+
+// 初始化默认选择
+const initializeDefaultSelections = async () => {
+  try {
+    console.log('🎯 开始初始化默认选择...')
+    console.log('📊 当前目录结构:', echartsDirectoryStructure.value)
+    console.log('📊 当前分类列表:', directoryCategories.value)
+
+    // 如果已有存储的图表ID，优先使用
+    if (transformationStore.currentChartId) {
+      console.log('📋 发现已存储的图表ID，尝试恢复选择:', transformationStore.currentChartId)
+      initializeTemplateTypeFromChartId(transformationStore.currentChartId)
+      return
+    }
+
+    // 检查是否有目录结构数据
+    const categories = Object.keys(echartsDirectoryStructure.value)
+    console.log('📂 可用分类:', categories)
+
+    if (categories.length === 0) {
+      console.warn('⚠️ 没有可用的图表分类，尝试使用默认分类列表')
+      // 如果没有目录结构，但有分类列表，尝试手动构建
+      if (directoryCategories.value.length > 0) {
+        await initializeWithFallbackData()
+      }
+      return
+    }
+
+    // 选择第一个可用的图表作为默认选择
+    // 优先选择雷达图，如果没有则选择第一个分类
+    const preferredCategory = categories.includes('雷达图') ? '雷达图' : categories[0]
+    const categoryFiles = echartsDirectoryStructure.value[preferredCategory]
+
+    console.log(`🎯 选择的分类: ${preferredCategory}`)
+    console.log(`📁 该分类下的文件:`, categoryFiles)
+
+    if (categoryFiles && categoryFiles.length > 0) {
+      console.log(`🎯 自动选择默认分类: ${preferredCategory}`)
+
+      // 设置第一级下拉框
+      selectedTemplateType.value = preferredCategory
+
+      // 设置第二级下拉框的选项
+      availableCharts.value = categoryFiles.map(file => ({
+        id: file.displayName,
+        name: file.displayName,
+        filePath: file.filePath
+      }))
+
+      // 选择第一个图表文件
+      const defaultFile = categoryFiles[0]
+      selectedChartFile.value = defaultFile.filePath
+
+      console.log(`🎯 自动选择默认图表: ${defaultFile.displayName}`)
+      console.log(`📄 文件路径: ${defaultFile.filePath}`)
+
+      // 延迟加载图表信息，确保DOM更新完成
+      await nextTick()
+      setTimeout(async () => {
+        try {
+          await handleChartFileChange(defaultFile.filePath)
+          console.log('✅ 默认选择初始化完成')
+        } catch (loadError) {
+          console.error('❌ 加载默认图表信息失败:', loadError)
+          // 如果API调用失败，至少确保下拉框状态正确
+          await loadChartInfoWithFallback(defaultFile.filePath)
+        }
+      }, 100)
+    } else {
+      console.warn('⚠️ 选择的分类下没有可用文件')
+    }
+  } catch (error: any) {
+    console.error('❌ 初始化默认选择失败:', error)
+    // 尝试回退方案
+    await initializeWithFallbackData()
+  }
+}
+
+// 使用回退数据初始化
+const initializeWithFallbackData = async () => {
+  try {
+    console.log('🔄 使用回退数据初始化默认选择...')
+
+    if (directoryCategories.value.length > 0) {
+      // 选择第一个分类
+      const firstCategory = directoryCategories.value[0]
+      selectedTemplateType.value = firstCategory
+
+      console.log(`🎯 回退方案：选择分类 ${firstCategory}`)
+
+      // 触发分类变化处理
+      handleTemplateTypeChange(firstCategory)
+    }
+  } catch (error) {
+    console.error('❌ 回退数据初始化失败:', error)
+  }
+}
+
+// 使用回退方案加载图表信息
+const loadChartInfoWithFallback = async (filePath: string) => {
+  try {
+    console.log('🔄 使用回退方案加载图表信息:', filePath)
+
+    // 生成基本的图表信息
+    const chartId = generateChartIdFromFilePath(filePath)
+    const displayName = getDisplayNameFromFilePath(filePath)
+
+    // 设置基本的图表信息
+    chartInfo.value = {
+      chartName: displayName,
+      chartCategory: selectedTemplateType.value,
+      templateType: selectedTemplateType.value.toLowerCase(),
+      templateTypeName: selectedTemplateType.value,
+      filePath: filePath,
+      chartId: chartId
+    }
+
+    // 同步到store
+    transformationStore.setChartId(chartId)
+
+    console.log('✅ 回退方案图表信息设置完成:', chartInfo.value)
+  } catch (error) {
+    console.error('❌ 回退方案加载图表信息失败:', error)
+  }
+}
+
+// 获取分类图标
+const getCategoryIcon = (category: string) => {
+  const iconMap: Record<string, any> = {
+    '折线图': LineChartOutlined,
+    '柱状图': BarChartOutlined,
+    '饼图': PieChartOutlined,
+    '雷达图': RadarChartOutlined,
+    '仪表盘': DashboardOutlined
+  }
+  return iconMap[category] || BarChartOutlined
+}
 
 // 窗口宽度监听（用于调试布局）
 const windowWidth = ref(window.innerWidth)
 
 const updateWindowWidth = () => {
   windowWidth.value = window.innerWidth
+}
+
+// 安全的下拉框容器获取函数
+const getDropdownContainer = (triggerNode?: HTMLElement) => {
+  try {
+    // 优先使用triggerNode的父节点
+    if (triggerNode && triggerNode.parentNode) {
+      return triggerNode.parentNode as HTMLElement
+    }
+    
+    // 回退到查找页面上的工具栏容器
+    const toolbarElement = document.querySelector('.header-toolbar')
+    if (toolbarElement) {
+      return toolbarElement as HTMLElement
+    }
+    
+    // 最后回退到body
+    return document.body
+  } catch (error) {
+    console.warn('获取下拉框容器失败，使用document.body作为回退:', error)
+    return document.body
+  }
 }
 
 // 计算属性
@@ -399,32 +770,185 @@ const getStepStatus = (step: any) => {
   }
 }
 
-const handleChartTypeChange = async (value: string) => {
-  console.log('🔄 图表类型切换:', value)
-
-  // 先重置所有状态
-  transformationStore.resetSteps()
-
-  // 同步到store
-  transformationStore.setChartId(value)
+// 处理模板类型变化（一级下拉框）
+const handleTemplateTypeChange = async (categoryName: string) => {
+  console.log('🔄 图表分类切换:', categoryName)
 
   try {
+    // 从目录结构中获取对应分类的文件列表
+    const categoryFiles = echartsDirectoryStructure.value[categoryName] || []
+
+    // 转换为下拉框需要的格式
+    availableCharts.value = categoryFiles.map(file => ({
+      id: file.displayName, // 使用显示名称作为ID
+      name: file.displayName, // 显示名称
+      filePath: file.filePath // 完整文件路径
+    }))
+
+    if (availableCharts.value.length === 0) {
+      console.warn(`⚠️ 分类 ${categoryName} 下暂无可用的图表文件`)
+
+      // 如果是在初始化过程中，尝试生成默认的图表选项
+      if (directoryCategories.value.includes(categoryName)) {
+        console.log('🔄 尝试为分类生成默认图表选项:', categoryName)
+        availableCharts.value = [{
+          id: `${categoryName}堆叠`,
+          name: `${categoryName}堆叠`,
+          filePath: `${categoryName}/${categoryName}堆叠.json`
+        }]
+
+        // 自动选择第一个
+        const defaultChart = availableCharts.value[0]
+        selectedChartFile.value = defaultChart.filePath
+
+        // 使用回退方案加载图表信息
+        await loadChartInfoWithFallback(defaultChart.filePath)
+
+        console.log('✅ 已生成默认图表选项并加载信息')
+        return
+      }
+
+      message.warning(`分类 ${categoryName} 下暂无可用的图表文件`)
+      return
+    }
+
+    // 清空当前选中的图表文件
+    selectedChartFile.value = ''
+    transformationStore.currentChartId = ''
+    chartInfo.value = null
+
+    // 重置转换状态
+    transformationStore.resetSteps()
+
+    console.log('📋 可用图表文件:', availableCharts.value)
+
+    // 如果是在初始化过程中，自动选择第一个图表
+    if (availableCharts.value.length > 0) {
+      const firstChart = availableCharts.value[0]
+      selectedChartFile.value = firstChart.filePath
+
+      // 延迟加载图表信息
+      setTimeout(async () => {
+        try {
+          await handleChartFileChange(firstChart.filePath)
+        } catch (error) {
+          console.error('❌ 自动加载第一个图表失败:', error)
+          await loadChartInfoWithFallback(firstChart.filePath)
+        }
+      }, 100)
+    }
+
+    message.success(`已切换到 ${categoryName}，可选择 ${availableCharts.value.length} 个图表`)
+  } catch (error: any) {
+    console.error('❌ 图表分类切换失败:', error)
+    message.error(`图表分类切换失败: ${error.message || '未知错误'}`)
+
+    // 错误恢复：清空选择
+    selectedTemplateType.value = ''
+    selectedChartFile.value = ''
+    availableCharts.value = []
+    transformationStore.currentChartId = ''
+    chartInfo.value = null
+  }
+}
+
+// 处理图表文件变化（二级下拉框）
+const handleChartFileChange = async (filePath: string) => {
+  console.log('🔄 图表文件切换:', filePath)
+
+  if (!filePath) {
+    console.warn('⚠️ 图表文件路径为空，跳过处理')
+    return
+  }
+
+  try {
+    // 先重置所有状态
+    transformationStore.resetSteps()
+    chartInfo.value = null
+
+    // 显示加载状态
+    const loadingMessage = message.loading('正在切换图表文件...', 0)
+
+    // 根据文件路径生成chartId（用于后端API调用）
+    const chartId = generateChartIdFromFilePath(filePath)
+
+    // 同步到store
+    transformationStore.setChartId(chartId)
+
+    // 获取图表类型信息
+    const chartInfoResp = await twoStageApi.getChartInfo(chartId)
+
+    if (!chartInfoResp) {
+      throw new Error('获取图表信息失败：服务器返回空数据')
+    }
+
+    chartInfo.value = chartInfoResp
+    console.log('📊 图表信息:', chartInfoResp)
+
     // 执行完整转换流程
     await transformationStore.executeFullTransformation()
 
-    const chartTypeNames = {
-      'stacked_line_chart': '堆叠折线图',
-      'basic_bar_chart': '基础柱状图',
-      'pie_chart': '饼图'
+    // 关闭加载提示
+    loadingMessage()
+
+    message.success(`已切换到：${getDisplayNameFromFilePath(filePath)}`)
+    console.log('✅ 图表文件切换成功')
+  } catch (e: any) {
+    console.error('❌ 图表文件切换失败:', e)
+
+    // 错误分类处理
+    let errorMessage = '图表文件切换失败'
+    if (e.message?.includes('网络')) {
+      errorMessage = '网络连接失败，请检查网络状态'
+    } else if (e.message?.includes('404')) {
+      errorMessage = '图表文件不存在，请选择其他文件'
+    } else if (e.message?.includes('500')) {
+      errorMessage = '服务器内部错误，请稍后重试'
+    } else if (e.message) {
+      errorMessage = e.message
     }
 
-    message.success(`已切换到：${chartTypeNames[value] || value}`)
-    console.log('✅ 图表类型切换成功')
-  } catch (e: any) {
-    console.error('❌ 图表类型切换失败:', e)
-    message.error(`切换失败：${e.message || '未知错误'}`)
+    message.error(errorMessage)
+
+    // 错误恢复：回退到之前的状态
+    selectedChartFile.value = ''
+    transformationStore.currentChartId = ''
+    chartInfo.value = null
+    transformationStore.resetSteps()
   }
 }
+
+// 根据文件路径生成chartId
+const generateChartIdFromFilePath = (filePath: string): string => {
+  // 将文件路径转换为chartId格式
+  // 例如：折线图/基础折线图.json -> basic_line_chart
+  const pathMap: Record<string, string> = {
+    '折线图/基础折线图.json': 'basic_line_chart',
+    '折线图/基础平滑折线图.json': 'smooth_line_chart',
+    '折线图/折线图堆叠.json': 'stacked_line_chart',
+    '柱状图/基础柱状图.json': 'basic_bar_chart',
+    '柱状图/堆叠柱状图.json': 'stacked_bar_chart',
+    '饼图/富文本标签.json': 'basic_pie_chart',
+    '饼图/圆角环形图.json': 'doughnut_chart',
+    '雷达图/基础雷达图.json': 'basic_radar_chart',
+    '仪表盘/基础仪表盘.json': 'basic_gauge_chart',
+    '仪表盘/进度仪表盘.json': 'progress_gauge_chart',
+    '仪表盘/等级仪表盘.json': 'grade_gauge_chart'
+  }
+
+  return pathMap[filePath] || filePath.replace(/[\/\s\.]/g, '_').toLowerCase()
+}
+
+// 从文件路径获取显示名称
+const getDisplayNameFromFilePath = (filePath: string): string => {
+  const parts = filePath.split('/')
+  if (parts.length >= 2) {
+    return parts[1].replace('.json', '')
+  }
+  return filePath.replace('.json', '')
+}
+
+
 
 const executeFullTransformation = async () => {
   try {
@@ -556,6 +1080,102 @@ const copyToClipboard = async (data: any) => {
   }
 }
 
+const getTemplateTypeColor = (templateType: string) => {
+  const colorMap: Record<string, string> = {
+    'cartesian': 'blue',
+    'pie': 'orange',
+    'radar': 'green',
+    'gauge': 'purple'
+  }
+  return colorMap[templateType] || 'default'
+}
+
+// 获取ECharts示例文件路径
+const getEChartsFilePath = (chartId: string) => {
+  const filePathMap: Record<string, string> = {
+    'basic_line_chart': '折线图/基础折线图.json',
+    'smooth_line_chart': '折线图/基础平滑折线图.json',
+    'stacked_line_chart': '折线图/折线图堆叠.json',
+    'basic_bar_chart': '柱状图/基础柱状图.json',
+    'stacked_bar_chart': '柱状图/堆叠柱状图.json',
+    'basic_area_chart': '待创建',
+    'basic_pie_chart': '饼图/富文本标签.json',
+    'doughnut_chart': '饼图/圆角环形图.json',
+    'rose_chart': '待创建',
+    'pie_chart': '饼图/富文本标签.json',
+    'basic_radar_chart': '雷达图/基础雷达图.json',
+    'filled_radar_chart': '待创建',
+    'basic_gauge_chart': '仪表盘/基础仪表盘.json',
+    'progress_gauge_chart': '仪表盘/进度仪表盘.json',
+    'grade_gauge_chart': '仪表盘/等级仪表盘.json'
+  }
+  return filePathMap[chartId] || '未知'
+}
+
+// 获取JOLT SPEC文件路径
+const getJoltFilePath = (chartId: string) => {
+  const filePathMap: Record<string, string> = {
+    'basic_line_chart': 'line-chart-placeholder.json',
+    'smooth_line_chart': 'line-chart-placeholder.json',
+    'stacked_line_chart': 'line-chart-stacked.json',
+    'basic_bar_chart': 'bar-chart-placeholder.json',
+    'stacked_bar_chart': 'bar-chart-placeholder.json',
+    'basic_area_chart': '待创建',
+    'basic_pie_chart': 'pie-chart-placeholder.json',
+    'doughnut_chart': 'pie-chart-placeholder.json',
+    'rose_chart': '待创建',
+    'pie_chart': 'pie-chart-placeholder.json',
+    'basic_radar_chart': 'radar-chart-placeholder.json',
+    'filled_radar_chart': 'radar-chart-placeholder.json',
+    'basic_gauge_chart': 'gauge-chart-placeholder.json',
+    'progress_gauge_chart': 'gauge-chart-placeholder.json',
+    'grade_gauge_chart': 'gauge-chart-placeholder.json'
+  }
+  return filePathMap[chartId] || '未知'
+}
+
+// 获取实现状态
+const getImplementationStatus = (chartId: string) => {
+  const implementedCharts = [
+    'basic_line_chart', 'smooth_line_chart', 'stacked_line_chart',
+    'basic_bar_chart', 'stacked_bar_chart',
+    'basic_pie_chart', 'doughnut_chart', 'pie_chart',
+    'basic_radar_chart', 'basic_gauge_chart', 'progress_gauge_chart', 'grade_gauge_chart'
+  ]
+  const plannedCharts = ['basic_area_chart', 'rose_chart', 'filled_radar_chart']
+
+  if (implementedCharts.includes(chartId)) {
+    return '已实现'
+  } else if (plannedCharts.includes(chartId)) {
+    return '计划中'
+  } else {
+    return '未知'
+  }
+}
+
+// 获取实现状态颜色
+const getImplementationStatusColor = (chartId: string) => {
+  const status = getImplementationStatus(chartId)
+  const colorMap: Record<string, string> = {
+    '已实现': 'success',
+    '计划中': 'warning',
+    '未知': 'default'
+  }
+  return colorMap[status] || 'default'
+}
+
+const getChartTypeEnglish = (chartCategory: string) => {
+  const englishMap: Record<string, string> = {
+    '折线图': 'Line Chart',
+    '柱状图': 'Bar Chart',
+    '面积图': 'Area Chart',
+    '饼图': 'Pie Chart',
+    '雷达图': 'Radar Chart',
+    '仪表盘': 'Gauge Chart'
+  }
+  return englishMap[chartCategory] || chartCategory
+}
+
 const initChart = () => {
   if (!chartContainer.value) {
     console.warn('图表容器未找到，延迟重试')
@@ -566,44 +1186,110 @@ const initChart = () => {
   try {
     // 销毁已存在的实例
     if (chartInstance) {
-      chartInstance.dispose()
+      try {
+        chartInstance.dispose()
+      } catch (e) {
+        console.warn('销毁旧图表实例时出现警告:', e)
+      }
       chartInstance = null
     }
 
-    // 确保容器有尺寸
+    // 确保容器有尺寸 - 适应新的布局
     const container = chartContainer.value
+    
+    // 检查容器是否仍然在DOM中
+    if (!container.isConnected) {
+      console.warn('图表容器已从DOM中移除，跳过初始化')
+      return
+    }
+    
     if (container.offsetWidth === 0 || container.offsetHeight === 0) {
       console.warn('图表容器尺寸为0，设置默认尺寸')
       container.style.width = '100%'
-      container.style.height = '360px'
+      // 根据新布局调整默认高度
+      container.style.height = '520px'
     }
 
-    chartInstance = echarts.init(container, null, {
-      renderer: 'canvas',
-      useDirtyRect: false
-    })
+    // 延迟初始化，确保DOM稳定
+    requestAnimationFrame(() => {
+      try {
+        if (!container.isConnected) {
+          console.warn('在动画帧回调中发现容器已移除，取消初始化')
+          return
+        }
 
-    console.log('✅ 图表实例初始化成功', {
-      width: container.offsetWidth,
-      height: container.offsetHeight
-    })
+        chartInstance = echarts.init(container, null, {
+          renderer: 'canvas',
+          useDirtyRect: false,
+          width: container.offsetWidth || 400,
+          height: container.offsetHeight || 300
+        })
 
-    // 如果已有数据，立即渲染
-    if (transformationStore.finalResult) {
-      updateChart()
-    }
+        // 添加图表错误监听
+        chartInstance.on('error', (error: any) => {
+          console.error('❌ ECharts渲染错误:', error)
+          message.error('图表渲染出现错误，请检查数据格式')
 
-    // 监听窗口大小变化
-    const resizeHandler = () => {
-      if (chartInstance) {
-        chartInstance.resize()
+          // 显示错误状态
+          showChartError('图表渲染错误: ' + (error.message || '未知错误'))
+        })
+
+        console.log('✅ 图表实例初始化成功', {
+          width: container.offsetWidth,
+          height: container.offsetHeight,
+          layout: '左侧图表预览布局'
+        })
+
+        // 重置缩放状态
+        chartZoom.value = 1
+        chartOffset.value = { x: 0, y: 0 }
+
+        // 如果已有数据，立即渲染
+        if (transformationStore.finalResult) {
+          updateChart()
+        }
+
+        // 监听窗口大小变化
+        const resizeHandler = () => {
+          if (chartInstance && !chartInstance.isDisposed()) {
+            try {
+              chartInstance.resize()
+            } catch (e) {
+              console.warn('图表resize时出现警告:', e)
+            }
+          }
+        }
+        window.addEventListener('resize', resizeHandler)
+      } catch (innerError) {
+        console.error('❌ 延迟图表初始化失败:', innerError)
+        const errorMessage = innerError instanceof Error ? innerError.message : String(innerError)
+        showChartError('图表初始化失败: ' + errorMessage)
       }
-    }
-    window.addEventListener('resize', resizeHandler)
+    })
 
   } catch (error) {
     console.error('❌ 图表初始化失败:', error)
-    message.error(`图表初始化失败: ${error instanceof Error ? error.message : String(error)}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    message.error(`图表初始化失败: ${errorMessage}`)
+
+    // 显示错误状态
+    showChartError('图表初始化失败: ' + errorMessage)
+  }
+}
+
+// 显示图表错误状态
+const showChartError = (errorMessage: string) => {
+  if (chartContainer.value) {
+    chartContainer.value.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ff4d4f;">
+        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+        <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">图表渲染失败</div>
+        <div style="font-size: 12px; color: #999; text-align: center; max-width: 300px;">${errorMessage}</div>
+        <button onclick="location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          重新加载页面
+        </button>
+      </div>
+    `
   }
 }
 
@@ -620,21 +1306,113 @@ const updateChart = () => {
   }
 
   try {
-    console.log('开始渲染图表，数据:', transformationStore.finalResult)
+    console.log('🎨 开始渲染图表，数据:', transformationStore.finalResult)
+
+    // 数据验证和预处理
+    const chartData = preprocessChartData(transformationStore.finalResult)
+    if (!validateChartData(chartData)) {
+      throw new Error('图表数据格式不正确')
+    }
 
     // 清除之前的图表
     chartInstance.clear()
 
-    // 设置新的配置
-    chartInstance.setOption(transformationStore.finalResult, true)
+    // 设置新的配置，使用notMerge确保完全替换
+    chartInstance.setOption(chartData, {
+      notMerge: true,
+      lazyUpdate: false,
+      silent: false
+    })
 
     // 强制重新渲染
-    chartInstance.resize()
+    setTimeout(() => {
+      if (chartInstance && !chartInstance.isDisposed()) {
+        chartInstance.resize()
+      }
+    }, 50)
 
-    console.log('图表渲染成功')
+    console.log('✅ 图表渲染成功')
   } catch (error) {
-    console.error('图表渲染失败:', error)
-    message.error(`图表渲染失败: ${error instanceof Error ? error.message : String(error)}`)
+    console.error('❌ 图表渲染失败:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    message.error(`图表渲染失败: ${errorMessage}`)
+
+    // 显示错误状态
+    showChartError('图表渲染失败: ' + errorMessage)
+  }
+}
+
+// 预处理图表数据
+const preprocessChartData = (data: any): any => {
+  if (!data || typeof data !== 'object') {
+    return data
+  }
+
+  try {
+    // 深拷贝数据避免修改原始数据
+    const processedData = JSON.parse(JSON.stringify(data))
+
+    // 确保基本配置存在
+    if (!processedData.animation) {
+      processedData.animation = true
+    }
+
+    // 确保图表有合适的尺寸配置
+    if (!processedData.grid && (processedData.xAxis || processedData.yAxis)) {
+      processedData.grid = {
+        left: '10%',
+        right: '10%',
+        top: '15%',
+        bottom: '15%',
+        containLabel: true
+      }
+    }
+
+    // 为雷达图添加默认配置
+    if (processedData.radar && !processedData.radar.radius) {
+      processedData.radar.radius = '60%'
+    }
+
+    console.log('🔧 图表数据预处理完成:', processedData)
+    return processedData
+  } catch (error) {
+    console.warn('⚠️ 图表数据预处理失败，使用原始数据:', error)
+    return data
+  }
+}
+
+// 验证图表数据格式
+const validateChartData = (data: any): boolean => {
+  try {
+    if (!data || typeof data !== 'object') {
+      console.error('图表数据不是有效对象')
+      return false
+    }
+
+    // 检查必要的ECharts配置
+    if (!data.series || !Array.isArray(data.series)) {
+      console.error('缺少series配置或格式不正确')
+      return false
+    }
+
+    if (data.series.length === 0) {
+      console.error('series数组为空')
+      return false
+    }
+
+    // 检查每个series的基本结构
+    for (let i = 0; i < data.series.length; i++) {
+      const series = data.series[i]
+      if (!series.type) {
+        console.error(`series[${i}]缺少type属性`)
+        return false
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('数据验证过程中出错:', error)
+    return false
   }
 }
 
@@ -658,6 +1436,88 @@ const downloadChart = () => {
   link.click()
 
   message.success('图表已下载')
+}
+
+// 图表缩放功能
+const zoomIn = () => {
+  if (chartZoom.value < 3) {
+    chartZoom.value = Math.min(3, chartZoom.value + 0.2)
+    updateChartSize()
+  }
+}
+
+const zoomOut = () => {
+  if (chartZoom.value > 0.5) {
+    chartZoom.value = Math.max(0.5, chartZoom.value - 0.2)
+    updateChartSize()
+  }
+}
+
+const resetChartZoom = () => {
+  chartZoom.value = 1
+  chartOffset.value = { x: 0, y: 0 }
+  updateChartSize()
+}
+
+const updateChartSize = () => {
+  if (chartInstance && !chartInstance.isDisposed()) {
+    // 延迟调用resize，确保DOM更新完成
+    nextTick(() => {
+      try {
+        chartInstance?.resize()
+      } catch (e) {
+        console.warn('图表resize时出现警告:', e)
+      }
+    })
+  }
+}
+
+// 鼠标滚轮缩放
+const handleChartWheel = (event: WheelEvent) => {
+  if (!chartInstance) return
+
+  event.preventDefault()
+
+  const delta = event.deltaY > 0 ? -0.1 : 0.1
+  const newZoom = Math.max(0.5, Math.min(3, chartZoom.value + delta))
+
+  if (newZoom !== chartZoom.value) {
+    chartZoom.value = newZoom
+    updateChartSize()
+  }
+}
+
+// 图表拖拽功能
+const handleChartMouseDown = (event: MouseEvent) => {
+  if (chartZoom.value <= 1) return // 只有放大时才允许拖拽
+
+  isDragging.value = true
+  dragStart.value = { x: event.clientX, y: event.clientY }
+  event.preventDefault()
+}
+
+const handleChartMouseMove = (event: MouseEvent) => {
+  if (!isDragging.value || chartZoom.value <= 1) return
+
+  const deltaX = event.clientX - dragStart.value.x
+  const deltaY = event.clientY - dragStart.value.y
+
+  chartOffset.value = {
+    x: chartOffset.value.x + deltaX,
+    y: chartOffset.value.y + deltaY
+  }
+
+  dragStart.value = { x: event.clientX, y: event.clientY }
+
+  // 更新图表容器位置
+  if (chartContainer.value) {
+    chartContainer.value.style.transform = `scale(${chartZoom.value}) translate(${chartOffset.value.x / chartZoom.value}px, ${chartOffset.value.y / chartZoom.value}px)`
+    chartContainer.value.style.transformOrigin = 'top left'
+  }
+}
+
+const handleChartMouseUp = () => {
+  isDragging.value = false
 }
 
 // 仅用于下载/预览真实数据后的图表，不再注入假数据
@@ -694,19 +1554,111 @@ watch(
   { deep: true }
 )
 
+// 监听选中的图表文件变化
+watch(
+  () => selectedChartFile.value,
+  (newFile, oldFile) => {
+    console.log('📁 监听到图表文件变化:', { oldFile, newFile })
+    if (newFile && newFile !== oldFile) {
+      // 当图表文件变化时，确保图表容器准备就绪
+      nextTick(() => {
+        if (chartContainer.value && !chartInstance) {
+          console.log('🔄 图表文件变化，重新初始化图表容器')
+          initChart()
+        }
+      })
+    }
+  }
+)
+
+// 监听下拉框选择状态，确保图表信息正确显示
+watch(
+  () => [selectedTemplateType.value, selectedChartFile.value],
+  ([newTemplateType, newChartFile], [oldTemplateType, oldChartFile]) => {
+    console.log('🔍 监听到选择状态变化:', {
+      templateType: { old: oldTemplateType, new: newTemplateType },
+      chartFile: { old: oldChartFile, new: newChartFile },
+      chartInfo: chartInfo.value
+    })
+
+    // 如果有选择但没有图表信息，尝试加载
+    if (newTemplateType && newChartFile && !chartInfo.value) {
+      console.log('⚠️ 检测到有选择但缺少图表信息，尝试加载...')
+      setTimeout(async () => {
+        try {
+          await handleChartFileChange(newChartFile)
+        } catch (error) {
+          console.error('❌ 补充加载图表信息失败:', error)
+          await loadChartInfoWithFallback(newChartFile)
+        }
+      }, 200)
+    }
+  },
+  { deep: true }
+)
+
+// 监听目录分类数据变化
+watch(
+  () => directoryCategories.value,
+  (newCategories) => {
+    console.log('📂 监听到目录分类变化:', newCategories)
+    if (newCategories && newCategories.length > 0) {
+      console.log('✅ 目录分类数据已更新，共', newCategories.length, '个分类')
+    }
+  },
+  { deep: true }
+)
+
 // 生命周期
 onMounted(async () => {
+  console.log('🚀 页面开始挂载...')
   await nextTick()
+
+  // 首先加载ECharts目录结构（包含默认选择初始化）
+  console.log('📂 开始加载目录结构...')
+  await loadEChartsDirectory()
+
+  // 检查加载结果
+  console.log('📊 目录加载完成，当前状态:', {
+    directoryCategories: directoryCategories.value,
+    echartsDirectoryStructure: echartsDirectoryStructure.value,
+    selectedTemplateType: selectedTemplateType.value,
+    selectedChartFile: selectedChartFile.value
+  })
 
   // 延迟初始化图表，确保DOM完全渲染
   setTimeout(() => {
     initChart()
-  }, 100)
+  }, 200)
 
   // 监听窗口大小变化
   window.addEventListener('resize', updateWindowWidth)
   updateWindowWidth()
+
+  console.log('✅ 页面挂载完成')
 })
+
+// 根据图表ID初始化模板类型选择
+const initializeTemplateTypeFromChartId = (chartId: string) => {
+  // 在新的目录结构中查找对应的分类和文件
+  for (const [categoryName, files] of Object.entries(echartsDirectoryStructure.value)) {
+    const foundFile = files.find(file => {
+      const generatedId = generateChartIdFromFilePath(file.filePath)
+      return generatedId === chartId
+    })
+
+    if (foundFile) {
+      selectedTemplateType.value = categoryName
+      availableCharts.value = files.map(file => ({
+        id: file.displayName,
+        name: file.displayName,
+        filePath: file.filePath
+      }))
+      selectedChartFile.value = foundFile.filePath
+      break
+    }
+  }
+}
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateWindowWidth)
@@ -738,9 +1690,11 @@ onUnmounted(() => {
 .transformation-demo {
   padding: 16px;
   max-width: 100%;
-  overflow-x: auto;
   background: #f5f5f5;
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* 重置可能导致重影的样式 */
@@ -788,39 +1742,247 @@ onUnmounted(() => {
   background: #bfbfbf;
 }
 
-/* 紧凑的页面标题和工具栏 */
-.page-header-compact {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: #fafafa;
+/* 精简后的配置头部 - 无标题版本 */
+.config-header-compact {
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
+  height: auto;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* 主要配置区域 - 紧凑化 */
+.config-section {
+  margin-bottom: 12px;
+  min-height: auto; /* 移除固定高度，让内容自适应 */
+}
+
+/* 图表选择面板 - 紧凑化 */
+.chart-selector-panel {
+  background: #fafbfc;
+  border: 1px solid #e8e8e8;
   border-radius: 6px;
-  border: 1px solid #f0f0f0;
+  padding: 10px;
+  height: 100%;
 }
 
-.header-left h2 {
-  margin: 0 0 4px 0;
-  font-size: 18px;
-  font-weight: 600;
+
+/* 选择器项目 - 紧凑化 */
+.selector-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.selector-item:last-child {
+  margin-bottom: 0;
+}
+
+.selector-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #595959;
+  margin-bottom: 2px;
+}
+
+/* 转换按钮区域 */
+.transform-button-section {
+  margin-top: 8px;
+}
+
+.transform-button-section .ant-btn {
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+}
+
+/* 图表信息面板 - 紧凑化 */
+.chart-info-panel {
+  background: #fafbfc;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 10px;
+  height: auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+/* 信息内容样式 */
+.info-content .ant-descriptions {
+  background: #ffffff;
+  border-radius: 6px;
+}
+
+.info-value-with-subtitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.main-value {
+  font-weight: 500;
   color: #262626;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.header-subtitle {
+.sub-value {
   font-size: 12px;
   color: #8c8c8c;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.header-toolbar {
-  flex-shrink: 0;
+.template-type-name {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #8c8c8c;
 }
+
+.file-path-code {
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #d73a49;
+  word-break: break-all;
+}
+
+/* 信息占位符 - 紧凑化 */
+.info-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 120px;
+  background: #ffffff;
+  border-radius: 6px;
+  border: 1px dashed #d9d9d9;
+}
+
+/* 操作按钮区域 - 紧凑化 */
+.action-section {
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
+}
+
+.action-section .ant-btn {
+  height: 32px;
+  font-size: 13px;
+  padding: 0 12px;
+}
+
+/* 重构后的响应式设计 - 适应20%-80%布局 */
+@media (max-width: 1199px) {
+  .config-header-compact {
+    padding: 14px;
+    max-height: 22vh; /* 稍微增加空间 */
+  }
+  
+  .config-section {
+    margin-bottom: 10px;
+  }
+  
+  .chart-selector-panel,
+  .chart-info-panel {
+    padding: 10px;
+  }
+  
+  .main-content-area {
+    min-height: 68vh; /* 调整内容区域高度 */
+  }
+  
+  .chart-preview-card,
+  .data-card {
+    height: calc(68vh - 40px);
+    min-height: 450px;
+  }
+  
+  .json-viewer {
+    height: calc(68vh - 120px);
+    min-height: 350px;
+  }
+  
+  .chart-preview-card .chart-wrapper {
+    height: calc(68vh - 90px);
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 991px) {
+  .config-section {
+    min-height: auto;
+  }
+  
+  .chart-selector-panel,
+  .chart-info-panel {
+    margin-bottom: 16px;
+  }
+  
+  .action-section {
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .config-header-compact {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .chart-selector-panel,
+  .chart-info-panel {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  
+  
+  .selector-label {
+    font-size: 12px;
+  }
+  
+  .file-path-code {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .info-placeholder {
+    height: 120px;
+  }
+  
+  .action-section {
+    padding-top: 16px;
+  }
+  
+  .action-section .ant-space {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 575px) {
+  .config-header-compact {
+    padding: 12px;
+  }
+  
+  .action-section .ant-space {
+    gap: 8px !important;
+  }
+  
+  .action-section .ant-btn {
+    font-size: 12px;
+    padding: 0 8px;
+    height: 28px;
+  }
+}
+
 
 /* 移除旧的控制面板样式 */
 .control-panel {
@@ -840,12 +2002,13 @@ onUnmounted(() => {
 }
 
 .progress-panel {
-  margin-bottom: 24px;
+  flex-shrink: 0;
   background: #ffffff;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  margin-top: 12px;
 }
 
 .progress-content {
@@ -889,26 +2052,79 @@ onUnmounted(() => {
   border: 1px solid #e8e8e8;
 }
 
-.data-flow {
-  margin-bottom: 24px;
+/* 主要内容区域 - 占据剩余空间 */
+.main-content-area {
+  margin-bottom: 12px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 确保四个卡片在大屏幕上并排显示 */
-@media (min-width: 1400px) {
+/* 图表预览卡片 - 适应新的高度分配 */
+.chart-preview-card {
+  height: 100%;
+  min-height: 400px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  isolation: isolate;
+}
+
+.chart-preview-card .ant-card-body {
+  padding: 16px;
+  height: calc(100% - 60px);
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-preview-card.active {
+  border-color: #1890ff;
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.12);
+  transform: translateY(-2px);
+  z-index: 1;
+}
+
+.data-flow {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保数据流卡片在右侧区域内合理分布 */
+@media (min-width: 1200px) {
   .data-flow .ant-col {
-    min-height: 500px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .data-flow {
+    flex-direction: row;
   }
 }
 
-/* 中等屏幕上两行两列 */
-@media (max-width: 1399px) and (min-width: 768px) {
+/* 中等屏幕优化 */
+@media (max-width: 1199px) and (min-width: 768px) {
   .data-flow .ant-col {
     margin-bottom: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .data-flow {
+    flex-direction: column;
   }
 }
 
 .data-card {
-  height: 480px;
+  height: 100%;
+  min-height: 400px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   position: relative;
@@ -917,7 +2133,9 @@ onUnmounted(() => {
   border: 1px solid #e8e8e8;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-  isolation: isolate; /* 防止阴影重叠 */
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
 }
 
 .data-card.active {
@@ -968,12 +2186,15 @@ onUnmounted(() => {
 
 .data-card .ant-card-body {
   padding: 16px;
-  height: calc(100% - 60px);
+  flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .json-viewer {
-  height: 360px;
+  flex: 1;
+  min-height: 300px;
   overflow: auto;
   border: 1px solid #e8e8e8;
   border-radius: 6px;
@@ -1015,29 +2236,104 @@ onUnmounted(() => {
   background: #a8a8a8;
 }
 
-.chart-wrapper {
+/* 图表预览卡片中的图表容器 */
+.chart-preview-card .chart-wrapper {
+  flex: 1;
+  min-height: 300px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 图表缩放控制按钮 */
+.chart-zoom-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 图表滚动容器 */
+.chart-scroll-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+/* 图表滚动容器的滚动条样式 - 与JSON查看器保持一致 */
+.chart-scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.chart-preview-card .chart-container {
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  background: #ffffff;
+  position: relative;
+  /* 移除可能导致重影的样式 */
+  box-shadow: none;
+  /* 确保图表容器完全填充 */
+  display: block;
+  /* 支持缩放和拖拽 */
+  cursor: grab;
+  transition: transform 0.1s ease-out;
+}
+
+.chart-preview-card .chart-container:active {
+  cursor: grabbing;
+}
+
+/* 当图表被缩放时的样式 */
+.chart-preview-card .chart-container.zoomed {
+  cursor: move;
+}
+
+/* 数据流卡片中的图表容器（如果有的话） */
+.data-card .chart-wrapper {
   height: 360px;
   width: 100%;
   position: relative;
-  /* 确保只有一个子元素显示，防止重叠 */
   display: flex;
   align-items: stretch;
 }
 
-.chart-wrapper > * {
+.data-card .chart-wrapper > * {
   width: 100%;
   height: 100%;
 }
 
-.chart-container {
+.data-card .chart-container {
   background: #ffffff;
   border: 1px solid #e8e8e8;
   border-radius: 6px;
   position: relative;
   overflow: hidden;
-  /* 移除可能导致重影的样式 */
   box-shadow: none;
-  /* 确保图表容器完全填充 */
   display: block;
 }
 
@@ -1076,6 +2372,9 @@ onUnmounted(() => {
   z-index: 1;
   box-shadow: none;
   transform: none;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
 }
 
 .chart-loading-overlay {
@@ -1411,38 +2710,67 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .transformation-demo {
     padding: 12px;
+    height: 100vh;
   }
 
-  .page-header-compact {
+  .config-header-compact {
+    max-height: 200px;
+    padding: 8px;
+  }
+
+  .main-content-area {
     flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-    padding: 12px;
   }
 
-  .header-toolbar {
-    width: 100%;
+  .main-content-area .ant-row {
+    flex-direction: column;
+    height: auto;
   }
 
-  .header-toolbar .ant-space {
-    width: 100%;
-    justify-content: space-between;
+  .main-content-area .ant-col {
+    height: auto !important;
+    margin-bottom: 12px;
+  }
+
+  .chart-preview-card {
+    height: 300px;
+    min-height: 300px;
+  }
+
+  .chart-preview-card .chart-wrapper {
+    min-height: 200px;
+  }
+
+  .chart-zoom-controls {
+    top: 4px;
+    right: 4px;
+    padding: 2px;
+  }
+
+  .chart-zoom-controls .ant-btn {
+    padding: 0 4px;
+    height: 24px;
+    font-size: 12px;
   }
 
   .data-card {
-    height: 400px;
-    margin-bottom: 16px;
+    height: 280px;
+    min-height: 280px;
   }
 
   .json-viewer {
-    height: 300px;
+    min-height: 180px;
     font-size: 11px;
   }
 
-  .chart-container,
-  .chart-empty-state,
-  .chart-loading-state {
-    height: 300px;
+  .data-flow {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .progress-panel {
+    margin-top: 8px;
+    padding: 12px;
   }
 }
 

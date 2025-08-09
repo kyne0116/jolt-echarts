@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图表缩放和滚动功能测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .chart-zoom-controls {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-zoom-controls button {
+            margin: 0 2px;
+            padding: 4px 8px;
+            border: 1px solid #d9d9d9;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .chart-zoom-controls button:hover {
+            background: #f5f5f5;
+            border-color: #40a9ff;
+        }
+
+        .chart-zoom-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chart-scroll-container {
+            height: 100%;
+            overflow: auto;
+            position: relative;
+            background: #ffffff;
+            border-radius: 6px;
+        }
+
+        /* 滚动条样式 - 与JSON查看器保持一致 */
+        .chart-scroll-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .chart-scroll-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .chart-scroll-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .chart-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .chart-container {
+            min-width: 100%;
+            min-height: 100%;
+            background: #ffffff;
+            position: relative;
+            display: block;
+            cursor: grab;
+            transition: transform 0.1s ease-out;
+        }
+
+        .chart-container:active {
+            cursor: grabbing;
+        }
+
+        .chart-container.zoomed {
+            cursor: move;
+        }
+
+        .info-panel {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .zoom-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .instructions {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #1890ff;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>图表缩放和滚动功能测试</h1>
+        
+        <div class="instructions">
+            <h3>功能说明：</h3>
+            <ul>
+                <li><strong>鼠标滚轮</strong>：在图表区域滚动鼠标滚轮进行缩放</li>
+                <li><strong>缩放按钮</strong>：使用右上角的 +/- 按钮进行缩放</li>
+                <li><strong>拖拽平移</strong>：当图表放大后，可以拖拽图表查看不同区域</li>
+                <li><strong>重置按钮</strong>：点击重置按钮恢复到原始大小和位置</li>
+                <li><strong>滚动条</strong>：当图表内容超出容器时，会显示滚动条</li>
+            </ul>
+        </div>
+
+        <div class="info-panel">
+            <strong>测试图表：基础雷达图</strong>
+            <div class="zoom-info">
+                当前缩放比例: <span id="zoomLevel">100%</span>
+            </div>
+        </div>
+
+        <div class="chart-wrapper">
+            <div class="chart-zoom-controls">
+                <button onclick="zoomIn()" id="zoomInBtn">+</button>
+                <button onclick="zoomOut()" id="zoomOutBtn">-</button>
+                <button onclick="resetZoom()" id="resetBtn">重置</button>
+            </div>
+            <div class="chart-scroll-container">
+                <div id="chartContainer" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+        let chartZoom = 1;
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let chartOffset = { x: 0, y: 0 };
+
+        // 雷达图配置 - 来自测试用例
+        const radarChartOption = {
+            title: {
+                text: "Basic Radar Chart"
+            },
+            legend: {
+                data: [
+                    "Allocated Budget",
+                    "Actual Spending"
+                ]
+            },
+            radar: {
+                indicator: [
+                    { name: "Sales", max: 6500 },
+                    { name: "Administration", max: 16000 },
+                    { name: "Information Technology", max: 30000 },
+                    { name: "Customer Support", max: 38000 },
+                    { name: "Development", max: 52000 },
+                    { name: "Marketing", max: 25000 }
+                ]
+            },
+            series: [
+                {
+                    name: "Budget vs spending",
+                    type: "radar",
+                    data: [
+                        {
+                            value: [4200, 3000, 20000, 35000, 50000, 18000],
+                            name: "Allocated Budget"
+                        },
+                        {
+                            value: [5000, 14000, 28000, 26000, 42000, 21000],
+                            name: "Actual Spending"
+                        }
+                    ]
+                }
+            ]
+        };
+
+        function initChart() {
+            const container = document.getElementById('chartContainer');
+            chartInstance = echarts.init(container);
+            chartInstance.setOption(radarChartOption);
+            
+            // 添加事件监听
+            container.addEventListener('wheel', handleWheel);
+            container.addEventListener('mousedown', handleMouseDown);
+            container.addEventListener('mousemove', handleMouseMove);
+            container.addEventListener('mouseup', handleMouseUp);
+            container.addEventListener('mouseleave', handleMouseUp);
+            
+            updateZoomInfo();
+        }
+
+        function zoomIn() {
+            if (chartZoom < 3) {
+                chartZoom = Math.min(3, chartZoom + 0.2);
+                updateChartTransform();
+                updateZoomInfo();
+                updateButtons();
+            }
+        }
+
+        function zoomOut() {
+            if (chartZoom > 0.5) {
+                chartZoom = Math.max(0.5, chartZoom - 0.2);
+                updateChartTransform();
+                updateZoomInfo();
+                updateButtons();
+            }
+        }
+
+        function resetZoom() {
+            chartZoom = 1;
+            chartOffset = { x: 0, y: 0 };
+            updateChartTransform();
+            updateZoomInfo();
+            updateButtons();
+        }
+
+        function updateChartTransform() {
+            const container = document.getElementById('chartContainer');
+            container.style.transform = `scale(${chartZoom}) translate(${chartOffset.x}px, ${chartOffset.y}px)`;
+            container.style.transformOrigin = 'top left';
+            container.style.width = `${100 / chartZoom}%`;
+            container.style.height = `${100 / chartZoom}%`;
+            
+            if (chartZoom > 1) {
+                container.classList.add('zoomed');
+            } else {
+                container.classList.remove('zoomed');
+            }
+            
+            if (chartInstance) {
+                setTimeout(() => chartInstance.resize(), 100);
+            }
+        }
+
+        function updateZoomInfo() {
+            document.getElementById('zoomLevel').textContent = Math.round(chartZoom * 100) + '%';
+        }
+
+        function updateButtons() {
+            document.getElementById('zoomInBtn').disabled = chartZoom >= 3;
+            document.getElementById('zoomOutBtn').disabled = chartZoom <= 0.5;
+            document.getElementById('resetBtn').disabled = chartZoom === 1 && chartOffset.x === 0 && chartOffset.y === 0;
+        }
+
+        function handleWheel(event) {
+            event.preventDefault();
+            const delta = event.deltaY > 0 ? -0.1 : 0.1;
+            const newZoom = Math.max(0.5, Math.min(3, chartZoom + delta));
+            
+            if (newZoom !== chartZoom) {
+                chartZoom = newZoom;
+                updateChartTransform();
+                updateZoomInfo();
+                updateButtons();
+            }
+        }
+
+        function handleMouseDown(event) {
+            if (chartZoom <= 1) return;
+            
+            isDragging = true;
+            dragStart = { x: event.clientX, y: event.clientY };
+            event.preventDefault();
+        }
+
+        function handleMouseMove(event) {
+            if (!isDragging || chartZoom <= 1) return;
+            
+            const deltaX = event.clientX - dragStart.x;
+            const deltaY = event.clientY - dragStart.y;
+            
+            chartOffset = {
+                x: chartOffset.x + deltaX,
+                y: chartOffset.y + deltaY
+            };
+            
+            dragStart = { x: event.clientX, y: event.clientY };
+            updateChartTransform();
+            updateButtons();
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+        }
+
+        // 初始化
+        window.addEventListener('load', () => {
+            initChart();
+            updateButtons();
+        });
+
+        // 窗口大小变化时重新调整图表
+        window.addEventListener('resize', () => {
+            if (chartInstance) {
+                chartInstance.resize();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -217,6 +217,11 @@ public class TwoStageTransformationService {
             Map<String, Object> queryResults = mappingService.simulateDataQuery(chartId, placeholders);
             System.out.println("查询结果: " + queryResults.keySet());
 
+            // 验证转换前数据
+            if (!validateTransformationData(echartsTemplate, queryResults)) {
+                return new TransformationResult(false, "转换前数据验证失败", null);
+            }
+
             // 替换占位符
             Object finalResult = placeholderManager.replacePlaceholdersInJson(echartsTemplate, queryResults);
 
@@ -271,12 +276,82 @@ public class TwoStageTransformationService {
     }
 
     /**
+     * 验证转换前数据
+     */
+    private boolean validateTransformationData(Object template, Map<String, Object> queryResults) {
+        try {
+            // 1. 验证模板不为空
+            if (template == null) {
+                System.err.println("❌ 模板数据为空");
+                return false;
+            }
+
+            // 2. 验证查询结果不为空
+            if (queryResults == null || queryResults.isEmpty()) {
+                System.err.println("❌ 查询结果为空");
+                return false;
+            }
+
+            // 3. 验证模板是否为有效JSON
+            String templateJson = objectMapper.writeValueAsString(template);
+            if (templateJson.length() < 10) { // 基本长度检查
+                System.err.println("❌ 模板JSON过短，可能无效");
+                return false;
+            }
+
+            // 4. 验证查询结果中的数据类型
+            for (Map.Entry<String, Object> entry : queryResults.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+
+                if (value == null) {
+                    System.out.println("⚠️ 占位符 " + key + " 的值为null");
+                    continue;
+                }
+
+                // 检查复杂数据结构
+                if (value instanceof Map || value instanceof List) {
+                    try {
+                        objectMapper.writeValueAsString(value);
+                    } catch (Exception e) {
+                        System.err.println("❌ 占位符 " + key + " 的值无法序列化: " + e.getMessage());
+                        return false;
+                    }
+                }
+            }
+
+            System.out.println("✅ 转换前数据验证通过");
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("❌ 数据验证过程中出错: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 根据图表类型ID获取对应的Jolt规范文件名
      */
     private String getJoltSpecFileByChartId(String chartId) {
         Map<String, String> chartToSpecMapping = new HashMap<>();
-        chartToSpecMapping.put("stacked_line_chart", "line-chart-placeholder.json");
+
+        // 已实现的图表类型 (5种) - 有完整的JOLT SPEC文件
+        chartToSpecMapping.put("stacked_line_chart", "line-chart-stacked.json");
         chartToSpecMapping.put("basic_bar_chart", "bar-chart-placeholder.json");
+        chartToSpecMapping.put("stacked_bar_chart", "bar-chart-placeholder.json");
+        chartToSpecMapping.put("basic_line_chart", "line-chart-placeholder.json");
+        chartToSpecMapping.put("smooth_line_chart", "line-chart-placeholder.json");
+
+        // 部分实现的图表类型 - 使用新创建的JOLT SPEC文件
+        chartToSpecMapping.put("basic_pie_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("doughnut_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("basic_radar_chart", "radar-chart-placeholder.json");
+        chartToSpecMapping.put("filled_radar_chart", "radar-chart-placeholder.json");
+        chartToSpecMapping.put("basic_gauge_chart", "gauge-chart-placeholder.json");
+        chartToSpecMapping.put("progress_gauge_chart", "gauge-chart-placeholder.json");
+        chartToSpecMapping.put("grade_gauge_chart", "gauge-chart-placeholder.json");
+
+        // 兼容版本
         chartToSpecMapping.put("pie_chart", "pie-chart-placeholder.json");
 
         String specFile = chartToSpecMapping.get(chartId);
@@ -285,6 +360,7 @@ public class TwoStageTransformationService {
             return "line-chart-placeholder.json";
         }
 
+        System.out.println("📋 图表类型 " + chartId + " 使用JOLT规范: " + specFile);
         return specFile;
     }
 

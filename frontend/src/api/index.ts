@@ -115,6 +115,10 @@ export const twoStageApi = {
   validate: (chartId: string) =>
     request.get(`/chart/two-stage/validate/${chartId}`).then(unwrap),
 
+  // 获取图表类型信息
+  getChartInfo: (chartId: string) =>
+    request.get(`/chart/two-stage/chart-info/${chartId}`).then(unwrap),
+
   // 获取通用模板
   getTemplate: (chartId: string) =>
     request.get(`/chart/two-stage/template/${chartId}`).then(unwrap),
@@ -136,6 +140,10 @@ export const twoStageApi = {
   // 占位符测试
   testPlaceholder: (testData: any) =>
     request.post("/chart/two-stage/placeholder/test", testData).then(unwrap),
+
+  // 扫描ECharts目录结构
+  scanEChartsDirectory: () =>
+    request.get("/chart/two-stage/echarts-directory").then(unwrap),
 };
 
 // 图表验证API（原有的）
