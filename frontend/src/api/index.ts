@@ -237,6 +237,18 @@ export const chartConfigApi = {
   // 获取图表预处理规则
   getPreprocessingRules: () =>
     request.get("/chart/config/preprocessing-rules").then(unwrap),
+
+  // 获取文件路径到图表ID的映射关系
+  getFilePathMappings: () =>
+    request.get("/chart/config/file-path-mappings").then(unwrap),
+
+  // 根据文件路径获取图表ID
+  getChartIdByFilePath: (filePath: string) =>
+    request.get("/chart/config/chart-id-by-path", { filePath }).then(unwrap),
+
+  // 获取图表测试数据
+  getTestData: (chartType: string) =>
+    request.get(`/chart/config/test-data/${chartType}`).then(unwrap),
 };
 
 export default api;

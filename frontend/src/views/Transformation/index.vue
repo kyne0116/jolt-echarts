@@ -453,7 +453,7 @@
 </template>
 
 <script setup lang="ts">
-import { twoStageApi } from '@/api'
+import { chartConfigApi, twoStageApi } from '@/api'
 import chartConfigService from '@/services/chartConfigService'
 import { useTransformationStore } from '@/stores'
 import {
@@ -940,41 +940,26 @@ const loadCategoriesFromBackup = async () => {
   }
 }
 
-// 根据文件路径生成chartId（使用配置服务）
+// 根据文件路径生成chartId（完全依赖后端API）
 const generateChartIdFromFilePath = async (filePath: string): Promise<string> => {
   try {
-    // 首先尝试使用配置服务获取chartId
-    console.log(`📋 [配置服务] 尝试获取文件路径映射: ${filePath}`)
-    const chartId = await chartConfigService.generateChartIdFromFilePath(filePath)
-    console.log(`📋 [配置服务] 文件路径映射成功: ${filePath} -> ${chartId}`)
+    console.log(`📋 [配置服务] 从后端获取文件路径映射: ${filePath}`)
+
+    // 直接调用后端API获取图表ID
+    const chartId = await chartConfigApi.getChartIdByFilePath(filePath)
+
+    console.log(`✅ [配置服务] 文件路径映射成功: ${filePath} -> ${chartId}`)
     return chartId
   } catch (error) {
     console.error(`❌ [配置服务] 获取chartId失败: ${filePath}`, error)
 
-    // 使用临时硬编码映射作为回退
-    const hardcodedMapping: Record<string, string> = {
-      '折线图/基础折线图.json': 'basic_line_chart',
-      '折线图/基础平滑折线图.json': 'smooth_line_chart',
-      '折线图/折线图堆叠.json': 'stacked_line_chart',
-      '柱状图/基础柱状图.json': 'basic_bar_chart',
-      '柱状图/堆叠柱状图.json': 'stacked_bar_chart',
-      '饼图/富文本标签.json': 'basic_pie_chart',
-      '饼图/圆角环形图.json': 'doughnut_chart',
-      '雷达图/基础雷达图.json': 'basic_radar_chart',
-      '仪表盘/基础仪表盘.json': 'basic_gauge_chart',
-      '仪表盘/进度仪表盘.json': 'progress_gauge_chart',
-      '仪表盘/等级仪表盘.json': 'grade_gauge_chart'
-    }
-
-    const mappedId = hardcodedMapping[filePath]
-    if (mappedId) {
-      console.log(`📋 [硬编码映射] 使用硬编码映射: ${filePath} -> ${mappedId}`)
-      return mappedId
-    }
-
-    // 最后的回退方案
+    // 生成回退ID
     const fallbackId = filePath.replace(/[\/\s\.]/g, '_').toLowerCase()
-    console.warn(`⚠️ 使用最终回退方案: ${filePath} -> ${fallbackId}`)
+    console.warn(`⚠️ 使用回退方案: ${filePath} -> ${fallbackId}`)
+
+    // 显示用户友好的错误信息
+    message.error(`无法识别的图表类型: ${filePath}，请检查后端配置`)
+
     return fallbackId
   }
 }
@@ -1455,53 +1440,25 @@ const refreshChart = async () => {
 
 
 // 🧪 测试堆叠功能的独立函数
-const testStackFunction = () => {
+const testStackFunction = async () => {
   if (!chartInstance) {
     message.error('图表实例不存在')
     return
   }
 
-  console.log('🧪 [STACK_TEST] 开始测试堆叠功能')
+  try {
+    console.log('🧪 [STACK_TEST] 开始测试堆叠功能')
 
-  // 创建堆叠折线图测试配置
-  const stackTestConfig = {
-    title: { text: '堆叠折线图测试' },
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        name: 'Email',
-        type: 'line',
-        stack: 'Total',
-        areaStyle: {},
-        data: [120, 132, 101, 134, 90, 230, 210]
-      },
-      {
-        name: 'Union Ads',
-        type: 'line',
-        stack: 'Total',
-        areaStyle: {},
-        data: [220, 182, 191, 234, 290, 330, 310]
-      },
-      {
-        name: 'Video Ads',
-        type: 'line',
-        stack: 'Total',
-        areaStyle: {},
-        data: [150, 232, 201, 154, 190, 330, 410]
-      }
-    ],
-    legend: { data: ['Email', 'Union Ads', 'Video Ads'] }
+    // 从后端获取堆叠折线图测试数据
+    const testData = await chartConfigApi.getTestData('stacked_line_chart')
+    console.log('🧪 [STACK_TEST] 从后端获取测试数据:', testData)
+
+    chartInstance.setOption(testData, { notMerge: true })
+    message.success('堆叠折线图测试已加载，应该看到三个区域垂直堆叠的效果')
+  } catch (error) {
+    console.error('❌ [STACK_TEST] 获取测试数据失败:', error)
+    message.error('获取堆叠测试数据失败，请检查后端服务')
   }
-
-  console.log('🧪 [STACK_TEST] 堆叠测试配置:', stackTestConfig)
-
-  chartInstance.setOption(stackTestConfig, { notMerge: true })
-  message.success('堆叠折线图测试已加载，应该看到三个区域垂直堆叠的效果')
 }
 
 // 🧪 测试配置服务的独立函数
@@ -1542,21 +1499,9 @@ const testSmoothLineChart = async () => {
     const config = await chartConfigService.getChartSpecificConfig(chartId)
     console.log(`🧪 [SMOOTH_TEST] 图表配置:`, config)
 
-    // 3. 测试预处理功能
-    const testData = {
-      title: { text: '平滑折线图测试' },
-      xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E'] },
-      yAxis: { type: 'value' },
-      series: [
-        {
-          name: '测试数据',
-          type: 'line',
-          data: [10, 50, 20, 80, 30]
-        }
-      ]
-    }
-
-    console.log(`🧪 [SMOOTH_TEST] 原始数据:`, testData)
+    // 3. 从后端获取测试数据
+    const testData = await chartConfigApi.getTestData('smooth_line_chart')
+    console.log(`🧪 [SMOOTH_TEST] 从后端获取测试数据:`, testData)
     const processedData = await chartConfigService.preprocessChartData(chartId, testData)
     console.log(`🧪 [SMOOTH_TEST] 处理后数据:`, processedData)
 
@@ -1585,6 +1530,33 @@ const testSmoothLineChart = async () => {
   } catch (error) {
     console.error('❌ [SMOOTH_TEST] 平滑折线图测试失败:', error)
     message.error('平滑折线图测试失败')
+  }
+}
+
+// 🧪 验证硬编码整改效果
+const verifyHardcodingRefactor = async () => {
+  console.log('🔍 [验证] 开始验证硬编码整改效果')
+
+  try {
+    // 1. 验证图表配置API
+    console.log('1️⃣ 验证图表配置API...')
+    const mappings = await chartConfigApi.getFilePathMappings()
+    console.log('✅ 文件路径映射API正常:', Object.keys(mappings).length, '个映射')
+
+    // 2. 验证测试数据API
+    console.log('2️⃣ 验证测试数据API...')
+    const testData = await chartConfigApi.getTestData('smooth_line_chart')
+    console.log('✅ 测试数据API正常:', testData.title?.text)
+
+    // 3. 验证图表ID获取
+    console.log('3️⃣ 验证图表ID获取...')
+    const chartId = await generateChartIdFromFilePath('折线图/基础平滑折线图.json')
+    console.log('✅ 图表ID获取正常:', chartId)
+
+    message.success('硬编码整改验证通过！所有API正常工作')
+  } catch (error) {
+    console.error('❌ [验证] 硬编码整改验证失败:', error)
+    message.error('硬编码整改验证失败，请检查后端服务')
   }
 }
 
