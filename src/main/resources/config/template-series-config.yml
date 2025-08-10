@@ -1,0 +1,150 @@
+# 模板系列数量配置文件
+# 解决"5个系列"硬编码问题，实现灵活的系列数量配置
+
+# 各模板类型的系列配置
+template-series-config:
+  CARTESIAN:
+    default-count: 5
+    max-count: 10
+    min-count: 1
+    description: "直角坐标系图表（折线图、柱状图、面积图）"
+    supports-dynamic: true
+    
+  PIE:
+    default-count: 1
+    max-count: 1
+    min-count: 1
+    description: "饼图类图表（饼图、环形图、玫瑰图）"
+    supports-dynamic: false
+    
+  RADAR:
+    default-count: 3
+    max-count: 5
+    min-count: 1
+    description: "雷达图类图表（雷达图、极坐标图）"
+    supports-dynamic: true
+    
+  GAUGE:
+    default-count: 1
+    max-count: 1
+    min-count: 1
+    description: "仪表盘类图表（仪表盘、进度条）"
+    supports-dynamic: false
+
+# 特定图表类型的系列配置覆盖
+chart-specific-series-config:
+  # 折线图类型
+  basic_line_chart:
+    default-count: 1
+    max-count: 8
+    description: "基础折线图通常显示1条线，但支持多条"
+    
+  smooth_line_chart:
+    default-count: 1
+    max-count: 8
+    description: "平滑折线图通常显示1条线，但支持多条"
+    
+  stacked_line_chart:
+    default-count: 5
+    max-count: 10
+    description: "堆叠折线图通常显示多条线"
+    
+  # 柱状图类型
+  basic_bar_chart:
+    default-count: 1
+    max-count: 6
+    description: "基础柱状图通常显示1个系列"
+    
+  stacked_bar_chart:
+    default-count: 4
+    max-count: 8
+    description: "堆叠柱状图通常显示多个系列"
+    
+  # 饼图类型（固定为1个系列）
+  basic_pie_chart:
+    default-count: 1
+    max-count: 1
+    description: "饼图只支持1个数据系列"
+    
+  doughnut_chart:
+    default-count: 1
+    max-count: 1
+    description: "圆环图只支持1个数据系列"
+    
+  # 雷达图类型
+  basic_radar_chart:
+    default-count: 2
+    max-count: 4
+    description: "雷达图通常比较2-4个对象"
+    
+  filled_radar_chart:
+    default-count: 3
+    max-count: 5
+    description: "填充雷达图可以显示更多对象"
+    
+  # 仪表盘类型（固定为1个系列）
+  basic_gauge_chart:
+    default-count: 1
+    max-count: 1
+    description: "基础仪表盘只显示1个值"
+    
+  progress_gauge_chart:
+    default-count: 1
+    max-count: 1
+    description: "进度仪表盘只显示1个进度值"
+    
+  grade_gauge_chart:
+    default-count: 1
+    max-count: 1
+    description: "等级仪表盘只显示1个等级值"
+
+# 系列生成配置
+series-generation:
+  placeholder-pattern: "${series_{index}_{field}}"
+  fields:
+    - "name"
+    - "data"
+    - "type"
+    - "stack"
+    - "smooth"
+    - "style"
+    - "color"
+  
+  # 默认占位符值
+  default-placeholders:
+    name: "${series_{index}_name}"
+    data: "${series_{index}_data}"
+    type: "${series_type}"
+    stack: "${stack_group}"
+    smooth: "${smooth_style}"
+    style: "${series_{index}_style}"
+    color: "${series_{index}_color}"
+
+# 动态系列配置
+dynamic-series:
+  enable: true
+  runtime-adjustment: true
+  max-runtime-series: 20
+  performance-warning-threshold: 15
+  
+  # 性能优化配置
+  performance:
+    lazy-loading: true
+    virtual-scrolling: true
+    data-pagination: true
+    max-data-points-per-series: 1000
+
+# 验证规则
+validation:
+  rules:
+    - name: "series-count-limit"
+      description: "检查系列数量是否超过最大限制"
+    - name: "template-compatibility"
+      description: "检查系列配置是否与模板类型兼容"
+    - name: "performance-check"
+      description: "检查系列数量是否影响性能"
+  
+  error-handling:
+    fallback-to-default: true
+    log-warnings: true
+    strict-mode: false

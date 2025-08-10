@@ -1,0 +1,65 @@
+# Jolt规范映射配置文件
+# 解决硬编码问题，实现配置化管理
+
+# 图表类型到Jolt规范文件的映射
+chart-to-jolt-spec:
+  # 折线图类型
+  basic_line_chart: "line-chart-placeholder.json"
+  smooth_line_chart: "line-chart-placeholder.json"
+  stacked_line_chart: "line-chart-stacked.json"
+  
+  # 柱状图类型
+  basic_bar_chart: "bar-chart-placeholder.json"
+  stacked_bar_chart: "bar-chart-placeholder.json"
+  
+  # 饼图类型
+  basic_pie_chart: "pie-chart-placeholder.json"
+  doughnut_chart: "pie-chart-placeholder.json"
+  pie_chart: "pie-chart-placeholder.json"  # 兼容版本
+  
+  # 雷达图类型
+  basic_radar_chart: "radar-chart-placeholder.json"
+  filled_radar_chart: "radar-chart-placeholder.json"
+  
+  # 仪表盘类型
+  basic_gauge_chart: "gauge-chart-placeholder.json"
+  progress_gauge_chart: "gauge-chart-placeholder.json"
+  grade_gauge_chart: "gauge-chart-placeholder.json"
+  
+  # 面积图类型（计划中）
+  basic_area_chart: "line-chart-placeholder.json"
+
+# 默认配置
+defaults:
+  jolt-spec-file: "line-chart-placeholder.json"
+  fallback-message: "未找到对应的Jolt规范，使用默认的折线图规范"
+
+# Jolt规范文件描述
+jolt-spec-descriptions:
+  "line-chart-placeholder.json": "基础折线图转换规范"
+  "line-chart-stacked.json": "堆叠折线图转换规范"
+  "bar-chart-placeholder.json": "柱状图转换规范"
+  "pie-chart-placeholder.json": "饼图转换规范"
+  "radar-chart-placeholder.json": "雷达图转换规范"
+  "gauge-chart-placeholder.json": "仪表盘转换规范"
+
+# 规范文件验证配置
+validation:
+  required-files:
+    - "line-chart-placeholder.json"
+    - "line-chart-stacked.json"
+    - "bar-chart-placeholder.json"
+    - "pie-chart-placeholder.json"
+    - "radar-chart-placeholder.json"
+    - "gauge-chart-placeholder.json"
+  
+  base-path: "jolt-specs/"
+  
+  # 验证规则
+  rules:
+    - name: "file-exists"
+      description: "检查Jolt规范文件是否存在"
+    - name: "valid-json"
+      description: "检查Jolt规范文件是否为有效JSON"
+    - name: "has-operations"
+      description: "检查Jolt规范是否包含转换操作"

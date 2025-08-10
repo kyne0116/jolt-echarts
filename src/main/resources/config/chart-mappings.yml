@@ -1,0 +1,123 @@
+# 图表类型映射配置文件
+# 解决硬编码问题，实现配置化管理
+
+# 文件路径到图表ID的映射
+path-to-chart-id:
+  "折线图/基础折线图.json": "basic_line_chart"
+  "折线图/基础平滑折线图.json": "smooth_line_chart"
+  "折线图/折线图堆叠.json": "stacked_line_chart"
+  "柱状图/基础柱状图.json": "basic_bar_chart"
+  "柱状图/堆叠柱状图.json": "stacked_bar_chart"
+  "饼图/富文本标签.json": "basic_pie_chart"
+  "饼图/圆角环形图.json": "doughnut_chart"
+  "雷达图/基础雷达图.json": "basic_radar_chart"
+  "仪表盘/基础仪表盘.json": "basic_gauge_chart"
+  "仪表盘/进度仪表盘.json": "progress_gauge_chart"
+  "仪表盘/等级仪表盘.json": "grade_gauge_chart"
+
+# 图表分类配置
+categories:
+  折线图:
+    - "basic_line_chart"
+    - "smooth_line_chart"
+    - "stacked_line_chart"
+  柱状图:
+    - "basic_bar_chart"
+    - "stacked_bar_chart"
+  饼图:
+    - "basic_pie_chart"
+    - "doughnut_chart"
+  雷达图:
+    - "basic_radar_chart"
+  仪表盘:
+    - "basic_gauge_chart"
+    - "progress_gauge_chart"
+    - "grade_gauge_chart"
+
+# 图表特定配置
+chart-specific-configs:
+  basic_line_chart:
+    smooth: false
+    stack: null
+    areaStyle: null
+    description: "基础折线图：直线连接的折线图"
+    
+  smooth_line_chart:
+    smooth: true
+    stack: null
+    areaStyle: null
+    description: "平滑折线图：曲线连接的折线图"
+    
+  stacked_line_chart:
+    smooth: false
+    stack: "Total"
+    areaStyle: {}
+    description: "堆叠折线图：多个数据系列垂直堆叠显示"
+    
+  basic_bar_chart:
+    smooth: null
+    stack: null
+    boundaryGap: true
+    description: "基础柱状图：垂直柱状显示"
+    
+  stacked_bar_chart:
+    smooth: null
+    stack: "Total"
+    boundaryGap: true
+    description: "堆叠柱状图：多个数据系列垂直堆叠的柱状图"
+    
+  basic_pie_chart:
+    radius: "50%"
+    center: ["50%", "50%"]
+    description: "基础饼图：圆形饼状图"
+    
+  doughnut_chart:
+    radius: ["40%", "70%"]
+    center: ["50%", "50%"]
+    description: "圆环图：中空的环形饼图"
+    
+  basic_radar_chart:
+    radius: "60%"
+    description: "基础雷达图：多维数据雷达显示"
+    
+  basic_gauge_chart:
+    min: 0
+    max: 100
+    description: "基础仪表盘：指针式仪表显示"
+    
+  progress_gauge_chart:
+    min: 0
+    max: 100
+    description: "进度仪表盘：进度条式仪表显示"
+    
+  grade_gauge_chart:
+    min: 0
+    max: 100
+    description: "等级仪表盘：等级显示仪表盘"
+
+# 预处理规则配置
+preprocessing-rules:
+  stacked_line_chart:
+    requiresAreaStyle: true
+    stackValue: "Total"
+    smooth: false
+    
+  smooth_line_chart:
+    smooth: true
+    requiresAreaStyle: false
+    
+  basic_line_chart:
+    smooth: false
+    requiresAreaStyle: false
+    
+  basic_pie_chart:
+    type: "pie"
+    radius: "50%"
+    center: ["50%", "50%"]
+    requiresValueName: true
+    
+  doughnut_chart:
+    type: "pie"
+    radius: ["40%", "70%"]
+    center: ["50%", "50%"]
+    requiresValueName: true

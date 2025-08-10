@@ -72,7 +72,7 @@
                 <div class="info-content" v-if="transformationStore.currentChartId">
                   <a-descriptions :column="2" size="small">
                     <a-descriptions-item label="图表名称">
-                      {{ selectedChartFile ? selectedChartFile.split('/').pop().replace('.json', '') : '未选择' }}
+                      {{ selectedChartFile ? selectedChartFile.split('/').pop()?.replace('.json', '') : '未选择' }}
                     </a-descriptions-item>
                     <a-descriptions-item label="模板类型">
                       {{ selectedTemplateType || '未知' }}
@@ -821,7 +821,7 @@ const showDataPreview = (type: string, data: any) => {
     final: '最终结果（用于图表渲染）'
   }
 
-  dataPreviewTitle.value = titleMap[type] || '数据预览'
+  dataPreviewTitle.value = titleMap[type as keyof typeof titleMap] || '数据预览'
   dataPreviewContent.value = data
   dataPreviewVisible.value = true
 }
@@ -853,7 +853,7 @@ const executeTransformation = async () => {
     message.info('开始执行转换...')
 
     // 这里调用实际的转换逻辑
-    await transformationStore.executeTransformation()
+    await transformationStore.executeFullTransformation()
 
     message.success('转换完成！')
   } catch (error: any) {
@@ -1216,14 +1216,14 @@ const getImplementationStatus = (chartId: string) => {
   const allCharts = Object.values(echartsDirectoryStructure.value).flat()
   const chart = allCharts.find((c: any) => c.chartId === chartId)
   
-  if (chart && chart.status) {
+  if (chart && (chart as any).status) {
     // 将英文状态转换为中文显示
     const statusMap: Record<string, string> = {
       'implemented': '已实现',
       'planned': '计划中',
       'unknown': '未知'
     }
-    return statusMap[chart.status] || chart.status
+    return statusMap[(chart as any).status] || (chart as any).status
   }
   
   // 如果后端没有提供状态信息，返回未知
@@ -1412,9 +1412,11 @@ const updateChart = async () => {
 
     // 简单验证
     setTimeout(() => {
-      const actualConfig = chartInstance.getOption()
-      if (actualConfig.series && actualConfig.series[0]) {
-        console.log(`FINAL_CHECK: smooth=${actualConfig.series[0].smooth}`)
+      if (chartInstance) {
+        const actualConfig = chartInstance.getOption() as any
+        if (actualConfig.series && actualConfig.series[0]) {
+          console.log(`FINAL_CHECK: smooth=${actualConfig.series[0].smooth}`)
+        }
       }
     }, 100)
 
@@ -1505,7 +1507,7 @@ const preprocessChartData = async (data: any): Promise<any> => {
     return processedData
   } catch (error) {
     console.error('❌ [配置服务] 预处理失败，使用原始数据:', error)
-    console.error('❌ [配置服务] 错误详情:', error.stack)
+    console.error('❌ [配置服务] 错误详情:', (error as any)?.stack)
     return data
   }
 }
