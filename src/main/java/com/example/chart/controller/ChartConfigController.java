@@ -341,11 +341,19 @@ public class ChartConfigController {
                 break;
 
             case "doughnut_chart":
-                // 圆环图测试数据
-                testData.put("title", Map.of("text", "圆环图测试"));
+                // 圆环图测试数据 - 修复颜色图例问题
+                testData.put("title", Map.of("text", "动态营销渠道分析"));
                 testData.put("tooltip", Map.of(
                         "trigger", "item",
                         "formatter", "{a} <br/>{b}: {c} ({d}%)"));
+                // 添加图例配置，包含颜色信息
+                testData.put("legend", Map.of(
+                        "orient", "vertical",
+                        "left", "left",
+                        "data", Arrays.asList("直接访问", "邮件营销", "联盟广告", "视频广告", "搜索引擎")));
+                // 添加颜色配置
+                testData.put("color", Arrays.asList(
+                        "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de"));
                 testData.put("series", Arrays.asList(
                         Map.of(
                                 "name", "访问来源",
@@ -353,6 +361,10 @@ public class ChartConfigController {
                                 "radius", Arrays.asList("40%", "70%"),
                                 "center", Arrays.asList("50%", "50%"),
                                 "avoidLabelOverlap", false,
+                                "itemStyle", Map.of(
+                                        "borderRadius", 10,
+                                        "borderColor", "#fff",
+                                        "borderWidth", 2),
                                 "label", Map.of(
                                         "show", false,
                                         "position", "center"),
@@ -368,6 +380,78 @@ public class ChartConfigController {
                                         Map.of("value", 234, "name", "联盟广告"),
                                         Map.of("value", 135, "name", "视频广告"),
                                         Map.of("value", 1548, "name", "搜索引擎")))));
+                break;
+
+            case "bar_chart":
+                // 基础柱状图测试数据
+                testData.put("title", Map.of("text", "月度销售数据分析"));
+                testData.put("tooltip", Map.of(
+                        "trigger", "axis",
+                        "axisPointer", Map.of("type", "shadow")));
+                testData.put("legend", Map.of(
+                        "data", Arrays.asList("销售额"),
+                        "top", "8%"));
+                testData.put("grid", Map.of(
+                        "left", "3%",
+                        "right", "4%",
+                        "bottom", "3%",
+                        "containLabel", true));
+                testData.put("xAxis", Map.of(
+                        "type", "category",
+                        "data", Arrays.asList("一月", "二月", "三月", "四月", "五月", "六月")));
+                testData.put("yAxis", Map.of("type", "value"));
+                testData.put("series", Arrays.asList(
+                        Map.of(
+                                "name", "销售额",
+                                "type", "bar",
+                                "data", Arrays.asList(120, 200, 150, 80, 70, 110),
+                                "itemStyle", Map.of("color", "#5470c6"))));
+                break;
+
+            case "stacked_bar_chart":
+                // 堆叠柱状图测试数据
+                testData.put("title", Map.of("text", "周度访问来源统计"));
+                testData.put("tooltip", Map.of(
+                        "trigger", "axis",
+                        "axisPointer", Map.of("type", "shadow")));
+                testData.put("legend", Map.of(
+                        "data", Arrays.asList("直接访问", "邮件营销", "联盟广告", "视频广告", "搜索引擎"),
+                        "top", "8%"));
+                testData.put("grid", Map.of(
+                        "left", "3%",
+                        "right", "4%",
+                        "bottom", "3%",
+                        "containLabel", true));
+                testData.put("xAxis", Map.of(
+                        "type", "category",
+                        "data", Arrays.asList("周一", "周二", "周三", "周四", "周五", "周六", "周日")));
+                testData.put("yAxis", Map.of("type", "value"));
+                testData.put("series", Arrays.asList(
+                        Map.of(
+                                "name", "直接访问",
+                                "type", "bar",
+                                "stack", "总量",
+                                "data", Arrays.asList(320, 302, 301, 334, 390, 330, 320)),
+                        Map.of(
+                                "name", "邮件营销",
+                                "type", "bar",
+                                "stack", "总量",
+                                "data", Arrays.asList(120, 132, 101, 134, 90, 230, 210)),
+                        Map.of(
+                                "name", "联盟广告",
+                                "type", "bar",
+                                "stack", "总量",
+                                "data", Arrays.asList(220, 182, 191, 234, 290, 330, 310)),
+                        Map.of(
+                                "name", "视频广告",
+                                "type", "bar",
+                                "stack", "总量",
+                                "data", Arrays.asList(150, 212, 201, 154, 190, 330, 410)),
+                        Map.of(
+                                "name", "搜索引擎",
+                                "type", "bar",
+                                "stack", "总量",
+                                "data", Arrays.asList(820, 832, 901, 934, 1290, 1330, 1320))));
                 break;
 
             default:

@@ -100,6 +100,16 @@
             <!-- 左下：数据流卡片重构 -->
             <div class="data-flow-section">
               <a-card title="数据流状态" size="small" class="data-flow-card">
+                <template #extra>
+                  <a-button
+                    size="small"
+                    type="primary"
+                    @click="showDataComparison"
+                    :disabled="!transformationStore.stage1Output || !transformationStore.stage2Output || !transformationStore.finalResult"
+                  >
+                    两阶段转换数据对比
+                  </a-button>
+                </template>
                 <div class="data-flow-content">
                   <!-- 通用JSON模板 -->
                   <div class="flow-item" :class="{ active: !!transformationStore.universalTemplate }">
@@ -323,6 +333,26 @@
               >
                 🍩 圆环
               </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!chartInstance"
+                @click="testBarChart"
+                title="测试基础柱状图"
+                style="color: #52c41a;"
+              >
+                📊 柱状
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                :disabled="!chartInstance"
+                @click="testStackedBarChart"
+                title="测试堆叠柱状图"
+                style="color: #fa541c;"
+              >
+                📈 堆叠
+              </a-button>
             </a-space>
           </template>
 
@@ -359,6 +389,109 @@
             :highlight-selected-node="true"
           />
           <a-empty v-else description="暂无数据" />
+        </div>
+      </a-modal>
+
+      <!-- 数据对比模态弹窗 -->
+      <a-modal
+        v-model:open="dataComparisonVisible"
+        title="两阶段转换数据对比"
+        width="95%"
+        :footer="null"
+        class="data-comparison-modal"
+      >
+        <div class="comparison-content">
+          <a-row :gutter="16">
+            <!-- 左栏：第一阶段输出 -->
+            <a-col :span="8">
+              <a-card title="第一阶段输出" size="small" class="comparison-card">
+                <template #extra>
+                  <a-tag color="blue">ECharts结构，保持占位符</a-tag>
+                </template>
+                <div class="comparison-json-viewer">
+                  <vue-json-pretty
+                    v-if="transformationStore.stage1Output"
+                    :data="transformationStore.stage1Output"
+                    :show-length="true"
+                    :show-line="true"
+                    :highlight-mouseover-node="true"
+                    :highlight-selected-node="true"
+                  />
+                  <a-empty v-else description="暂无数据" size="small" />
+                </div>
+              </a-card>
+            </a-col>
+
+            <!-- 中栏：第二阶段输出 -->
+            <a-col :span="8">
+              <a-card title="第二阶段输出" size="small" class="comparison-card">
+                <template #extra>
+                  <a-tag color="purple">最终ECharts配置</a-tag>
+                </template>
+                <div class="comparison-json-viewer">
+                  <vue-json-pretty
+                    v-if="transformationStore.stage2Output"
+                    :data="transformationStore.stage2Output"
+                    :show-length="true"
+                    :show-line="true"
+                    :highlight-mouseover-node="true"
+                    :highlight-selected-node="true"
+                  />
+                  <a-empty v-else description="暂无数据" size="small" />
+                </div>
+              </a-card>
+            </a-col>
+
+            <!-- 右栏：最终结果 -->
+            <a-col :span="8">
+              <a-card title="最终结果" size="small" class="comparison-card">
+                <template #extra>
+                  <a-tag color="green">用于图表渲染</a-tag>
+                </template>
+                <div class="comparison-json-viewer">
+                  <vue-json-pretty
+                    v-if="transformationStore.finalResult"
+                    :data="transformationStore.finalResult"
+                    :show-length="true"
+                    :show-line="true"
+                    :highlight-mouseover-node="true"
+                    :highlight-selected-node="true"
+                  />
+                  <a-empty v-else description="暂无数据" size="small" />
+                </div>
+              </a-card>
+            </a-col>
+          </a-row>
+
+          <!-- 对比分析区域 -->
+          <a-row style="margin-top: 16px;">
+            <a-col :span="24">
+              <a-card title="数据变化分析" size="small">
+                <div class="analysis-content">
+                  <a-descriptions :column="3" size="small">
+                    <a-descriptions-item label="第一阶段变化">
+                      <a-tag color="blue">占位符 → ECharts结构</a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="第二阶段变化">
+                      <a-tag color="purple">占位符替换 → 实际数据</a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="最终结果">
+                      <a-tag color="green">可渲染配置</a-tag>
+                    </a-descriptions-item>
+                  </a-descriptions>
+
+                  <div class="change-summary">
+                    <h4>转换过程摘要：</h4>
+                    <ul>
+                      <li><strong>第一阶段：</strong>通用模板通过JOLT转换为ECharts结构，保留占位符用于数据绑定</li>
+                      <li><strong>第二阶段：</strong>将占位符替换为实际的数据库查询结果</li>
+                      <li><strong>最终结果：</strong>生成完整的ECharts配置，可直接用于图表渲染</li>
+                    </ul>
+                  </div>
+                </div>
+              </a-card>
+            </a-col>
+          </a-row>
         </div>
       </a-modal>
     </div>
@@ -431,6 +564,9 @@ const directoryCategories = ref<string[]>([])
 const dataPreviewVisible = ref(false)
 const dataPreviewTitle = ref('')
 const dataPreviewContent = ref<any>(null)
+
+// 数据对比模态弹窗状态
+const dataComparisonVisible = ref(false)
 
 // 加载ECharts目录结构
 const loadEChartsDirectory = async () => {
@@ -688,6 +824,21 @@ const showDataPreview = (type: string, data: any) => {
   dataPreviewTitle.value = titleMap[type] || '数据预览'
   dataPreviewContent.value = data
   dataPreviewVisible.value = true
+}
+
+// 数据对比功能
+const showDataComparison = () => {
+  if (!transformationStore.stage1Output || !transformationStore.stage2Output || !transformationStore.finalResult) {
+    message.warning('请先完成两阶段转换，确保所有数据都已生成')
+    return
+  }
+
+  console.log('🔍 [数据对比] 打开数据对比窗口')
+  console.log('- 第一阶段输出:', !!transformationStore.stage1Output)
+  console.log('- 第二阶段输出:', !!transformationStore.stage2Output)
+  console.log('- 最终结果:', !!transformationStore.finalResult)
+
+  dataComparisonVisible.value = true
 }
 
 // 执行转换功能
@@ -1552,6 +1703,50 @@ const testDoughnutChart = async () => {
   }
 }
 
+// 🧪 测试基础柱状图功能
+const testBarChart = async () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  try {
+    console.log('🧪 [BAR_TEST] 开始测试基础柱状图功能')
+
+    // 从后端获取柱状图测试数据
+    const testData = await chartConfigApi.getTestData('bar_chart')
+    console.log('🧪 [BAR_TEST] 从后端获取测试数据:', testData)
+
+    chartInstance.setOption(testData, { notMerge: true })
+    message.success('基础柱状图测试已加载')
+  } catch (error) {
+    console.error('🧪 [BAR_TEST] 测试失败:', error)
+    message.error('基础柱状图测试失败，请检查后端服务')
+  }
+}
+
+// 🧪 测试堆叠柱状图功能
+const testStackedBarChart = async () => {
+  if (!chartInstance) {
+    message.error('图表实例不存在')
+    return
+  }
+
+  try {
+    console.log('🧪 [STACKED_BAR_TEST] 开始测试堆叠柱状图功能')
+
+    // 从后端获取堆叠柱状图测试数据
+    const testData = await chartConfigApi.getTestData('stacked_bar_chart')
+    console.log('🧪 [STACKED_BAR_TEST] 从后端获取测试数据:', testData)
+
+    chartInstance.setOption(testData, { notMerge: true })
+    message.success('堆叠柱状图测试已加载')
+  } catch (error) {
+    console.error('🧪 [STACKED_BAR_TEST] 测试失败:', error)
+    message.error('堆叠柱状图测试失败，请检查后端服务')
+  }
+}
+
 // 🧪 验证硬编码整改效果
 const verifyHardcodingRefactor = async () => {
   console.log('🔍 [验证] 开始验证硬编码整改效果')
@@ -2346,6 +2541,66 @@ onUnmounted(() => {
   background: #fafbfc;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 数据对比模态弹窗样式 */
+.data-comparison-modal .ant-modal-body {
+  padding: 16px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.comparison-content {
+  width: 100%;
+}
+
+.comparison-card {
+  height: 100%;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+.comparison-json-viewer {
+  height: 50vh;
+  overflow: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fafbfc;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.analysis-content {
+  padding: 12px 0;
+}
+
+.change-summary {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  border-left: 4px solid #1890ff;
+}
+
+.change-summary h4 {
+  margin: 0 0 8px 0;
+  color: #262626;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.change-summary ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.change-summary li {
+  margin-bottom: 4px;
+  color: #595959;
+  font-size: 13px;
   line-height: 1.5;
 }
 

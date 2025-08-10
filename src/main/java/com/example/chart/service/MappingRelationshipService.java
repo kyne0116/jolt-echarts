@@ -591,6 +591,11 @@ public class MappingRelationshipService {
                 return "default";
             case "brush_config":
                 return "default";
+            // 柱状图专用字段
+            case "bar_title":
+                return "月度销售数据分析";
+            case "stacked_bar_title":
+                return "周度访问来源统计";
             default:
                 return "Mock_" + columnName;
         }
@@ -617,6 +622,21 @@ public class MappingRelationshipService {
                     Map.of("value", 234, "name", "联盟广告"),
                     Map.of("value", 135, "name", "视频广告"),
                     Map.of("value", 1548, "name", "搜索引擎"));
+        }
+
+        // 柱状图分类数据
+        if ("month_name".equals(columnName)) {
+            return Arrays.asList("一月", "二月", "三月", "四月", "五月", "六月");
+        }
+
+        // 柱状图销售数据
+        if ("sales_amount".equals(columnName)) {
+            return Arrays.asList(120, 200, 150, 80, 70, 110);
+        }
+
+        // 堆叠柱状图周数据
+        if ("week_name".equals(columnName)) {
+            return Arrays.asList("周一", "周二", "周三", "周四", "周五", "周六", "周日");
         }
 
         // 雷达图数据

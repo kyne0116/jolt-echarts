@@ -14,6 +14,17 @@
     }
   },
   {
+    "operation": "shift",
+    "spec": {
+      "*": "&",
+      "series": {
+        "*": {
+          "seriesName": "legend.data[&1]"
+        }
+      }
+    }
+  },
+  {
     "operation": "default",
     "spec": {
       "tooltip": {
@@ -25,6 +36,10 @@
         "left": "left",
         "show": true
       },
+      "color": [
+        "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de",
+        "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc", "#5470c6"
+      ],
       "toolbox": {
         "feature": {
           "saveAsImage": {}
@@ -36,6 +51,11 @@
           "type": "pie",
           "radius": "50%",
           "center": ["50%", "60%"],
+          "itemStyle": {
+            "borderRadius": 8,
+            "borderColor": "#fff",
+            "borderWidth": 2
+          },
           "emphasis": {
             "itemStyle": {
               "shadowBlur": 10,

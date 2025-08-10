@@ -1,65 +1,78 @@
 {
-  "angleAxis": {
-    "max": 2,
-    "startAngle": 30,
-    "splitLine": {
-      "show": false
-    }
+  "title": {
+    "text": "圆角环形图示例",
+    "left": "center"
   },
-  "radiusAxis": {
-    "type": "category",
+  "tooltip": {
+    "trigger": "item",
+    "formatter": "{a} <br/>{b}: {c} ({d}%)"
+  },
+  "legend": {
+    "orient": "vertical",
+    "left": "left",
     "data": [
-      "v",
-      "w",
-      "x",
-      "y",
-      "z"
-    ],
-    "z": 10
+      "直接访问",
+      "邮件营销",
+      "联盟广告",
+      "视频广告",
+      "搜索引擎"
+    ]
   },
-  "polar": {},
+  "color": [
+    "#5470c6",
+    "#91cc75",
+    "#fac858",
+    "#ee6666",
+    "#73c0de"
+  ],
   "series": [
     {
-      "type": "bar",
-      "data": [
-        4,
-        3,
-        2,
-        1,
-        0
-      ],
-      "coordinateSystem": "polar",
-      "name": "Without Round Cap",
+      "name": "访问来源",
+      "type": "pie",
+      "radius": ["40%", "70%"],
+      "center": ["50%", "50%"],
+      "avoidLabelOverlap": false,
       "itemStyle": {
-        "borderColor": "red",
-        "opacity": 0.8,
-        "borderWidth": 1
-      }
-    },
-    {
-      "type": "bar",
+        "borderRadius": 10,
+        "borderColor": "#fff",
+        "borderWidth": 2
+      },
+      "label": {
+        "show": false,
+        "position": "center"
+      },
+      "emphasis": {
+        "label": {
+          "show": true,
+          "fontSize": 30,
+          "fontWeight": "bold"
+        }
+      },
+      "labelLine": {
+        "show": false
+      },
       "data": [
-        4,
-        3,
-        2,
-        1,
-        0
-      ],
-      "coordinateSystem": "polar",
-      "name": "With Round Cap",
-      "roundCap": true,
-      "itemStyle": {
-        "borderColor": "green",
-        "opacity": 0.8,
-        "borderWidth": 1
-      }
+        {
+          "value": 335,
+          "name": "直接访问"
+        },
+        {
+          "value": 310,
+          "name": "邮件营销"
+        },
+        {
+          "value": 234,
+          "name": "联盟广告"
+        },
+        {
+          "value": 135,
+          "name": "视频广告"
+        },
+        {
+          "value": 1548,
+          "name": "搜索引擎"
+        }
+      ]
     }
-  ],
-  "legend": {
-    "show": true,
-    "data": [
-      "Without Round Cap",
-      "With Round Cap"
-    ]
-  }
+  ]
 }
