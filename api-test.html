@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 API连接测试</h1>
+    
+    <div class="test-section">
+        <h3>1. 测试后端服务连接</h3>
+        <button class="test-button" onclick="testBackendConnection()">测试后端连接</button>
+        <div id="backend-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 测试获取数据记录API</h3>
+        <button class="test-button" onclick="testGetRecords()">测试获取记录</button>
+        <div id="records-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 测试字段信息API</h3>
+        <button class="test-button" onclick="testGetFieldsInfo()">测试字段信息</button>
+        <div id="fields-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 测试统计信息API</h3>
+        <button class="test-button" onclick="testGetStatistics()">测试统计信息</button>
+        <div id="statistics-result" class="result"></div>
+    </div>
+
+    <script>
+        // 测试后端连接
+        async function testBackendConnection() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.textContent = '正在测试连接...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/chart/simple-data/statistics');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 后端连接成功！\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 后端响应错误\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 连接失败: ${error.message}\n\n可能的原因:\n1. 后端服务未启动 (http://localhost:8080)\n2. CORS配置问题\n3. 网络连接问题`;
+            }
+        }
+
+        // 测试获取数据记录
+        async function testGetRecords() {
+            const resultDiv = document.getElementById('records-result');
+            resultDiv.textContent = '正在获取数据记录...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/chart/simple-data/records?page=0&size=5');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 获取记录成功！\n状态码: ${response.status}\n记录数: ${data.data?.records?.length || 0}\n总数: ${data.data?.totalCount || 0}\n\n响应数据:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 获取记录失败\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 请求失败: ${error.message}`;
+            }
+        }
+
+        // 测试字段信息
+        async function testGetFieldsInfo() {
+            const resultDiv = document.getElementById('fields-result');
+            resultDiv.textContent = '正在获取字段信息...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/chart/simple-data/fields-info');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 获取字段信息成功！\n状态码: ${response.status}\n\n字段信息:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 获取字段信息失败\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 请求失败: ${error.message}`;
+            }
+        }
+
+        // 测试统计信息
+        async function testGetStatistics() {
+            const resultDiv = document.getElementById('statistics-result');
+            resultDiv.textContent = '正在获取统计信息...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/chart/simple-data/statistics');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 获取统计信息成功！\n状态码: ${response.status}\n\n统计信息:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 获取统计信息失败\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 请求失败: ${error.message}`;
+            }
+        }
+
+        // 页面加载时自动测试连接
+        window.onload = function() {
+            console.log('🔍 API测试页面已加载');
+            console.log('前端地址: http://localhost:3000');
+            console.log('后端地址: http://localhost:8080');
+            console.log('请确保两个服务都在运行');
+        };
+    </script>
+</body>
+</html>

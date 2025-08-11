@@ -16,6 +16,7 @@ This is an ECharts dynamic data visualization system with a two-stage transforma
   - `GAUGE`: Gauge charts, progress charts (min/max)
 - **Smart Transformation Engine**: Automatically infers chart template type and applies appropriate conversion logic
 - **Placeholder Management**: Maintains placeholders through transformation stages and replaces them with real data
+- **Unified Data Architecture**: 40-field `UniversalChartDataView` covers all chart types' data requirements
 
 ## Development Commands
 
@@ -83,9 +84,21 @@ npm run lint
 - **Key functionality**: Preserves placeholders during stage 1, replaces them in stage 2
 
 ### MappingRelationshipService
+- **Location**: `src/main/java/com/example/chart/service/MappingRelationshipService.java`
 - **Purpose**: Manages field mapping relationships and simulates database queries
 - **Current implementation**: Uses in-memory virtual database for demonstration
+- **Critical Issue**: All series names currently map to same field ("channel_name"), causing basic line charts to show 1 line vs stacked showing 5 lines
 - **Extension point**: Ready to be replaced with real database integration
+
+### UniversalChartDataView
+- **Location**: `src/main/java/com/example/chart/model/UniversalChartDataView.java`
+- **Purpose**: 40-field unified data model covering all chart types
+- **Structure**: 
+  - Basic info (8 fields): id, title, chart_type, theme, description, data_source, created_at, updated_at
+  - Time dimensions (8 fields): date, day_name, month, month_name, year, quarter, week_number, timestamp
+  - Category data (8 fields): category, sub_category, channel_name, channel_type, product_name, product_type, region, department
+  - Numeric fields (8 fields): value, conversion_count, click_count, view_count, percentage, ratio, amount, quantity
+  - Config fields (8 fields): color, style, radius, center, stack_group, smooth_style, boundary_gap, extra_config
 
 ## File Structure and Resources
 
@@ -107,16 +120,37 @@ npm run lint
 
 ## Chart Type to File Mapping
 
-The system supports 14+ chart types mapped to appropriate JOLT specs:
+The system supports 14 chart types across 4 template categories:
 
+### CARTESIAN (6 types) - ✅ Fully Implemented
 ```java
-// Chart ID → JOLT Spec mapping
-"stacked_line_chart" → "line-chart-stacked.json"
 "basic_line_chart" → "line-chart-placeholder.json" 
 "smooth_line_chart" → "line-chart-placeholder.json"
+"stacked_line_chart" → "line-chart-stacked.json"
 "basic_bar_chart" → "bar-chart-placeholder.json"
 "stacked_bar_chart" → "bar-chart-placeholder.json"
+"basic_area_chart" → planned
+```
+
+### PIE (4 types) - 🚧 JOLT specs in development  
+```java
 "basic_pie_chart" → "pie-chart-placeholder.json"
+"doughnut_chart" → "pie-chart-placeholder.json" 
+"rose_chart" → planned
+"pie_chart" → alias for "basic_pie_chart" (compatibility)
+```
+
+### RADAR (2 types) - 🚧 JOLT specs in development
+```java
+"basic_radar_chart" → "radar-chart-placeholder.json"
+"filled_radar_chart" → planned
+```
+
+### GAUGE (3 types) - 🚧 JOLT specs in development
+```java
+"basic_gauge_chart" → "gauge-chart-placeholder.json"
+"progress_gauge_chart" → "gauge-chart-placeholder.json" 
+"grade_gauge_chart" → "gauge-chart-placeholder.json"
 ```
 
 ## API Endpoints
@@ -148,6 +182,29 @@ The system supports 14+ chart types mapped to appropriate JOLT specs:
 
 ### Proxy Configuration
 Frontend development server proxies `/api` requests to backend at `http://localhost:8080`
+
+## Critical Issues and Solutions
+
+### Root Cause Analysis: Line Chart Display Issue
+**Problem**: Basic line charts show 1 line while stacked line charts show 5 lines
+**Root Cause**: All series names map to same field ("channel_name") in `MappingRelationshipService.java:219-228`
+```java
+// Current problematic mapping - all series use same field
+universalMappings.put("${series_1_name}", createMapping("channel_name"));
+universalMappings.put("${series_2_name}", createMapping("channel_name")); // Same field!
+// Result: ECharts merges identical series names → only 1 line shown
+// But stacked charts preserve all series due to stack:"Total" property
+```
+
+**Solution**: Map different series to different fields:
+```java
+// Proposed fix - use different fields for differentiation  
+universalMappings.put("${series_1_name}", createMapping("channel_name"));    // Channel
+universalMappings.put("${series_2_name}", createMapping("product_name"));    // Product  
+universalMappings.put("${series_3_name}", createMapping("region"));          // Region
+universalMappings.put("${series_4_name}", createMapping("department"));      // Department
+universalMappings.put("${series_5_name}", createMapping("product_type"));    // Product Type
+```
 
 ## Database Integration Notes
 

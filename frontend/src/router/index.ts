@@ -13,26 +13,9 @@ const routes: RouteRecordRaw[] = [
         name: "Dashboard",
         component: () => import("@/views/Dashboard.vue"),
         meta: {
-          title: "仪表板",
+          title: "系统概览",
           icon: "DashboardOutlined",
-        },
-      },
-      {
-        path: "/chart-config",
-        name: "ChartConfig",
-        component: () => import("@/views/ChartConfig/index.vue"),
-        meta: {
-          title: "图表配置管理",
-          icon: "BarChartOutlined",
-        },
-      },
-      {
-        path: "/jolt-spec",
-        name: "JoltSpec",
-        component: () => import("@/views/JoltSpec/index.vue"),
-        meta: {
-          title: "Jolt规范管理",
-          icon: "CodeOutlined",
+          description: "占位符映射管理系统总览",
         },
       },
       {
@@ -42,24 +25,8 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "占位符映射管理",
           icon: "LinkOutlined",
-        },
-      },
-      {
-        path: "/template",
-        name: "Template",
-        component: () => import("@/views/Template/index.vue"),
-        meta: {
-          title: "通用JSON模板",
-          icon: "FileTextOutlined",
-        },
-      },
-      {
-        path: "/transformation",
-        name: "Transformation",
-        component: () => import("@/views/Transformation/index.vue"),
-        meta: {
-          title: "两阶段转换演示",
-          icon: "SwapOutlined",
+          description: "核心功能：智能映射配置与实时预览",
+          featured: true,
         },
       },
       {
@@ -67,17 +34,29 @@ const routes: RouteRecordRaw[] = [
         name: "VirtualDatabase",
         component: () => import("@/views/VirtualDatabase/index.vue"),
         meta: {
-          title: "虚拟数据库管理",
+          title: "虚拟数据库",
           icon: "DatabaseOutlined",
+          description: "统一数据源管理与CRUD操作",
         },
       },
       {
-        path: "/system",
-        name: "System",
-        component: () => import("@/views/System/index.vue"),
+        path: "/transformation",
+        name: "Transformation",
+        component: () => import("@/views/Transformation/index.vue"),
         meta: {
-          title: "系统设置",
-          icon: "SettingOutlined",
+          title: "两阶段转换",
+          icon: "SwapOutlined",
+          description: "结构转换与数据回填演示",
+        },
+      },
+      {
+        path: "/template",
+        name: "Template",
+        component: () => import("@/views/Template/index.vue"),
+        meta: {
+          title: "模板管理",
+          icon: "FileTextOutlined",
+          description: "通用JSON模板与JOLT规范",
         },
       },
     ],

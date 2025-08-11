@@ -25,56 +25,40 @@
           <template #icon>
             <DashboardOutlined />
           </template>
-          仪表板
+          <span class="menu-title">系统概览</span>
         </a-menu-item>
 
-        <a-menu-item key="/chart-config">
-          <template #icon>
-            <BarChartOutlined />
-          </template>
-          图表配置管理
-        </a-menu-item>
+        <a-menu-divider />
 
-        <a-menu-item key="/jolt-spec">
-          <template #icon>
-            <CodeOutlined />
-          </template>
-          Jolt规范管理
-        </a-menu-item>
-
-        <a-menu-item key="/mapping">
+        <a-menu-item key="/mapping" class="featured-menu-item">
           <template #icon>
             <LinkOutlined />
           </template>
-          占位符映射管理
-        </a-menu-item>
-
-        <a-menu-item key="/template">
-          <template #icon>
-            <FileTextOutlined />
-          </template>
-          通用JSON模板
-        </a-menu-item>
-
-        <a-menu-item key="/transformation">
-          <template #icon>
-            <SwapOutlined />
-          </template>
-          两阶段转换演示
+          <span class="menu-title">
+            占位符映射管理
+            <a-tag color="gold" size="small" class="feature-tag">核心</a-tag>
+          </span>
         </a-menu-item>
 
         <a-menu-item key="/virtual-database">
           <template #icon>
             <DatabaseOutlined />
           </template>
-          虚拟数据库管理
+          <span class="menu-title">虚拟数据库</span>
         </a-menu-item>
 
-        <a-menu-item key="/system">
+        <a-menu-item key="/transformation">
           <template #icon>
-            <SettingOutlined />
+            <SwapOutlined />
           </template>
-          系统设置
+          <span class="menu-title">两阶段转换</span>
+        </a-menu-item>
+
+        <a-menu-item key="/template">
+          <template #icon>
+            <FileTextOutlined />
+          </template>
+          <span class="menu-title">模板管理</span>
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
@@ -148,8 +132,6 @@
 <script setup lang="ts">
 import { useSystemStore } from '@/stores'
 import {
-    BarChartOutlined,
-    CodeOutlined,
     DashboardOutlined,
     DatabaseOutlined,
     FileTextOutlined,
@@ -160,7 +142,6 @@ import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     ReloadOutlined,
-    SettingOutlined,
     SwapOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
@@ -266,6 +247,28 @@ onMounted(() => {
 .sidebar-menu {
   height: calc(100vh - 65px);
   border-right: 0;
+}
+
+.menu-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.featured-menu-item {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05)) !important;
+  border-left: 3px solid #ffd700 !important;
+}
+
+.featured-menu-item:hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1)) !important;
+}
+
+.feature-tag {
+  margin-left: 8px;
+  font-size: 10px;
+  transform: scale(0.8);
 }
 
 .main-content {

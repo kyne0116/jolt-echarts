@@ -2,7 +2,6 @@ package com.example.chart.service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +24,9 @@ public class TwoStageTransformationService {
 
     @Autowired
     private PlaceholderManager placeholderManager;
+
+    @Autowired
+    private PlaceholderMappingManager mappingManager;
 
     @Autowired
     private MappingRelationshipService mappingService;
@@ -190,7 +192,38 @@ public class TwoStageTransformationService {
      */
     public TransformationResult executeStage2Transformation(String chartId, Object echartsTemplate) {
         try {
-            // 优先使用新的映射服务和注册表
+            System.out.println("=== 第二阶段转换开始（数据回填）===");
+            System.out.println("图表类型: " + chartId);
+
+            // 提取占位符
+            Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(echartsTemplate);
+            System.out.println("发现占位符: " + placeholders);
+
+            if (placeholders.isEmpty()) {
+                System.out.println("⚠️ 未发现占位符，直接返回原始配置");
+                return new TransformationResult(true, "无需数据回填", echartsTemplate);
+            }
+
+            // 优先尝试使用新的映射管理器
+            try {
+                PlaceholderMappingManager.MappingResult mappingResult = mappingManager.executeMapping(chartId,
+                        echartsTemplate);
+
+                if (mappingResult.isSuccess()) {
+                    System.out.println("✅ 使用映射管理器成功执行数据回填");
+                    Object finalResult = mappingResult.getData().get("result");
+
+                    TransformationResult result = new TransformationResult(true, "第二阶段转换成功（使用映射管理器）", finalResult);
+                    result.setQueryResults((Map<String, Object>) mappingResult.getData().get("mappedData"));
+                    return result;
+                } else {
+                    System.out.println("⚠️ 映射管理器执行失败，回退到传统方式: " + mappingResult.getMessage());
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ 映射管理器异常，回退到传统方式: " + e.getMessage());
+            }
+
+            // 回退到传统的映射服务和注册表
             // 检查注册表中是否有激活的映射版本（暂时跳过新映射服务以避免循环依赖）
             var registry = chartRegistryService.get(chartId);
             if (registry.isPresent() && registry.get().getActiveMappingVersion() != null) {
@@ -204,7 +237,6 @@ public class TwoStageTransformationService {
             mappingService.initializeSampleMappings();
             System.out.println("✅ 映射关系初始化完成");
 
-            Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(echartsTemplate);
             System.out.println("需要替换的占位符: " + placeholders);
 
             // 验证映射关系
@@ -363,8 +395,6 @@ public class TwoStageTransformationService {
         System.out.println("📋 图表类型 " + chartId + " 使用JOLT规范: " + specFile);
         return specFile;
     }
-
-
 
     /**
      * 获取转换流程的详细信息

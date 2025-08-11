@@ -66,38 +66,32 @@ public class MappingRelationshipService {
      * 初始化字段提取器
      */
     private void initializeFieldExtractors() {
-        // 基础信息字段提取器
-        fieldExtractors.put("title", UniversalChartDataView::getTitle);
-        fieldExtractors.put("chart_type", UniversalChartDataView::getChartType);
-        fieldExtractors.put("theme", UniversalChartDataView::getTheme);
-        fieldExtractors.put("description", UniversalChartDataView::getDescription);
+        // 12个核心业务字段提取器
 
-        // 时间维度字段提取器
-        fieldExtractors.put("date", data -> data.getDate() != null ? data.getDate().toString() : null);
-        fieldExtractors.put("day_name", UniversalChartDataView::getDayName);
-        fieldExtractors.put("month", UniversalChartDataView::getMonth);
+        // 系统字段
+        fieldExtractors.put("id", data -> data.getId() != null ? data.getId().toString() : null);
+
+        // 时间维度字段
         fieldExtractors.put("year", UniversalChartDataView::getYear);
+        fieldExtractors.put("month", UniversalChartDataView::getMonth);
+        fieldExtractors.put("date", UniversalChartDataView::getDate);
 
-        // 分类数据字段提取器
+        // 业务分类字段
         fieldExtractors.put("category", UniversalChartDataView::getCategory);
-        fieldExtractors.put("channel_name", UniversalChartDataView::getChannelName);
-        fieldExtractors.put("product_name", UniversalChartDataView::getProductName);
+        fieldExtractors.put("channel", UniversalChartDataView::getChannel);
+        fieldExtractors.put("product", UniversalChartDataView::getProduct);
         fieldExtractors.put("region", UniversalChartDataView::getRegion);
+        fieldExtractors.put("salesman", UniversalChartDataView::getSalesman);
 
-        // 数值字段提取器
-        fieldExtractors.put("value", UniversalChartDataView::getValue);
-        fieldExtractors.put("conversion_count", UniversalChartDataView::getConversionCount);
-        fieldExtractors.put("click_count", UniversalChartDataView::getClickCount);
-        fieldExtractors.put("percentage", UniversalChartDataView::getPercentage);
-        fieldExtractors.put("amount", UniversalChartDataView::getAmount);
+        // 数值字段
+        fieldExtractors.put("amount", data -> data.getAmount() != null ? data.getAmount().toString() : null);
+        fieldExtractors.put("quantity", data -> data.getQuantity() != null ? data.getQuantity().toString() : null);
+        fieldExtractors.put("percentage",
+                data -> data.getPercentage() != null ? data.getPercentage().toString() : null);
 
-        // 配置字段提取器
-        fieldExtractors.put("color", UniversalChartDataView::getColor);
-        fieldExtractors.put("style", UniversalChartDataView::getStyle);
-        fieldExtractors.put("radius", UniversalChartDataView::getRadius);
-        fieldExtractors.put("stack_group", UniversalChartDataView::getStackGroup);
-        fieldExtractors.put("smooth_style", UniversalChartDataView::getSmoothStyle);
-        fieldExtractors.put("boundary_gap", UniversalChartDataView::getBoundaryGap);
+        // 系统时间字段
+        fieldExtractors.put("created_at", data -> data.getCreatedAt() != null ? data.getCreatedAt().toString() : null);
+        fieldExtractors.put("updated_at", data -> data.getUpdatedAt() != null ? data.getUpdatedAt().toString() : null);
     }
 
     /**

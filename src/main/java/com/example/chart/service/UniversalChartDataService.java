@@ -89,15 +89,8 @@ public class UniversalChartDataService {
         // 复制所有基础属性
         copyBasicProperties(adjustedData, data);
 
-        // 根据图表类型设置特定配置
-        if ("basic_line_chart".equals(chartType)) {
-            adjustedData.setSmoothStyle(false); // 基础折线图：直线连接
-        } else if ("smooth_line_chart".equals(chartType)) {
-            adjustedData.setSmoothStyle(true); // 平滑折线图：曲线连接
-        } else {
-            // 其他图表类型保持原有逻辑
-            adjustedData.setSmoothStyle(data.getSmoothStyle());
-        }
+        // 新的12字段模型不包含图表配置字段
+        // 数据已经通过 copyBasicProperties 复制完成
 
         return adjustedData;
     }
@@ -106,55 +99,21 @@ public class UniversalChartDataService {
      * 复制基础属性
      */
     private void copyBasicProperties(UniversalChartDataView target, UniversalChartDataView source) {
-        // 基础信息字段
+        // 复制12个核心业务字段
         target.setId(source.getId());
-        target.setTitle(source.getTitle());
-        target.setChartType(source.getChartType());
-        target.setTheme(source.getTheme());
-        target.setDescription(source.getDescription());
-        target.setDataSource(source.getDataSource());
-        target.setCreatedAt(source.getCreatedAt());
-        target.setUpdatedAt(source.getUpdatedAt());
-
-        // 时间维度字段
-        target.setDate(source.getDate());
-        target.setDayName(source.getDayName());
-        target.setMonth(source.getMonth());
-        target.setMonthName(source.getMonthName());
         target.setYear(source.getYear());
-        target.setQuarter(source.getQuarter());
-        target.setWeekNumber(source.getWeekNumber());
-        target.setTimestamp(source.getTimestamp());
-
-        // 分类数据字段
+        target.setMonth(source.getMonth());
+        target.setDate(source.getDate());
         target.setCategory(source.getCategory());
-        target.setSubCategory(source.getSubCategory());
-        target.setChannelName(source.getChannelName());
-        target.setChannelType(source.getChannelType());
-        target.setProductName(source.getProductName());
-        target.setProductType(source.getProductType());
+        target.setChannel(source.getChannel());
+        target.setProduct(source.getProduct());
         target.setRegion(source.getRegion());
-        target.setDepartment(source.getDepartment());
-
-        // 数值字段
-        target.setValue(source.getValue());
-        target.setConversionCount(source.getConversionCount());
-        target.setClickCount(source.getClickCount());
-        target.setViewCount(source.getViewCount());
-        target.setPercentage(source.getPercentage());
-        target.setRatio(source.getRatio());
         target.setAmount(source.getAmount());
         target.setQuantity(source.getQuantity());
-
-        // 配置字段
-        target.setColor(source.getColor());
-        target.setStyle(source.getStyle());
-        target.setRadius(source.getRadius());
-        target.setCenter(source.getCenter());
-        target.setStackGroup(source.getStackGroup());
-        target.setBoundaryGap(source.getBoundaryGap());
-        target.setExtraConfig(source.getExtraConfig());
-        // 注意：smoothStyle 在 adjustDataForChartType 中单独设置
+        target.setPercentage(source.getPercentage());
+        target.setSalesman(source.getSalesman());
+        target.setCreatedAt(source.getCreatedAt());
+        target.setUpdatedAt(source.getUpdatedAt());
     }
 
     /**
@@ -168,56 +127,37 @@ public class UniversalChartDataService {
             for (String channel : channels) {
                 UniversalChartDataView data = new UniversalChartDataView();
 
-                // 基础信息
+                // 设置12个核心业务字段
                 data.setId((long) (day * channels.size() + channels.indexOf(channel) + 1));
-                data.setTitle("营销数据分析");
-                data.setChartType("time_series");
-                data.setTheme("default");
-                data.setDescription("营销渠道转换数据");
-                data.setDataSource("marketing_system");
-                data.setCreatedAt(LocalDateTime.now());
-                data.setUpdatedAt(LocalDateTime.now());
 
                 // 时间维度
                 LocalDate currentDate = startDate.plusDays(day);
-                data.setDate(currentDate);
-                data.setDayName(dayNames.get(day));
-                data.setMonth(currentDate.getMonthValue());
-                data.setMonthName(monthNames.get(currentDate.getMonthValue() - 1));
-                data.setYear(currentDate.getYear());
-                data.setQuarter((currentDate.getMonthValue() - 1) / 3 + 1);
-                data.setWeekNumber(day + 1);
-                data.setTimestamp(System.currentTimeMillis() + day * 86400000L);
+                data.setYear(String.valueOf(currentDate.getYear()));
+                data.setMonth(String.format("%02d", currentDate.getMonthValue()));
+                data.setDate(currentDate.toString());
 
-                // 分类数据
-                data.setCategory("营销渠道");
-                data.setSubCategory("数字营销");
-                data.setChannelName(channel);
-                data.setChannelType(getChannelType(channel));
-                data.setProductName("产品" + (channels.indexOf(channel) + 1));
-                data.setProductType(productTypes.get(channels.indexOf(channel) % productTypes.size()));
-                data.setRegion(regions.get(channels.indexOf(channel) % regions.size()));
-                data.setDepartment("营销部");
+                // 业务分类
+                String[] categories = { "电子产品", "服装", "食品", "家居", "图书" };
+                String[] products = { "iPhone 15", "MacBook Pro", "iPad", "AirPods", "Apple Watch",
+                        "Nike运动鞋", "Adidas外套", "优衣库T恤", "星巴克咖啡", "可口可乐" };
+                String[] regions = { "华北", "华东", "华南", "华中", "西北", "西南", "东北" };
+                String[] salesmen = { "张三", "李四", "王五", "赵六", "钱七", "孙八", "周九", "吴十" };
+
+                data.setCategory(categories[channels.indexOf(channel) % categories.length]);
+                data.setChannel(channel);
+                data.setProduct(products[channels.indexOf(channel) % products.length]);
+                data.setRegion(regions[channels.indexOf(channel) % regions.length]);
+                data.setSalesman(salesmen[day % salesmen.length]);
 
                 // 数值数据
-                data.setValue(generateRandomValue(channel, day));
-                data.setConversionCount(generateConversionCount(channel, day));
-                data.setClickCount(data.getConversionCount() * (5 + random.nextInt(10)));
-                data.setViewCount(data.getClickCount() * (3 + random.nextInt(5)));
-                data.setPercentage(data.getConversionCount() / 100.0);
-                data.setRatio(data.getConversionCount() / 50.0);
-                data.setAmount((double) (data.getConversionCount() * (100 + random.nextInt(200))));
-                data.setQuantity(data.getConversionCount());
+                int conversionCount = generateConversionCount(channel, day);
+                data.setAmount((double) (conversionCount * (100 + random.nextInt(200))));
+                data.setQuantity(conversionCount);
+                data.setPercentage(conversionCount / 100.0);
 
-                // 配置字段
-                data.setColor(getChannelColor(channel));
-                data.setStyle("normal");
-                data.setRadius("50%");
-                data.setCenter("['50%', '50%']");
-                data.setStackGroup(isStackableChart(channel) ? "Total" : null);
-                data.setSmoothStyle(channel.contains("Search") || channel.contains("Email"));
-                data.setBoundaryGap(false);
-                data.setExtraConfig("{}");
+                // 系统字段
+                data.setCreatedAt(LocalDateTime.now());
+                data.setUpdatedAt(LocalDateTime.now());
 
                 dataList.add(data);
             }
@@ -236,31 +176,31 @@ public class UniversalChartDataService {
             String channel = channels.get(i);
             UniversalChartDataView data = new UniversalChartDataView();
 
-            // 基础信息
+            // 设置12个核心业务字段
             data.setId((long) (100 + i));
-            data.setTitle("渠道分布分析");
-            data.setChartType("category");
-            data.setTheme("default");
-            data.setDescription("各渠道占比数据");
-            data.setDataSource("analytics_system");
-            data.setCreatedAt(LocalDateTime.now());
-            data.setUpdatedAt(LocalDateTime.now());
 
-            // 分类数据
+            // 时间维度
+            LocalDate currentDate = LocalDate.now();
+            data.setYear(String.valueOf(currentDate.getYear()));
+            data.setMonth(String.format("%02d", currentDate.getMonthValue()));
+            data.setDate(currentDate.toString());
+
+            // 业务分类
             data.setCategory("渠道分布");
-            data.setChannelName(channel);
-            data.setChannelType(getChannelType(channel));
+            data.setChannel(channel);
+            data.setProduct("产品" + (i + 1));
+            data.setRegion("华东");
+            data.setSalesman("分析师" + (i + 1));
 
             // 数值数据
             int totalValue = 150 + random.nextInt(100);
-            data.setValue((double) totalValue);
-            data.setConversionCount(totalValue);
+            data.setAmount((double) totalValue * 100);
+            data.setQuantity(totalValue);
             data.setPercentage(totalValue / 500.0 * 100);
 
-            // 配置字段
-            data.setColor(getChannelColor(channel));
-            data.setRadius(i == 0 ? "60%" : "50%"); // 第一个扇区突出显示
-            data.setCenter("['50%', '50%']");
+            // 系统字段
+            data.setCreatedAt(LocalDateTime.now());
+            data.setUpdatedAt(LocalDateTime.now());
 
             dataList.add(data);
         }
@@ -278,25 +218,31 @@ public class UniversalChartDataService {
         for (int i = 0; i < 2; i++) { // 生成两组雷达数据
             UniversalChartDataView data = new UniversalChartDataView();
 
+            // 设置12个核心业务字段
             data.setId((long) (200 + i));
-            data.setTitle("能力雷达图");
-            data.setChartType("radar");
-            data.setTheme("default");
+
+            // 时间维度
+            LocalDate currentDate = LocalDate.now();
+            data.setYear(String.valueOf(currentDate.getYear()));
+            data.setMonth(String.format("%02d", currentDate.getMonthValue()));
+            data.setDate(currentDate.toString());
+
+            // 业务分类
             data.setCategory("能力评估");
-            data.setChannelName("团队" + (i + 1));
+            data.setChannel("团队" + (i + 1));
+            data.setProduct("评估报告" + (i + 1));
+            data.setRegion("总部");
+            data.setSalesman("评估师" + (i + 1));
 
-            // 为雷达图生成多维度数据
-            StringBuilder radarValues = new StringBuilder("[");
-            for (int j = 0; j < indicators.size(); j++) {
-                int value = 60 + random.nextInt(40);
-                radarValues.append(value);
-                if (j < indicators.size() - 1)
-                    radarValues.append(",");
-            }
-            radarValues.append("]");
+            // 数值数据
+            int avgValue = 80 + random.nextInt(20);
+            data.setAmount((double) avgValue * 10);
+            data.setQuantity(avgValue);
+            data.setPercentage((double) avgValue);
 
-            data.setExtraConfig(radarValues.toString());
-            data.setValue(80.0 + random.nextInt(20));
+            // 系统字段
+            data.setCreatedAt(LocalDateTime.now());
+            data.setUpdatedAt(LocalDateTime.now());
 
             dataList.add(data);
         }
@@ -313,17 +259,31 @@ public class UniversalChartDataService {
         for (int i = 0; i < 3; i++) {
             UniversalChartDataView data = new UniversalChartDataView();
 
+            // 设置12个核心业务字段
             data.setId((long) (300 + i));
-            data.setTitle("性能指标");
-            data.setChartType("gauge");
-            data.setTheme("default");
-            data.setCategory("性能监控");
-            data.setChannelName("指标" + (i + 1));
 
-            // 仪表盘数值
+            // 时间维度
+            LocalDate currentDate = LocalDate.now();
+            data.setYear(String.valueOf(currentDate.getYear()));
+            data.setMonth(String.format("%02d", currentDate.getMonthValue()));
+            data.setDate(currentDate.toString());
+
+            // 业务分类
+            data.setCategory("性能监控");
+            data.setChannel("指标" + (i + 1));
+            data.setProduct("监控系统" + (i + 1));
+            data.setRegion("数据中心");
+            data.setSalesman("系统管理员");
+
+            // 数值数据
             double gaugeValue = 60 + random.nextInt(40);
-            data.setValue(gaugeValue);
+            data.setAmount(gaugeValue * 100);
+            data.setQuantity((int) gaugeValue);
             data.setPercentage(gaugeValue);
+
+            // 系统字段
+            data.setCreatedAt(LocalDateTime.now());
+            data.setUpdatedAt(LocalDateTime.now());
 
             dataList.add(data);
         }
@@ -400,14 +360,16 @@ public class UniversalChartDataService {
     }
 
     private boolean isDataSuitableForChartType(UniversalChartDataView data, String chartType) {
+        // 新的12字段模型不包含chartType字段，所有数据都适用于所有图表类型
+        // 通过业务分类来判断数据适用性
         if (chartType.contains("line") || chartType.contains("bar")) {
-            return "time_series".equals(data.getChartType());
+            return data.getCategory() != null;
         } else if (chartType.contains("pie")) {
-            return "category".equals(data.getChartType());
+            return data.getCategory() != null;
         } else if (chartType.contains("radar")) {
-            return "radar".equals(data.getChartType());
+            return "能力评估".equals(data.getCategory());
         } else if (chartType.contains("gauge")) {
-            return "gauge".equals(data.getChartType());
+            return "性能监控".equals(data.getCategory());
         }
         return true;
     }

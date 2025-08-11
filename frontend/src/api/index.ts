@@ -225,6 +225,41 @@ export const dataSourceApi = {
     request.post("/datasource/query/preview", body).then(unwrap),
 };
 
+// 占位符映射管理API
+export const placeholderMappingApi = {
+  // 获取图表的占位符列表
+  getPlaceholders: (chartId: string) =>
+    request
+      .get(`/chart/placeholder-mapping/${chartId}/placeholders`)
+      .then(unwrap),
+
+  // 配置图表的占位符映射关系
+  configureMappings: (chartId: string, mappings: any) =>
+    request
+      .post(`/chart/placeholder-mapping/${chartId}/mappings`, { mappings })
+      .then(unwrap),
+
+  // 获取图表的映射配置
+  getMappings: (chartId: string) =>
+    request.get(`/chart/placeholder-mapping/${chartId}/mappings`).then(unwrap),
+
+  // 执行映射并预览结果
+  previewMapping: (chartId: string, requestBody?: any) =>
+    request
+      .post(`/chart/placeholder-mapping/${chartId}/preview`, requestBody || {})
+      .then(unwrap),
+
+  // 获取可用的数据库字段列表
+  getAvailableFields: () =>
+    request.get("/chart/placeholder-mapping/available-fields").then(unwrap),
+
+  // 删除图表的映射配置
+  deleteMappings: (chartId: string) =>
+    request
+      .delete(`/chart/placeholder-mapping/${chartId}/mappings`)
+      .then(unwrap),
+};
+
 // 图表配置API
 export const chartConfigApi = {
   // 获取图表类型映射配置
