@@ -285,13 +285,13 @@
               <div class="panel-header">
                 <h4 class="panel-title">
                   <span class="panel-icon">📊</span>
-                  官方完整实例
+                  转换结构及变量
                 </h4>
                 <a-tag color="blue" size="small">{{ selectedRecord.chartType }}</a-tag>
               </div>
               <div class="panel-content">
                 <div class="section">
-                  <h5>ECharts配置示例</h5>
+                  <h5>图表配置模板</h5>
                   <div class="code-container">
                     <pre class="code-block"><code>{{ getOfficialExample() }}</code></pre>
                   </div>
@@ -304,6 +304,14 @@
                     </li>
                   </ul>
                 </div>
+                <div class="section">
+                  <h5>变量说明</h5>
+                  <ul class="description-list">
+                    <li v-for="variable in getVariableDescription()" :key="variable">
+                      {{ variable }}
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -312,35 +320,30 @@
               <div class="panel-header">
                 <h4 class="panel-title">
                   <span class="panel-icon">🔄</span>
-                  转换结构说明
+                  转换数据及示例
                 </h4>
                 <a-tag color="orange" size="small">{{ selectedRecord.universalTemplate }}</a-tag>
               </div>
               <div class="panel-content">
                 <div class="section">
-                  <h5>JOLT转换涉及的数据结构</h5>
-
-                  <h6>转换前数据结构</h6>
+                  <h5>数据库视图数据</h5>
                   <div class="code-container">
-                    <pre class="code-block"><code>{{ getTransformationBefore() }}</code></pre>
+                    <pre class="code-block"><code>{{ getDatabaseViewData() }}</code></pre>
                   </div>
 
-                  <h6>转换后数据结构</h6>
+                  <h6 style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>ECharts数据示例</span>
+                    <a-button
+                      type="primary"
+                      size="small"
+                      @click="showChartPreview"
+                      :loading="previewLoading"
+                    >
+                      预览
+                    </a-button>
+                  </h6>
                   <div class="code-container">
                     <pre class="code-block"><code>{{ getTransformationAfter() }}</code></pre>
-                  </div>
-
-                  <h6>占位符变量列表</h6>
-                  <div class="placeholder-tags">
-                    <a-tag
-                      v-for="placeholder in getPlaceholderList()"
-                      :key="placeholder.name"
-                      :color="placeholder.color"
-                      size="small"
-                      style="margin: 2px;"
-                    >
-                      {{ placeholder.name }} - {{ placeholder.description }}
-                    </a-tag>
                   </div>
                 </div>
               </div>
@@ -349,13 +352,41 @@
         </div>
       </div>
     </div>
+
+    <!-- 图表预览弹框 -->
+    <a-modal
+      v-model:open="chartPreviewVisible"
+      title="图表预览"
+      width="800px"
+      :footer="null"
+      :mask-closable="true"
+      :keyboard="true"
+      :z-index="2000"
+      @cancel="handlePreviewClose"
+      centered
+    >
+      <div class="chart-preview-content">
+        <div v-if="previewLoading" class="preview-loading">
+          <a-spin tip="正在生成图表预览..." size="large" />
+        </div>
+        <div v-show="!previewLoading" class="preview-container">
+          <div ref="chartPreviewRef" class="chart-preview-canvas" style="height: 500px; width: 100%;"></div>
+          <div v-if="!chartPreviewData" class="no-preview">
+            <a-empty description="暂无预览数据" />
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { placeholderMappingApi } from '@/api'
+import ChartSelector from '@/components/ChartSelector.vue'
+import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import * as echarts from 'echarts'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 
 // 接口类型定义
 interface MappingRecord {
@@ -410,6 +441,12 @@ const availableFields = ref<any[]>([])
 // JOLT规范文件相关状态
 const joltSpecContent = ref<any>(null)
 const joltSpecLoading = ref(false)
+
+// 图表预览相关状态
+const chartPreviewVisible = ref(false)
+const chartPreviewData = ref<any>(null)
+const previewLoading = ref(false)
+const chartPreviewRef = ref<HTMLElement | null>(null)
 
 // 计算属性
 const mappedCount = computed(() => {
@@ -949,6 +986,125 @@ const getStructureDescription = () => {
   return descriptions[selectedRecord.value.chartType] || ['暂无描述']
 }
 
+// 获取变量说明
+const getVariableDescription = () => {
+  if (!selectedRecord.value) return []
+
+  const variables: Record<string, string[]> = {
+    '折线图': [
+      '${chart_title}: 图表标题文本，显示在图表顶部',
+      '${categories}: X轴分类数据，通常为时间或分类标签',
+      '${series_1_name}: 第一个数据系列的名称',
+      '${series_1_data}: 第一个数据系列的数值数组',
+      '${series_2_name}: 第二个数据系列的名称（如果有）',
+      '${series_2_data}: 第二个数据系列的数值数组（如果有）'
+    ],
+    '柱状图': [
+      '${chart_title}: 图表标题文本',
+      '${categories}: X轴分类标签',
+      '${series_1_name}: 数据系列名称',
+      '${series_1_data}: 柱状图数值数据',
+      '${series_2_name}: 第二个系列名称（如果有）',
+      '${series_2_data}: 第二个系列数据（如果有）'
+    ],
+    '饼图': [
+      '${chart_title}: 饼图标题',
+      '${pie_data}: 饼图数据，包含name和value字段的对象数组'
+    ],
+    '雷达图': [
+      '${chart_title}: 雷达图标题',
+      '${radar_indicators}: 雷达图指标配置，定义各个维度',
+      '${radar_data}: 雷达图数据，多维度数值数组'
+    ],
+    '仪表盘': [
+      '${chart_title}: 仪表盘标题',
+      '${gauge_value}: 仪表盘显示的数值'
+    ]
+  }
+
+  return variables[selectedRecord.value.chartType] || ['暂无变量说明']
+}
+
+// 获取数据库视图数据
+const getDatabaseViewData = () => {
+  if (!selectedRecord.value) return '{}'
+
+  const databaseData: Record<string, string> = {
+    '折线图': `{
+  "id": 1001,
+  "year": "2024",
+  "month": "03",
+  "date": "2024-03-15",
+  "category": "电子产品",
+  "channel": "线上",
+  "product": "iPhone 15",
+  "region": "华东",
+  "amount": 12500.50,
+  "quantity": 25,
+  "percentage": 35.8,
+  "salesman": "张三"
+}`,
+    '柱状图': `{
+  "id": 1002,
+  "year": "2024",
+  "month": "03",
+  "date": "2024-03-15",
+  "category": "服装",
+  "channel": "线下",
+  "product": "Nike运动鞋",
+  "region": "华北",
+  "amount": 8900.00,
+  "quantity": 45,
+  "percentage": 28.5,
+  "salesman": "李四"
+}`,
+    '饼图': `{
+  "id": 1003,
+  "year": "2024",
+  "month": "03",
+  "date": "2024-03-15",
+  "category": "食品",
+  "channel": "移动端",
+  "product": "星巴克咖啡",
+  "region": "华南",
+  "amount": 3200.75,
+  "quantity": 120,
+  "percentage": 15.2,
+  "salesman": "王五"
+}`,
+    '雷达图': `{
+  "id": 1004,
+  "year": "2024",
+  "month": "03",
+  "date": "2024-03-15",
+  "category": "家居",
+  "channel": "电话销售",
+  "product": "智能音箱",
+  "region": "华中",
+  "amount": 5600.25,
+  "quantity": 18,
+  "percentage": 42.3,
+  "salesman": "赵六"
+}`,
+    '仪表盘': `{
+  "id": 1005,
+  "year": "2024",
+  "month": "03",
+  "date": "2024-03-15",
+  "category": "图书",
+  "channel": "直销",
+  "product": "技术类图书",
+  "region": "西北",
+  "amount": 1850.00,
+  "quantity": 75,
+  "percentage": 68.9,
+  "salesman": "钱七"
+}`
+  }
+
+  return databaseData[selectedRecord.value.chartType] || databaseData['折线图']
+}
+
 const getTransformationBefore = () => {
   return `{
   "virtualDatabase": {
@@ -971,57 +1127,121 @@ const getTransformationBefore = () => {
 const getTransformationAfter = () => {
   if (!selectedRecord.value) return '请选择图表'
 
-  const transformations: Record<string, string> = {
-    '折线图': `{
-  "title": { "text": "销售数据" },
-  "xAxis": { "data": ["1月", "2月", "3月"] },
+  // 根据图表ID返回对应的ECharts数据示例
+  const chartExamples: Record<string, string> = {
+    // 折线图类型
+    'smooth_line_chart': `{
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": {
+    "type": "value"
+  },
   "series": [{
-    "name": "产品A",
-    "data": [12500.50, 13200.00, 11800.00]
+    "data": [100, 300, 150, 400, 200, 350, 250],
+    "type": "line",
+    "smooth": true,
+    "symbol": "circle",
+    "symbolSize": 6,
+    "lineStyle": {
+      "width": 2
+    }
   }]
 }`,
-    '柱状图': `{
-  "title": { "text": "销售数据" },
-  "xAxis": { "data": ["1月", "2月", "3月"] },
+    'basic_line_chart': `{
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": {
+    "type": "value"
+  },
   "series": [{
-    "name": "产品A",
-    "type": "bar",
-    "data": [12500.50, 13200.00, 11800.00]
+    "data": [100, 300, 150, 400, 200, 350, 250],
+    "type": "line",
+    "smooth": false,
+    "symbol": "circle",
+    "symbolSize": 6,
+    "lineStyle": {
+      "width": 2
+    }
   }]
 }`,
-    '饼图': `{
-  "title": { "text": "销售数据" },
+    // 柱状图类型
+    'basic_bar_chart': `{
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": {
+    "type": "value"
+  },
+  "series": [{
+    "data": [120, 200, 150, 80, 70, 110, 130],
+    "type": "bar"
+  }]
+}`,
+    // 饼图类型
+    'basic_pie_chart': `{
+  "title": {
+    "text": "访问来源",
+    "left": "center"
+  },
+  "tooltip": {
+    "trigger": "item"
+  },
   "series": [{
     "type": "pie",
+    "radius": "50%",
     "data": [
-      { "name": "产品A", "value": 12500.50 },
-      { "name": "产品B", "value": 13200.00 }
+      { "value": 1048, "name": "搜索引擎" },
+      { "value": 735, "name": "直接访问" },
+      { "value": 580, "name": "邮件营销" },
+      { "value": 484, "name": "联盟广告" },
+      { "value": 300, "name": "视频广告" }
     ]
   }]
 }`,
-    '雷达图': `{
-  "title": { "text": "销售数据" },
+    // 雷达图类型
+    'basic_radar_chart': `{
+  "title": {
+    "text": "基础雷达图"
+  },
   "radar": {
     "indicator": [
-      { "name": "销量", "max": 100 },
-      { "name": "利润", "max": 100 }
+      { "name": "销售", "max": 6500 },
+      { "name": "管理", "max": 16000 },
+      { "name": "信息技术", "max": 30000 },
+      { "name": "客服", "max": 38000 },
+      { "name": "研发", "max": 52000 },
+      { "name": "市场", "max": 25000 }
     ]
   },
   "series": [{
     "type": "radar",
-    "data": [{ "value": [80, 90] }]
+    "data": [{
+      "value": [4200, 3000, 20000, 35000, 50000, 18000],
+      "name": "预算分配"
+    }]
   }]
 }`,
-    '仪表盘': `{
-  "title": { "text": "完成率" },
+    // 仪表盘类型
+    'basic_gauge_chart': `{
   "series": [{
     "type": "gauge",
-    "data": [{ "value": 75, "name": "完成率" }]
+    "data": [{
+      "value": 75,
+      "name": "完成率"
+    }]
   }]
 }`
   }
 
-  return transformations[selectedRecord.value.chartType] || '暂无转换示例'
+  // 优先根据图表ID匹配，如果没有则根据图表类型匹配
+  return chartExamples[selectedRecord.value.chartId] ||
+         chartExamples[selectedRecord.value.chartType] ||
+         chartExamples['smooth_line_chart']
 }
 
 const getPlaceholderList = () => {
@@ -1056,6 +1276,311 @@ const getPlaceholderList = () => {
   }
 
   return placeholders[selectedRecord.value.chartType] || []
+}
+
+// 显示图表预览
+const showChartPreview = async () => {
+  console.log('🔍 [图表预览] 开始显示预览，当前记录:', selectedRecord.value)
+
+  // 获取示例数据
+  const sampleData = getSampleChartData()
+  console.log('📊 [图表预览] 获取到示例数据:', sampleData)
+
+  // 显示弹框（先显示弹框，再设置数据）
+  chartPreviewVisible.value = true
+  previewLoading.value = true
+
+  try {
+    // 等待弹框DOM渲染完成
+    await nextTick()
+
+    // 设置预览数据（在弹框显示后设置）
+    chartPreviewData.value = sampleData
+
+    // 再次等待数据更新后的DOM渲染
+    await nextTick()
+
+    // 使用更长的延迟和重试机制
+    const initChart = () => {
+      console.log('🔍 [图表预览] 检查DOM元素:', chartPreviewRef.value)
+      console.log('🔍 [图表预览] 检查数据:', chartPreviewData.value)
+      console.log('🔍 [图表预览] 弹框可见状态:', chartPreviewVisible.value)
+      console.log('🔍 [图表预览] 加载状态:', previewLoading.value)
+
+      if (chartPreviewRef.value && chartPreviewData.value) {
+        console.log('🎨 [图表预览] 开始初始化ECharts实例')
+        console.log('🎨 [图表预览] DOM元素尺寸:', {
+          width: chartPreviewRef.value.offsetWidth,
+          height: chartPreviewRef.value.offsetHeight
+        })
+
+        try {
+          // 创建ECharts实例
+          const chartInstance = echarts.init(chartPreviewRef.value)
+
+          // 设置图表配置
+          chartInstance.setOption(chartPreviewData.value)
+
+          // 重要：手动调用resize确保图表尺寸正确
+          setTimeout(() => {
+            chartInstance.resize()
+            console.log('🔄 [图表预览] 图表尺寸已重新计算')
+          }, 100)
+
+          // 监听窗口大小变化
+          const handleResize = () => {
+            chartInstance.resize()
+          }
+          window.addEventListener('resize', handleResize)
+
+          // 保存实例引用以便清理
+          ;(chartPreviewRef.value as any)._chartInstance = chartInstance
+          ;(chartPreviewRef.value as any)._resizeHandler = handleResize
+
+          console.log('✅ [图表预览] 预览生成成功:', selectedRecord.value?.chartType)
+          message.success('图表预览生成成功')
+          previewLoading.value = false
+        } catch (chartError) {
+          console.error('❌ [图表预览] ECharts初始化失败:', chartError)
+          message.error('图表初始化失败')
+          previewLoading.value = false
+        }
+      } else {
+        console.error('❌ [图表预览] DOM元素或数据未准备好，重试中...')
+        console.log('🔍 [图表预览] 重试详情:', {
+          hasRef: !!chartPreviewRef.value,
+          hasData: !!chartPreviewData.value,
+          modalVisible: chartPreviewVisible.value,
+          loading: previewLoading.value
+        })
+
+        // 重试机制：最多重试5次，延长间隔
+        const retryCount = (window as any).chartRetryCount || 0
+        if (retryCount < 5) {
+          (window as any).chartRetryCount = retryCount + 1
+          setTimeout(initChart, 500) // 延长重试间隔到500ms
+        } else {
+          console.error('❌ [图表预览] 重试次数已达上限')
+          message.error('预览容器未准备好，请重试')
+          previewLoading.value = false
+          delete (window as any).chartRetryCount
+        }
+      }
+    }
+
+    // 重置重试计数器
+    delete (window as any).chartRetryCount
+
+    // 延迟初始化，给更多时间
+    setTimeout(initChart, 500)
+
+  } catch (error) {
+    console.error('❌ [图表预览] 预览生成失败:', error)
+    message.error('图表预览生成失败')
+    previewLoading.value = false
+  }
+}
+
+// 处理预览弹框关闭
+const handlePreviewClose = () => {
+  console.log('🔒 [图表预览] 弹框关闭，清理资源')
+
+  // 清理ECharts实例和事件监听器
+  if (chartPreviewRef.value) {
+    const chartInstance = (chartPreviewRef.value as any)._chartInstance
+    const resizeHandler = (chartPreviewRef.value as any)._resizeHandler
+
+    if (chartInstance) {
+      chartInstance.dispose()
+      console.log('🗑️ [图表预览] ECharts实例已销毁')
+    }
+
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler)
+      console.log('🗑️ [图表预览] 窗口resize监听器已移除')
+    }
+
+    // 清理引用
+    delete (chartPreviewRef.value as any)._chartInstance
+    delete (chartPreviewRef.value as any)._resizeHandler
+  }
+
+  // 重置状态
+  chartPreviewData.value = null
+  previewLoading.value = false
+
+  console.log('✅ [图表预览] 资源清理完成')
+}
+
+// 获取示例图表数据
+const getSampleChartData = () => {
+  if (!selectedRecord.value) return {}
+
+  const sampleConfigs: Record<string, any> = {
+    // 根据图表ID匹配对应的ECharts配置
+    'smooth_line_chart': {
+      xAxis: {
+        type: 'category',
+        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [{
+        data: [100, 300, 150, 400, 200, 350, 250],
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: {
+          width: 2
+        }
+      }]
+    },
+    'basic_line_chart': {
+      xAxis: {
+        type: 'category',
+        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [{
+        data: [100, 300, 150, 400, 200, 350, 250],
+        type: 'line',
+        smooth: false,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: {
+          width: 2
+        }
+      }]
+    },
+    // 按图表类型的回退配置
+    '折线图': {
+      title: {
+        text: '月度销售趋势'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      legend: {
+        data: ['产品A销量', '产品B销量']
+      },
+      xAxis: {
+        type: 'category',
+        data: ['1月', '2月', '3月', '4月', '5月', '6月']
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [
+        {
+          name: '产品A销量',
+          type: 'line',
+          data: [120, 200, 150, 80, 70, 110]
+        },
+        {
+          name: '产品B销量',
+          type: 'line',
+          data: [80, 160, 120, 60, 50, 90]
+        }
+      ]
+    },
+    '柱状图': {
+      title: {
+        text: '季度业绩对比'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      legend: {
+        data: ['实际业绩', '目标业绩']
+      },
+      xAxis: {
+        type: 'category',
+        data: ['Q1', 'Q2', 'Q3', 'Q4']
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: [
+        {
+          name: '实际业绩',
+          type: 'bar',
+          data: [850, 920, 780, 1100]
+        },
+        {
+          name: '目标业绩',
+          type: 'bar',
+          data: [800, 900, 750, 1000]
+        }
+      ]
+    },
+    '饼图': {
+      title: {
+        text: '市场份额分布'
+      },
+      tooltip: {
+        trigger: 'item'
+      },
+      series: [{
+        type: 'pie',
+        radius: '50%',
+        data: [
+          { name: '产品A', value: 35 },
+          { name: '产品B', value: 25 },
+          { name: '产品C', value: 20 },
+          { name: '产品D', value: 15 },
+          { name: '其他', value: 5 }
+        ]
+      }]
+    },
+    '雷达图': {
+      title: {
+        text: '能力评估雷达图'
+      },
+      radar: {
+        indicator: [
+          { name: '技术能力', max: 100 },
+          { name: '沟通能力', max: 100 },
+          { name: '管理能力', max: 100 },
+          { name: '创新能力', max: 100 },
+          { name: '执行能力', max: 100 }
+        ]
+      },
+      series: [{
+        type: 'radar',
+        data: [
+          {
+            name: '员工A',
+            value: [85, 75, 60, 90, 80]
+          },
+          {
+            name: '员工B',
+            value: [70, 85, 80, 75, 85]
+          }
+        ]
+      }]
+    },
+    '仪表盘': {
+      title: {
+        text: '项目完成度'
+      },
+      series: [{
+        type: 'gauge',
+        data: [{
+          value: 75,
+          name: '完成率'
+        }]
+      }]
+    }
+  }
+
+  // 优先根据图表ID匹配，如果没有则根据图表类型匹配
+  return sampleConfigs[selectedRecord.value.chartId] ||
+         sampleConfigs[selectedRecord.value.chartType] ||
+         sampleConfigs['smooth_line_chart']
 }
 
 
@@ -1652,6 +2177,38 @@ body.dragging * {
 .no-jolt-spec {
   padding: 20px;
   text-align: center;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+}
+
+/* 图表预览弹框样式 */
+.chart-preview-content {
+  padding: 16px 0;
+}
+
+.preview-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+}
+
+.preview-container {
+  width: 100%;
+}
+
+.chart-preview-canvas {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: white;
+}
+
+.no-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
   background: #fafafa;
   border: 1px dashed #d9d9d9;
   border-radius: 6px;
