@@ -1,12 +1,13 @@
 package com.example.chart.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,9 @@ public class PlaceholderMappingManager {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 映射关系存储：chartId -> (placeholder -> fieldMapping)
-    private final Map<String, Map<String, FieldMapping>> mappingStore = new ConcurrentHashMap<>();
+    // 使用LinkedHashMap保持插入顺序，确保实例ID按预期分配
+    private final Map<String, Map<String, FieldMapping>> mappingStore = Collections
+            .synchronizedMap(new LinkedHashMap<>());
 
     /**
      * 初始化预置映射关系
@@ -48,27 +51,24 @@ public class PlaceholderMappingManager {
     public void initializePresetMappings() {
         System.out.println("🔧 [映射管理] 开始初始化预置映射关系...");
 
-        // 初始化折线图的映射关系
+        // 按照实例ID顺序初始化，确保实例名称对应正确
+        // 实例ID=1：折线图 - "张三和李四2025年销售业绩排行"
         initializeBasicLineChartMappings();
+
+        // 实例ID=2：饼图 - "2025年销售产品占比"
+        initializeBasicPieChartMappings();
+
+        // 实例ID=3：柱状图 - "2024年销售渠道分布"
+        initializeBasicBarChartMappings();
+
+        // 其他图表类型
         initializeSmoothLineChartMappings();
         initializeStackedLineChartMappings();
-
-        // 初始化柱状图的映射关系
-        initializeBasicBarChartMappings();
         initializeStackedBarChartMappings();
-
-        // 初始化饼图的映射关系
-        initializeBasicPieChartMappings();
         initializeRingChartMappings();
         initializeNestedPieChartMappings();
-
-        // 初始化雷达图的映射关系
         initializeBasicRadarChartMappings();
-
-        // 初始化仪表盘的映射关系
         initializeBasicGaugeChartMappings();
-
-        // 初始化更多图表类型以达到12条数据
         initializeAreaChartMappings();
         initializeScatterChartMappings();
         initializeHeatmapChartMappings();
@@ -692,9 +692,9 @@ public class PlaceholderMappingManager {
     private String generateInstanceName(String chartType, String chartName) {
         // 预定义的前三条数据样例
         String[] predefinedNames = {
-                "2025年销售业绩排行",
-                "2024年销售渠道分布",
-                "2025年销售产品占比"
+                "张三和李四2025年销售业绩排行", // 实例ID=1 (折线图)
+                "2025年销售产品占比", // 实例ID=2 (饼图)
+                "2024年销售渠道分布" // 实例ID=3 (柱状图)
         };
 
         // 根据图表类型确定使用哪个预定义名称
@@ -727,11 +727,11 @@ public class PlaceholderMappingManager {
     private int getInstanceIndex(String chartType) {
         switch (chartType) {
             case "折线图":
-                return 0; // 2025年销售业绩排行
-            case "柱状图":
-                return 1; // 2024年销售渠道分布
+                return 0; // 张三和李四2025年销售业绩排行 (实例ID=1)
             case "饼图":
-                return 2; // 2025年销售产品占比
+                return 1; // 2025年销售产品占比 (实例ID=2)
+            case "柱状图":
+                return 2; // 2024年销售渠道分布 (实例ID=3)
             default:
                 return 3; // 超出预定义范围
         }
