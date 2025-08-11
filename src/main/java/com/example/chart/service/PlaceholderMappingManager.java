@@ -33,6 +33,9 @@ public class PlaceholderMappingManager {
     @Autowired
     private PlaceholderManager placeholderManager;
 
+    @Autowired
+    private TemplateService templateService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 映射关系存储：chartId -> (placeholder -> fieldMapping)
@@ -870,23 +873,41 @@ public class PlaceholderMappingManager {
      * 根据图表ID获取占位符数量
      */
     private int getPlaceholderCountForChart(String chartId) {
-        // 根据图表类型返回预期的占位符数量
+        try {
+            // 从实际的模板中提取占位符数量
+            Map<String, Object> template = templateService.getCategoryTemplateByChartId(chartId);
+            Set<String> placeholders = placeholderManager.extractPlaceholdersFromJson(template);
+            int actualCount = placeholders.size();
+
+            System.out.println("📊 [占位符计数] 图表 " + chartId + " 实际占位符数量: " + actualCount);
+            System.out.println("📊 [占位符计数] 占位符列表: " + placeholders);
+
+            return actualCount;
+        } catch (Exception e) {
+            System.err.println("❌ [占位符计数] 获取图表 " + chartId + " 占位符数量失败: " + e.getMessage());
+            // 回退到默认值
+            return getDefaultPlaceholderCount(chartId);
+        }
+    }
+
+    /**
+     * 获取默认占位符数量（回退方案）
+     */
+    private int getDefaultPlaceholderCount(String chartId) {
         Map<String, Integer> placeholderCounts = new HashMap<>();
-        placeholderCounts.put("basic_line_chart", 4); // ${chart_title}, ${categories}, ${series_1_data},
-                                                      // ${series_1_name}
+        placeholderCounts.put("basic_line_chart", 4);
         placeholderCounts.put("smooth_line_chart", 4);
-        placeholderCounts.put("stacked_line_chart", 5); // 多一个${series_2_data}
+        placeholderCounts.put("stacked_line_chart", 5);
         placeholderCounts.put("basic_bar_chart", 4);
         placeholderCounts.put("stacked_bar_chart", 5);
-        placeholderCounts.put("basic_pie_chart", 2); // ${chart_title}, ${pie_data}
-        placeholderCounts.put("ring_chart", 2); // ${chart_title}, ${ring_data}
-        placeholderCounts.put("nested_pie_chart", 3); // ${chart_title}, ${outer_data}, ${inner_data}
-        placeholderCounts.put("basic_radar_chart", 3); // ${chart_title}, ${radar_indicators}, ${radar_data}
+        placeholderCounts.put("basic_pie_chart", 2);
+        placeholderCounts.put("ring_chart", 2);
+        placeholderCounts.put("nested_pie_chart", 3);
+        placeholderCounts.put("basic_radar_chart", 3);
         placeholderCounts.put("basic_gauge_chart", 3);
-        placeholderCounts.put("basic_area_chart", 4); // ${chart_title}, ${categories}, ${series_1_data},
-                                                      // ${series_1_name}
-        placeholderCounts.put("basic_scatter_chart", 3); // ${chart_title}, ${x_data}, ${y_data}
-        placeholderCounts.put("basic_heatmap_chart", 4); // ${chart_title}, ${x_axis_data}, ${y_axis_data}, ${heat_data}
+        placeholderCounts.put("basic_area_chart", 4);
+        placeholderCounts.put("basic_scatter_chart", 3);
+        placeholderCounts.put("basic_heatmap_chart", 4);
 
         return placeholderCounts.getOrDefault(chartId, 3);
     }

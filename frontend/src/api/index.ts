@@ -253,6 +253,32 @@ export const placeholderMappingApi = {
       .delete(`/chart/placeholder-mapping/${chartId}/mappings`)
       .then(unwrap),
 
+  // 根据图表ID获取对应的JOLT规范文件内容
+  getJoltSpecContent: async (chartId: string) => {
+    // 首先获取图表ID对应的JOLT规范文件名
+    const joltSpecFileMap: Record<string, string> = {
+      basic_line_chart: "line-chart-placeholder.json",
+      smooth_line_chart: "line-chart-placeholder.json",
+      stacked_line_chart: "line-chart-stacked.json",
+      basic_bar_chart: "bar-chart-placeholder.json",
+      stacked_bar_chart: "bar-chart-placeholder.json",
+      basic_pie_chart: "pie-chart-placeholder.json",
+      doughnut_chart: "pie-chart-placeholder.json",
+      pie_chart: "pie-chart-placeholder.json",
+      basic_radar_chart: "radar-chart-placeholder.json",
+      filled_radar_chart: "radar-chart-placeholder.json",
+      basic_gauge_chart: "gauge-chart-placeholder.json",
+      progress_gauge_chart: "gauge-chart-placeholder.json",
+      grade_gauge_chart: "gauge-chart-placeholder.json",
+    };
+
+    const filename = joltSpecFileMap[chartId] || "line-chart-placeholder.json";
+    const response = await request
+      .get(`/file-template-tests/jolt-specs/${filename}`)
+      .then(unwrap);
+    return response.content;
+  },
+
   // 获取所有映射配置列表
   getAllMappings: () =>
     request.get("/chart/placeholder-mapping/list").then(unwrap),
@@ -314,8 +340,7 @@ export const templateApi = {
     request.get(`/templates/${chartId}`).then(unwrap),
 
   // 创建新模板
-  create: (template: any) =>
-    request.post("/templates", template).then(unwrap),
+  create: (template: any) => request.post("/templates", template).then(unwrap),
 
   // 更新模板
   update: (chartId: string, template: any) =>

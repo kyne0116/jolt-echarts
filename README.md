@@ -953,3 +953,105 @@ curl -X POST "http://localhost:8080/api/chart/two-stage/stage2/stacked_line_char
        "series": [{"name": "${series_1_name}", "data": "${series_1_data}"}]
      }'
 ```
+
+## 📁 文件模板管理系统
+
+### 🎯 **系统概述**
+
+文件模板管理系统提供基于文件的模板和JOLT规范管理功能，用户可以通过上传、下载、关联等方式管理ECharts示例文件和JOLT转换规范。
+
+### 🏗️ **核心功能**
+
+#### **1. 模板文件管理**
+- 上传ECharts示例JSON文件到指定分类目录
+- 下载现有模板文件
+- 删除不需要的模板文件
+- 查看模板文件列表和详细信息
+
+#### **2. JOLT规范管理**
+- 上传JOLT转换规范JSON文件
+- 下载现有JOLT规范文件
+- 删除不需要的JOLT规范文件
+- 查看JOLT规范文件列表和详细信息
+
+#### **3. 关联关系管理**
+- 建立模板文件与JOLT规范的关联关系
+- 查看模板关联的JOLT规范
+- 删除模板与JOLT规范的关联关系
+- 查看未关联的模板和JOLT规范
+
+#### **4. 模板测试功能**
+- 查看模板文件和JOLT规范文件的内容
+- 测试模板与JOLT规范的转换过程
+- 提取模板中的占位符
+
+### 📡 **API 接口列表**
+
+#### **模板文件管理接口**
+
+- `GET /api/file-templates/templates` - 获取模板文件列表
+- `POST /api/file-templates/templates/upload` - 上传模板文件
+- `GET /api/file-templates/templates/download/{category}/{filename}` - 下载模板文件
+- `DELETE /api/file-templates/templates/{category}/{filename}` - 删除模板文件
+- `GET /api/file-templates/categories` - 获取支持的图表分类列表
+
+#### **JOLT规范管理接口**
+
+- `GET /api/file-templates/jolt-specs` - 获取JOLT规范文件列表
+- `POST /api/file-templates/jolt-specs/upload` - 上传JOLT规范文件
+- `GET /api/file-templates/jolt-specs/download/{filename}` - 下载JOLT规范文件
+- `DELETE /api/file-templates/jolt-specs/{filename}` - 删除JOLT规范文件
+
+#### **关联关系管理接口**
+
+- `GET /api/file-template-relations` - 获取所有关联关系
+- `POST /api/file-template-relations/{templatePath}/jolt-spec/{joltSpec}` - 设置模板的JOLT规范
+- `GET /api/file-template-relations/{templatePath}/jolt-spec` - 获取模板关联的JOLT规范
+- `DELETE /api/file-template-relations/{templatePath}/jolt-spec` - 删除模板的JOLT规范关联
+- `GET /api/file-template-relations/unassociated-templates` - 获取未关联JOLT规范的模板列表
+- `GET /api/file-template-relations/unassociated-jolt-specs` - 获取未被任何模板关联的JOLT规范列表
+
+#### **模板测试接口**
+
+- `GET /api/file-template-tests/templates/{category}/{filename}` - 获取模板文件内容
+- `GET /api/file-template-tests/jolt-specs/{filename}` - 获取JOLT规范文件内容
+- `POST /api/file-template-tests/test-conversion` - 测试模板与JOLT规范的转换
+- `POST /api/file-template-tests/extract-placeholders` - 提取模板中的占位符
+
+### 📋 **使用示例**
+
+#### 上传模板文件
+
+```bash
+curl -X POST "http://localhost:8080/api/file-templates/templates/upload" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@基础折线图.json" \
+     -F "category=折线图" \
+     -F "description=基础折线图示例"
+```
+
+#### 上传JOLT规范文件
+
+```bash
+curl -X POST "http://localhost:8080/api/file-templates/jolt-specs/upload" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@line-chart-placeholder.json" \
+     -F "description=折线图JOLT转换规范"
+```
+
+#### 设置模板与JOLT规范的关联
+
+```bash
+curl -X POST "http://localhost:8080/api/file-template-relations/折线图/基础折线图.json/jolt-spec/line-chart-placeholder.json"
+```
+
+#### 测试模板转换
+
+```bash
+curl -X POST "http://localhost:8080/api/file-template-tests/test-conversion" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "templatePath": "折线图/基础折线图.json",
+       "joltSpec": "line-chart-placeholder.json"
+     }'
+```

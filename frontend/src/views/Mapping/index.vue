@@ -1,180 +1,138 @@
 <template>
-  <div class="mapping-container">
-    <!-- 上方：图表选择 -->
-    <div class="top-section">
-      <ChartSelector
-        @chart-selected="onChartSelected"
-        @chart-cleared="onChartCleared"
-        ref="chartSelectorRef"
-      />
+  <div class="mapping-page">
+    <!-- 图表选择区域 -->
+    <div class="chart-selection-section">
+      <a-card class="selection-card" size="small">
+        <template #title>
+          <span class="section-title">📊 图表选择</span>
+        </template>
+        <ChartSelector
+          ref="chartSelectorRef"
+          @chart-selected="onChartSelected"
+          class="chart-selector"
+        />
+      </a-card>
     </div>
 
-    <!-- 下方：映射配置列表 -->
-    <div class="bottom-section">
-      <a-card title="映射配置列表" class="mapping-list-card">
+    <!-- 映射配置列表区域 -->
+    <div class="mapping-list-section">
+      <a-card class="list-card" size="small">
+        <template #title>
+          <span class="section-title">🔗 映射配置列表</span>
+        </template>
         <template #extra>
           <a-space>
             <a-button
+              type="primary"
               size="small"
-              @click="refreshMappingList"
-              :loading="listLoading"
+              @click="refreshList"
+              :loading="loading"
             >
               <ReloadOutlined />
               刷新
             </a-button>
-            <a-button
-              size="small"
-              @click="showBatchDeleteModal"
-              :disabled="selectedMappings.length === 0"
-              danger
-            >
-              <DeleteOutlined />
-              批量删除
-            </a-button>
           </a-space>
         </template>
 
-        <div v-if="listLoading" class="loading-container">
-          <a-spin tip="加载配置列表中..." />
-        </div>
-
-        <div v-else-if="mappingList.length === 0" class="empty-container">
-          <a-empty description="暂无映射配置" />
-        </div>
-
-        <div v-else class="mapping-list-content">
-          <a-table
-            :data-source="mappingList"
-            :columns="listColumns"
-            :pagination="paginationConfig"
-            :row-selection="{ selectedRowKeys: selectedMappings, onChange: onSelectionChange }"
-            size="small"
-            row-key="chartId"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'chartType'">
-                <a-tag color="blue">{{ record.chartType }}</a-tag>
-              </template>
-
-              <template v-if="column.key === 'chartName'">
-                <a-tag color="purple">{{ record.chartName }}</a-tag>
-              </template>
-
-              <template v-if="column.key === 'universalTemplate'">
-                <a-tag color="orange">{{ record.universalTemplate }}</a-tag>
-              </template>
-
-              <template v-if="column.key === 'joltSpecFile'">
-                <a-tag color="cyan">{{ record.joltSpecFile }}</a-tag>
-              </template>
-
-              <template v-if="column.key === 'placeholderCount'">
-                <a-badge
-                  :count="record.placeholderCount || record.mappingCount || 0"
-                  :number-style="{ backgroundColor: '#52c41a' }"
-                />
-              </template>
-
-              <template v-if="column.key === 'actions'">
-                <a-space size="small">
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="viewMappingDetail(record)"
-                  >
-                    查看
-                  </a-button>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="configureMapping(record)"
-                  >
-                    配置映射
-                  </a-button>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="showConfigGuide(record)"
-                  >
-                    配置指南
-                  </a-button>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="deleteMapping(record)"
-                    danger
-                  >
-                    删除
-                  </a-button>
-                </a-space>
-              </template>
+        <a-table
+          :dataSource="mappingList"
+          :columns="tableColumns"
+          :pagination="paginationConfig"
+          :loading="loading"
+          size="small"
+          row-key="chartId"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'actions'">
+              <a-space size="small">
+                <a-button type="link" size="small" @click="viewMapping(record)">
+                  查看
+                </a-button>
+                <a-button type="link" size="small" @click="configureMapping(record)">
+                  配置映射
+                </a-button>
+                <a-button type="link" size="small" @click="showConfigGuide(record)">
+                  配置指南
+                </a-button>
+                <a-button type="link" size="small" danger @click="deleteMapping(record)">
+                  删除
+                </a-button>
+              </a-space>
             </template>
-          </a-table>
-        </div>
+          </template>
+        </a-table>
       </a-card>
     </div>
 
-    <!-- 映射配置模态框 -->
-    <a-modal
-      v-model:open="mappingModalVisible"
-      width="1000px"
-      :footer="null"
-      :mask="false"
-      :keyboard="false"
-      :destroy-on-close="false"
-      :closable="true"
-      :wrap-class-name="'mapping-modal-wrap'"
-      :body-style="{ padding: '16px', maxHeight: '70vh', overflow: 'hidden' }"
-      class="mapping-config-modal"
-      :style="{ top: mappingModalPosition.top + 'px', left: mappingModalPosition.left + 'px' }"
+    <!-- 配置映射独立浮动窗口 -->
+    <div
+      v-if="mappingModalVisible"
+      class="mapping-floating-window"
+      :style="mappingWindowStyle"
       @click="bringToFront('mapping')"
     >
-      <template #title>
-        <div
-          class="draggable-title"
-          @mousedown="startDrag($event, 'mapping')"
-        >
-          配置映射 - {{ selectedChart.chartId }}
+      <!-- 窗口标题栏 -->
+      <div
+        class="window-header"
+        @mousedown="startDrag($event, 'mapping')"
+      >
+        <div class="window-title">
+          <span class="title-icon">🔧</span>
+          <span class="title-text">{{ mappingModalTitle }}</span>
         </div>
-      </template>
+        <div class="window-controls">
+          <button
+            class="control-btn close-btn"
+            @click="mappingModalVisible = false"
+            title="关闭"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
 
-      <div v-if="selectedChart.chartId">
-        <!-- 占位符映射配置 -->
-        <div class="modal-mapping-content">
-          <div v-if="placeholdersLoading" class="loading-container">
-            <a-spin tip="加载占位符中..." />
-          </div>
+      <!-- 窗口内容 -->
+      <div class="window-content">
+        <div class="modal-content">
+          <div v-if="selectedRecord">
+          <!-- 图表信息展示 -->
+          <a-descriptions title="图表信息" :column="2" size="small" bordered>
+            <a-descriptions-item label="图表ID">{{ selectedRecord.chartId }}</a-descriptions-item>
+            <a-descriptions-item label="图表类型">{{ selectedRecord.chartType }}</a-descriptions-item>
+            <a-descriptions-item label="图表名称">{{ selectedRecord.chartName }}</a-descriptions-item>
+            <a-descriptions-item label="通用模板">{{ selectedRecord.universalTemplate }}</a-descriptions-item>
+          </a-descriptions>
 
-          <div v-else-if="placeholders.length === 0" class="empty-container">
-            <a-empty description="该图表暂无占位符" />
-          </div>
-
-          <div v-else class="placeholders-mapping">
-            <div class="mapping-header">
-              <h4>占位符映射配置 ({{ placeholders.length }} 个)</h4>
-              <a-progress
-                :percent="mappingProgress"
-                :stroke-color="mappingProgress === 100 ? '#52c41a' : '#1890ff'"
-                size="small"
-              />
+          <!-- JOLT规范文件内容展示 -->
+          <div class="jolt-spec-section" style="margin-top: 16px;">
+            <h4>JOLT规范文件内容</h4>
+            <div v-if="joltSpecLoading" class="loading-container">
+              <a-spin tip="加载JOLT规范文件中..." />
             </div>
+            <div v-else-if="joltSpecContent" class="jolt-spec-content">
+              <div class="code-container">
+                <pre class="code-block json-highlight"><code>{{ JSON.stringify(joltSpecContent, null, 2) }}</code></pre>
+              </div>
+            </div>
+            <div v-else class="no-jolt-spec">
+              <a-empty description="未找到对应的JOLT规范文件" />
+            </div>
+          </div>
 
-            <div class="mapping-list-container">
-              <!-- 表头 -->
-              <div class="mapping-table-header">
+          <!-- 占位符映射配置 -->
+          <div class="mapping-config-section">
+            <h4>占位符映射配置</h4>
+            <div v-if="placeholdersLoading" class="loading-container">
+              <a-spin tip="加载占位符中..." />
+            </div>
+            <div v-else>
+              <div class="mapping-header">
                 <a-row :gutter="12">
-                  <a-col :span="6">
-                    <strong>占位符</strong>
-                  </a-col>
-                  <a-col :span="8">
-                    <strong>数据库字段</strong>
-                  </a-col>
-                  <a-col :span="5">
-                    <strong>数据类型</strong>
-                  </a-col>
-                  <a-col :span="5">
-                    <strong>聚合方式</strong>
-                  </a-col>
+                  <a-col :span="6"><strong>占位符</strong></a-col>
+                  <a-col :span="6"><strong>映射字段</strong></a-col>
+                  <a-col :span="5"><strong>数据类型</strong></a-col>
+                  <a-col :span="5"><strong>聚合方式</strong></a-col>
+                  <a-col :span="2"><strong>操作</strong></a-col>
                 </a-row>
               </div>
 
@@ -190,44 +148,33 @@
                         <a-tag :color="isMapped(placeholder) ? 'green' : 'orange'">
                           {{ placeholder }}
                         </a-tag>
-                        <span class="mapping-status">
-                          <a-icon
-                            :component="isMapped(placeholder) ? CheckCircleOutlined : ExclamationCircleOutlined"
-                            :style="{ color: isMapped(placeholder) ? '#52c41a' : '#faad14' }"
-                          />
-                        </span>
                       </div>
                     </a-col>
-                    <a-col :span="8">
+                    <a-col :span="6">
                       <a-select
-                        :value="mappingConfigs[placeholder]?.fieldName"
+                        :value="getMappingFieldName(placeholder)"
+                        @update:value="updateMappingFieldName(placeholder, $event)"
                         placeholder="选择字段"
                         size="small"
-                        style="width: 100%; min-width: 200px;"
-                        @change="(value) => updateMappingField(placeholder, 'fieldName', value)"
+                        style="width: 100%"
+                        @change="onMappingChange(placeholder)"
                       >
-                        <a-select-opt-group
-                          v-for="group in groupedFields"
-                          :key="group.name"
-                          :label="group.name"
+                        <a-select-option
+                          v-for="field in availableFields"
+                          :key="field.name"
+                          :value="field.name"
                         >
-                          <a-select-option
-                            v-for="field in group.fields"
-                            :key="field.name"
-                            :value="field.name"
-                          >
-                            {{ field.label }} ({{ field.name }})
-                          </a-select-option>
-                        </a-select-opt-group>
+                          {{ field.displayName }}
+                        </a-select-option>
                       </a-select>
                     </a-col>
                     <a-col :span="5">
                       <a-select
-                        :value="mappingConfigs[placeholder]?.dataType"
+                        :value="getMappingDataType(placeholder)"
+                        @update:value="updateMappingDataType(placeholder, $event)"
                         placeholder="数据类型"
                         size="small"
-                        style="width: 100%;"
-                        @change="(value) => updateMappingField(placeholder, 'dataType', value)"
+                        style="width: 100%"
                       >
                         <a-select-option value="string">字符串</a-select-option>
                         <a-select-option value="number">数字</a-select-option>
@@ -237,13 +184,13 @@
                     </a-col>
                     <a-col :span="5">
                       <a-select
-                        :value="mappingConfigs[placeholder]?.aggregationType"
+                        :value="getMappingAggregationType(placeholder)"
+                        @update:value="updateMappingAggregationType(placeholder, $event)"
                         placeholder="聚合方式"
                         size="small"
-                        style="width: 100%;"
-                        @change="(value) => updateMappingField(placeholder, 'aggregationType', value)"
+                        style="width: 100%"
                       >
-                        <a-select-option value="none">无聚合</a-select-option>
+                        <a-select-option value="none">无</a-select-option>
                         <a-select-option value="sum">求和</a-select-option>
                         <a-select-option value="avg">平均值</a-select-option>
                         <a-select-option value="count">计数</a-select-option>
@@ -252,174 +199,144 @@
                         <a-select-option value="list">列表</a-select-option>
                       </a-select>
                     </a-col>
-                  </a-row>
-
-                  <!-- 操作按钮行 -->
-                  <div class="mapping-actions" style="margin-top: 8px; text-align: right;">
-                    <a-space size="small">
+                    <a-col :span="2">
                       <a-button
-                        type="text"
+                        type="link"
                         size="small"
+                        danger
                         @click="clearMapping(placeholder)"
-                        :disabled="!isMapped(placeholder)"
-                        title="清除映射"
                       >
-                        <DeleteOutlined />
+                        清除
                       </a-button>
-                      <a-button
-                        type="text"
-                        size="small"
-                        @click="generateSmartMapping(placeholder)"
-                        :loading="generatingMappings"
-                        title="智能推荐"
-                      >
-                        <BulbOutlined />
-                      </a-button>
-                    </a-space>
-                  </div>
+                    </a-col>
+                  </a-row>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 模态框操作按钮 -->
-            <div class="modal-actions" style="margin-top: 24px; text-align: right;">
-              <a-space>
-                <a-button @click="mappingModalVisible = false">
-                  取消
-                </a-button>
-                <a-button
-                  @click="generateSmartMappings"
-                  :loading="generatingMappings"
-                >
-                  <BulbOutlined />
-                  智能推荐
-                </a-button>
-                <a-button
-                  type="primary"
-                  @click="saveMappingConfig"
-                  :loading="savingConfig"
-                >
-                  <SaveOutlined />
-                  保存配置
-                </a-button>
-              </a-space>
+          <!-- 映射进度 -->
+          <div class="mapping-progress">
+            <a-progress
+              :percent="mappingProgress"
+              :status="mappingProgress === 100 ? 'success' : 'active'"
+              :format="(percent) => `${percent}% (${mappedCount}/${placeholders.length})`"
+            />
+          </div>
+
+          <!-- 窗口底部操作栏 -->
+          <div class="window-footer">
+            <div class="footer-actions">
+              <button
+                class="action-btn cancel-btn"
+                @click="mappingModalVisible = false"
+              >
+                取消
+              </button>
+              <button
+                class="action-btn primary-btn"
+                @click="saveMappingConfig"
+                :disabled="savingConfig || mappingProgress === 0"
+              >
+                <span v-if="savingConfig" class="loading-icon">⏳</span>
+                <span v-else>💾</span>
+                {{ savingConfig ? '保存中...' : '保存配置' }}
+              </button>
             </div>
+          </div>
           </div>
         </div>
       </div>
-    </a-modal>
+    </div>
 
-    <!-- 映射详情查看模态框 -->
-    <a-modal
-      v-model:open="detailModalVisible"
-      title="映射配置详情"
-      width="800px"
-      :footer="null"
-    >
-      <div v-if="selectedMappingDetail">
-        <a-descriptions :column="2" bordered size="small">
-          <a-descriptions-item label="图表ID">{{ selectedMappingDetail.chartId }}</a-descriptions-item>
-          <a-descriptions-item label="图表类型">{{ selectedMappingDetail.chartType }}</a-descriptions-item>
-          <a-descriptions-item label="图表名称">{{ selectedMappingDetail.chartName }}</a-descriptions-item>
-          <a-descriptions-item label="通用模板">{{ selectedMappingDetail.universalTemplate }}</a-descriptions-item>
-          <a-descriptions-item label="JOLT规范">{{ selectedMappingDetail.joltSpecFile }}</a-descriptions-item>
-          <a-descriptions-item label="映射数量">{{ selectedMappingDetail.mappingCount }} 个</a-descriptions-item>
-        </a-descriptions>
-
-        <h4 style="margin: 16px 0 8px 0;">映射详情</h4>
-        <a-table
-          :data-source="selectedMappingDetail.mappingDetails"
-          :columns="detailColumns"
-          :pagination="false"
-          size="small"
-        />
-      </div>
-    </a-modal>
-
-    <!-- 批量删除确认模态框 -->
-    <a-modal
-      v-model:open="batchDeleteModalVisible"
-      title="批量删除确认"
-      @ok="confirmBatchDelete"
-      :confirm-loading="batchDeleting"
-    >
-      <p>确定要删除选中的 {{ selectedMappings.length }} 个映射配置吗？</p>
-      <p style="color: #ff4d4f;">此操作不可撤销！</p>
-    </a-modal>
-
-    <!-- 配置指南模态框 -->
-    <a-modal
-      v-model:open="configGuideModalVisible"
-      width="1200px"
-      :footer="null"
-      :mask="false"
-      :keyboard="false"
-      :destroy-on-close="false"
-      :closable="true"
-      :wrap-class-name="'guide-modal-wrap'"
-      class="config-guide-modal"
-      :style="{ top: guideModalPosition.top + 'px', left: guideModalPosition.left + 'px' }"
+    <!-- 配置指南独立浮动窗口 -->
+    <div
+      v-if="guideModalVisible"
+      class="guide-floating-window"
+      :style="guideWindowStyle"
       @click="bringToFront('guide')"
     >
-      <template #title>
-        <div
-          class="draggable-title"
-          @mousedown="startDrag($event, 'guide')"
-        >
-          配置指南 - {{ selectedGuideRecord?.chartName || '未知图表' }}
+      <!-- 窗口标题栏 -->
+      <div
+        class="window-header"
+        @mousedown="startDrag($event, 'guide')"
+      >
+        <div class="window-title">
+          <span class="title-icon">📖</span>
+          <span class="title-text">配置指南 - {{ selectedRecord?.chartName || '未知图表' }}</span>
         </div>
-      </template>
+        <div class="window-controls">
+          <button
+            class="control-btn close-btn"
+            @click="guideModalVisible = false"
+            title="关闭"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
 
-      <div v-if="selectedGuideRecord" class="guide-content">
-        <a-row :gutter="16">
-          <!-- 卡片1 - 官方完整实例 -->
-          <a-col :span="12">
-            <a-card title="官方完整实例" class="guide-card">
-              <template #extra>
-                <a-tag color="blue">{{ selectedGuideRecord.chartType }}</a-tag>
-              </template>
-              <div class="guide-section">
-                <h4>ECharts配置示例</h4>
-                <div class="code-block">
-                  <pre><code>{{ getOfficialExample(selectedGuideRecord) }}</code></pre>
+      <!-- 窗口内容 -->
+      <div class="window-content">
+        <div v-if="selectedRecord" class="guide-content">
+          <div class="guide-panels">
+            <!-- 面板1 - 官方完整实例 -->
+            <div class="guide-panel">
+              <div class="panel-header">
+                <h4 class="panel-title">
+                  <span class="panel-icon">📊</span>
+                  官方完整实例
+                </h4>
+                <a-tag color="blue" size="small">{{ selectedRecord.chartType }}</a-tag>
+              </div>
+              <div class="panel-content">
+                <div class="section">
+                  <h5>ECharts配置示例</h5>
+                  <div class="code-container">
+                    <pre class="code-block"><code>{{ getOfficialExample() }}</code></pre>
+                  </div>
                 </div>
-                <div class="structure-description">
+                <div class="section">
                   <h5>结构说明</h5>
-                  <ul>
-                    <li v-for="desc in getStructureDescription(selectedGuideRecord)" :key="desc">
+                  <ul class="description-list">
+                    <li v-for="desc in getStructureDescription()" :key="desc">
                       {{ desc }}
                     </li>
                   </ul>
                 </div>
               </div>
-            </a-card>
-          </a-col>
+            </div>
 
-          <!-- 卡片2 - 转换结构说明 -->
-          <a-col :span="12">
-            <a-card title="转换结构说明" class="guide-card">
-              <template #extra>
-                <a-tag color="orange">{{ selectedGuideRecord.universalTemplate }}</a-tag>
-              </template>
-              <div class="guide-section">
-                <h4>JOLT转换涉及的数据结构</h4>
-                <div class="transformation-info">
-                  <h5>转换前数据结构</h5>
-                  <div class="code-block">
-                    <pre><code>{{ getTransformationBefore(selectedGuideRecord) }}</code></pre>
+            <!-- 面板2 - 转换结构说明 -->
+            <div class="guide-panel">
+              <div class="panel-header">
+                <h4 class="panel-title">
+                  <span class="panel-icon">🔄</span>
+                  转换结构说明
+                </h4>
+                <a-tag color="orange" size="small">{{ selectedRecord.universalTemplate }}</a-tag>
+              </div>
+              <div class="panel-content">
+                <div class="section">
+                  <h5>JOLT转换涉及的数据结构</h5>
+
+                  <h6>转换前数据结构</h6>
+                  <div class="code-container">
+                    <pre class="code-block"><code>{{ getTransformationBefore() }}</code></pre>
                   </div>
 
-                  <h5>转换后数据结构</h5>
-                  <div class="code-block">
-                    <pre><code>{{ getTransformationAfter(selectedGuideRecord) }}</code></pre>
+                  <h6>转换后数据结构</h6>
+                  <div class="code-container">
+                    <pre class="code-block"><code>{{ getTransformationAfter() }}</code></pre>
                   </div>
 
-                  <h5>占位符变量列表</h5>
-                  <div class="placeholder-list">
+                  <h6>占位符变量列表</h6>
+                  <div class="placeholder-tags">
                     <a-tag
-                      v-for="placeholder in getPlaceholderList(selectedGuideRecord)"
+                      v-for="placeholder in getPlaceholderList()"
                       :key="placeholder.name"
                       :color="placeholder.color"
+                      size="small"
                       style="margin: 2px;"
                     >
                       {{ placeholder.name }} - {{ placeholder.description }}
@@ -427,32 +344,45 @@
                   </div>
                 </div>
               </div>
-            </a-card>
-          </a-col>
-        </a-row>
+            </div>
+          </div>
+        </div>
       </div>
-    </a-modal>
-
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { placeholderMappingApi } from '@/api'
-import ChartSelector from '@/components/ChartSelector.vue'
-import {
-    BulbOutlined,
-    CheckCircleOutlined,
-    DeleteOutlined,
-    ExclamationCircleOutlined,
-    ReloadOutlined,
-    SaveOutlined
-} from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 
+// 接口类型定义
+interface MappingRecord {
+  chartId: string
+  chartType: string
+  chartName: string
+  universalTemplate: string
+  joltSpecFile: string
+  placeholderCount: number
+}
+
+interface SelectedChart {
+  chartId: string
+  templateType: string
+  chartFile: string
+  chartName: string
+  joltSpecFile: string
+}
+
 // 响应式数据
 const chartSelectorRef = ref()
-const selectedChart = reactive({
+const loading = ref(false)
+const mappingList = ref<MappingRecord[]>([])
+const selectedRecord = ref<MappingRecord | null>(null)
+
+// 选中的图表信息
+const selectedChart = reactive<SelectedChart>({
   chartId: '',
   templateType: '',
   chartFile: '',
@@ -460,39 +390,47 @@ const selectedChart = reactive({
   joltSpecFile: ''
 })
 
-// 占位符和映射配置
+// 模态框状态
+const mappingModalVisible = ref(false)
+const guideModalVisible = ref(false)
+
+// 拖拽状态
+const isDragging = ref(false)
+const dragTarget = ref('')
+const mappingModalPosition = ref({ top: 100, left: 150 })
+const guideModalPosition = ref({ top: 150, left: 300 })
+
+// 映射配置相关状态
 const placeholders = ref<string[]>([])
 const placeholdersLoading = ref(false)
 const mappingConfigs = reactive<Record<string, any>>({})
-const hasUnsavedChanges = ref(false)
-
-// 可用字段
-const availableFields = ref<any[]>([])
-const groupedFields = ref<any[]>([])
-
-// 映射配置列表
-const mappingList = ref<any[]>([])
-const listLoading = ref(false)
-const selectedMappings = ref<string[]>([])
-
-// 状态管理
 const savingConfig = ref(false)
-const generatingMappings = ref(false)
-const batchDeleting = ref(false)
+const availableFields = ref<any[]>([])
 
-// 模态框状态
-const mappingModalVisible = ref(false)
-const detailModalVisible = ref(false)
-const batchDeleteModalVisible = ref(false)
-const configGuideModalVisible = ref(false)
-const selectedMappingDetail = ref(null)
-const selectedGuideRecord = ref(null)
+// JOLT规范文件相关状态
+const joltSpecContent = ref<any>(null)
+const joltSpecLoading = ref(false)
 
-// 拖拽状态
-const mappingModalPosition = ref({ top: 50, left: 100 })
-const guideModalPosition = ref({ top: 80, left: 200 })
-const isDragging = ref(false)
-const dragTarget = ref('')
+// 计算属性
+const mappedCount = computed(() => {
+  return placeholders.value.filter(p => isMapped(p)).length
+})
+
+const mappingProgress = computed(() => {
+  if (placeholders.value.length === 0) return 0
+  return Math.round((mappedCount.value / placeholders.value.length) * 100)
+})
+
+// 表格列定义
+const tableColumns = [
+  { title: '图表ID', dataIndex: 'chartId', key: 'chartId', width: 120 },
+  { title: '图表类型', dataIndex: 'chartType', key: 'chartType', width: 100 },
+  { title: '图表名称', dataIndex: 'chartName', key: 'chartName', width: 150 },
+  { title: '通用JSON模板', dataIndex: 'universalTemplate', key: 'universalTemplate', width: 180 },
+  { title: 'JOLT转换规范', dataIndex: 'joltSpecFile', key: 'joltSpecFile', width: 150 },
+  { title: '占位符数量', dataIndex: 'placeholderCount', key: 'placeholderCount', width: 100 },
+  { title: '操作', key: 'actions', width: 280, fixed: 'right' }
+]
 
 // 分页配置 - 与数据管理页面保持一致
 const paginationConfig = reactive({
@@ -506,158 +444,121 @@ const paginationConfig = reactive({
   onChange: (page: number, size: number) => {
     paginationConfig.current = page
     paginationConfig.pageSize = size
-    // 这里可以添加分页数据加载逻辑，当前是静态数据所以不需要
   },
   onShowSizeChange: (current: number, size: number) => {
     paginationConfig.current = 1
     paginationConfig.pageSize = size
-    // 这里可以添加分页数据加载逻辑，当前是静态数据所以不需要
   }
 })
 
 // 计算属性
-const mappingProgress = computed(() => {
-  if (placeholders.value.length === 0) return 0
-  const mappedCount = placeholders.value.filter(p => isMapped(p)).length
-  return Math.round((mappedCount / placeholders.value.length) * 100)
-})
+const mappingModalTitle = computed(() =>
+  selectedRecord.value ? `配置映射 - ${selectedRecord.value.chartName}` : '配置映射'
+)
 
-// 表格列定义 - 使用关联信息中的字段，优化列宽避免滚动条
-const listColumns = [
-  { title: '图表ID', dataIndex: 'chartId', key: 'chartId', width: 120 },
-  { title: '图表类型', dataIndex: 'chartType', key: 'chartType', width: 100 },
-  { title: '图表名称', dataIndex: 'chartName', key: 'chartName', width: 120 },
-  { title: '通用JSON模板', dataIndex: 'universalTemplate', key: 'universalTemplate', width: 140 },
-  { title: 'JOLT转换规范', dataIndex: 'joltSpecFile', key: 'joltSpecFile', width: 160 },
-  { title: '占位符数量', dataIndex: 'placeholderCount', key: 'placeholderCount', width: 100, align: 'center' },
-  { title: '操作', key: 'actions', width: 240, align: 'center' }
-]
+const guideModalTitle = computed(() =>
+  selectedRecord.value ? `配置指南 - ${selectedRecord.value.chartName}` : '配置指南'
+)
 
-const detailColumns = [
-  { title: '占位符', dataIndex: 'placeholder', key: 'placeholder' },
-  { title: '映射字段', dataIndex: 'fieldName', key: 'fieldName' },
-  { title: '数据类型', dataIndex: 'dataType', key: 'dataType' },
-  { title: '聚合方式', dataIndex: 'aggregationType', key: 'aggregationType' }
-]
+// 配置映射独立窗口样式
+const mappingWindowStyle = computed(() => ({
+  top: `${mappingModalPosition.value.top}px`,
+  left: `${mappingModalPosition.value.left}px`,
+  zIndex: isDragging.value && dragTarget.value === 'mapping' ? 2000 : 1001
+}))
 
-// 方法
-const onChartSelected = async (chartInfo: any) => {
+// 配置指南独立窗口样式
+const guideWindowStyle = computed(() => ({
+  top: `${guideModalPosition.value.top}px`,
+  left: `${guideModalPosition.value.left}px`,
+  zIndex: isDragging.value && dragTarget.value === 'guide' ? 2000 : 1002
+}))
+
+
+
+// 事件处理方法
+const onChartSelected = (chartInfo: any) => {
+  console.log('📊 [映射管理] 图表选择变化:', chartInfo)
   Object.assign(selectedChart, chartInfo)
-  console.log('📊 [映射管理] 选择图表:', chartInfo)
+}
+
+const refreshList = async () => {
+  console.log('🔄 [映射管理] 刷新映射列表')
+  loading.value = true
+
+  try {
+    const result = await placeholderMappingApi.getAllMappings()
+    console.log('📋 [映射管理] API响应数据:', result)
+
+    if (result && result.mappings) {
+      mappingList.value = result.mappings
+      paginationConfig.total = result.totalCount || result.mappings.length
+      console.log('✅ [映射管理] 刷新成功，共', result.totalCount, '条记录')
+    } else {
+      console.warn('⚠️ [映射管理] API响应数据格式异常:', result)
+      message.warning('数据格式异常')
+    }
+  } catch (error) {
+    console.error('❌ [映射管理] 刷新失败:', error)
+    message.error('刷新失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const viewMapping = (record: MappingRecord) => {
+  console.log('👁️ [映射管理] 查看映射:', record.chartId)
+  selectedRecord.value = record
+  message.info(`查看映射: ${record.chartName}`)
+}
+
+const configureMapping = async (record: MappingRecord) => {
+  console.log('🔧 [映射管理] 配置映射:', record.chartId)
+  selectedRecord.value = record
 
   // 加载占位符和现有映射配置
   await Promise.all([
-    loadPlaceholders(chartInfo.chartId),
-    loadExistingMappings(chartInfo.chartId)
+    loadPlaceholders(record.chartId),
+    loadExistingMappings(record.chartId),
+    loadAvailableFields(),
+    loadJoltSpecContent(record.chartId)
   ])
-}
 
-// 获取图表显示名称
-const getChartDisplayName = (chartFile: string) => {
-  if (!chartFile) return '未知图表'
-  const fileName = chartFile.split('/').pop()?.replace('.json', '') || ''
-
-  // 根据文件名返回中文名称
-  const chartNameMappings: Record<string, string> = {
-    'basic-line-chart': '基础折线图',
-    'smooth-line-chart': '平滑折线图',
-    'stacked-line-chart': '堆叠折线图',
-    'basic-bar-chart': '基础柱状图',
-    'stacked-bar-chart': '堆叠柱状图',
-    'basic-pie-chart': '基础饼图',
-    'doughnut-chart': '圆环图',
-    'basic-radar-chart': '基础雷达图',
-    'basic-gauge-chart': '基础仪表盘'
-  }
-
-  return chartNameMappings[fileName] || fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
-
-// 获取通用模板类型 - 根据图表类型（一级分类）确定
-const getUniversalTemplate = (chartId: string) => {
-  // 根据图表类型（templateType）确定通用模板分类
-  const templateType = selectedChart.templateType
-
-  if (!templateType) return '通用模板'
-
-  // 四大模板分类
-  const templateMappings: Record<string, string> = {
-    '折线图': '折线图通用模板',
-    '柱状图': '柱状图通用模板',
-    '饼图': '饼图通用模板',
-    '雷达图': '雷达图通用模板',
-    '仪表盘': '仪表盘通用模板'
-  }
-
-  return templateMappings[templateType] || '通用模板'
-}
-
-// 打开映射配置模态框
-const openMappingModal = () => {
-  if (!selectedChart.chartId) {
-    message.warning('请先选择图表')
-    return
-  }
   mappingModalVisible.value = true
+  console.log('✅ [映射管理] 配置映射模态框已打开')
 }
 
-const onChartCleared = () => {
-  Object.assign(selectedChart, { chartId: '', templateType: '', chartFile: '', chartName: '', joltSpecFile: '' })
-  placeholders.value = []
-  Object.keys(mappingConfigs).forEach(key => delete mappingConfigs[key])
-  previewResult.value = null
-  hasUnsavedChanges.value = false
+const showConfigGuide = (record: MappingRecord) => {
+  console.log('📖 [映射管理] 显示配置指南:', record.chartId)
+  selectedRecord.value = record
+  guideModalVisible.value = true
+  console.log('✅ [映射管理] 配置指南模态框已打开')
 }
 
-const loadAvailableFields = async () => {
-  try {
-    const result = await placeholderMappingApi.getAvailableFields()
-
-    if (result && result.fields) {
-      availableFields.value = result.fields
-
-      // 按组分类字段
-      const groups = availableFields.value.reduce((acc, field) => {
-        const group = acc.find(g => g.name === field.group)
-        if (group) {
-          group.fields.push(field)
-        } else {
-          acc.push({ name: field.group, fields: [field] })
-        }
-        return acc
-      }, [] as any[])
-
-      groupedFields.value = groups
-      console.log('✅ [映射管理] 加载可用字段成功:', availableFields.value.length)
-    }
-  } catch (error) {
-    console.error('❌ [映射管理] 加载可用字段失败:', error)
-    message.error('加载可用字段失败')
-  }
+const deleteMapping = (record: MappingRecord) => {
+  console.log('🗑️ [映射管理] 删除映射:', record.chartId)
+  message.info(`删除映射: ${record.chartName}`)
 }
 
+// 映射配置相关方法
 const loadPlaceholders = async (chartId: string) => {
   placeholdersLoading.value = true
   try {
     const result = await placeholderMappingApi.getPlaceholders(chartId)
+    placeholders.value = result.placeholders || []
 
-    if (result && result.placeholders) {
-      placeholders.value = result.placeholders
-
-      // 初始化映射配置
-      placeholders.value.forEach(placeholder => {
-        if (!mappingConfigs[placeholder]) {
-          mappingConfigs[placeholder] = {
-            fieldName: '',
-            dataType: 'string',
-            aggregationType: 'none',
-            filters: {}
-          }
+    // 初始化映射配置对象
+    placeholders.value.forEach(placeholder => {
+      if (!mappingConfigs[placeholder]) {
+        mappingConfigs[placeholder] = {
+          fieldName: '',
+          dataType: '',
+          aggregationType: ''
         }
-      })
+      }
+    })
 
-      console.log('✅ [映射管理] 加载占位符成功:', placeholders.value.length)
-    }
+    console.log('📋 [映射管理] 加载占位符成功:', placeholders.value)
   } catch (error) {
     console.error('❌ [映射管理] 加载占位符失败:', error)
     message.error('加载占位符失败')
@@ -669,58 +570,93 @@ const loadPlaceholders = async (chartId: string) => {
 const loadExistingMappings = async (chartId: string) => {
   try {
     const result = await placeholderMappingApi.getMappings(chartId)
-
-    if (result && result.hasConfig && result.mappings) {
-      Object.assign(mappingConfigs, result.mappings)
-      console.log('✅ [映射管理] 加载现有映射配置成功')
-    }
+    Object.assign(mappingConfigs, result.mappings || {})
+    console.log('📋 [映射管理] 加载现有映射成功:', mappingConfigs)
   } catch (error) {
-    console.error('❌ [映射管理] 加载现有映射配置失败:', error)
+    console.error('❌ [映射管理] 加载现有映射失败:', error)
+  }
+}
+
+const loadAvailableFields = async () => {
+  try {
+    const result = await placeholderMappingApi.getAvailableFields()
+    availableFields.value = result.fields || []
+    console.log('📋 [映射管理] 加载可用字段成功:', availableFields.value)
+  } catch (error) {
+    console.error('❌ [映射管理] 加载可用字段失败:', error)
+  }
+}
+
+// 加载JOLT规范文件内容
+const loadJoltSpecContent = async (chartId: string) => {
+  if (!chartId) return
+
+  joltSpecLoading.value = true
+  try {
+    const content = await placeholderMappingApi.getJoltSpecContent(chartId)
+    joltSpecContent.value = content
+    console.log('✅ [映射管理] JOLT规范文件加载成功:', chartId)
+  } catch (error) {
+    console.error('❌ [映射管理] 加载JOLT规范文件失败:', error)
+    message.error('加载JOLT规范文件失败')
+    joltSpecContent.value = null
+  } finally {
+    joltSpecLoading.value = false
   }
 }
 
 const isMapped = (placeholder: string) => {
-  const config = mappingConfigs[placeholder]
-  return config && config.fieldName
+  return mappingConfigs[placeholder]?.fieldName
 }
 
-const updateMappingField = (placeholder: string, field: string, value: any) => {
-  if (!mappingConfigs[placeholder]) {
-    mappingConfigs[placeholder] = {
-      fieldName: '',
-      dataType: 'string',
-      aggregationType: 'none',
-      filters: {}
-    }
-  }
+// 映射配置的getter和setter方法
+const getMappingFieldName = (placeholder: string) => {
+  return mappingConfigs[placeholder]?.fieldName || ''
+}
 
-  mappingConfigs[placeholder][field] = value
-  hasUnsavedChanges.value = true
-  console.log('🔄 [映射管理] 映射配置变更:', placeholder, field, value)
+const updateMappingFieldName = (placeholder: string, value: string) => {
+  if (!mappingConfigs[placeholder]) {
+    mappingConfigs[placeholder] = {}
+  }
+  mappingConfigs[placeholder].fieldName = value
+  onMappingChange(placeholder)
+}
+
+const getMappingDataType = (placeholder: string) => {
+  return mappingConfigs[placeholder]?.dataType || ''
+}
+
+const updateMappingDataType = (placeholder: string, value: string) => {
+  if (!mappingConfigs[placeholder]) {
+    mappingConfigs[placeholder] = {}
+  }
+  mappingConfigs[placeholder].dataType = value
+  onMappingChange(placeholder)
+}
+
+const getMappingAggregationType = (placeholder: string) => {
+  return mappingConfigs[placeholder]?.aggregationType || ''
+}
+
+const updateMappingAggregationType = (placeholder: string, value: string) => {
+  if (!mappingConfigs[placeholder]) {
+    mappingConfigs[placeholder] = {}
+  }
+  mappingConfigs[placeholder].aggregationType = value
+  onMappingChange(placeholder)
 }
 
 const onMappingChange = (placeholder: string) => {
-  hasUnsavedChanges.value = true
-  console.log('🔄 [映射管理] 映射配置变更:', placeholder, mappingConfigs[placeholder])
+  console.log('🔄 [映射管理] 映射变化:', placeholder, mappingConfigs[placeholder])
 }
 
 const clearMapping = (placeholder: string) => {
-  if (mappingConfigs[placeholder]) {
-    mappingConfigs[placeholder] = {
-      fieldName: '',
-      dataType: 'string',
-      aggregationType: 'none',
-      filters: {}
-    }
-    hasUnsavedChanges.value = true
-  }
+  delete mappingConfigs[placeholder]
+  console.log('🗑️ [映射管理] 清除映射:', placeholder)
 }
 
 const saveMappingConfig = async () => {
-  if (!selectedChart.chartId) {
-    message.warning('请先选择图表')
-    return
-  }
+  if (!selectedRecord.value) return
 
   savingConfig.value = true
   try {
@@ -729,168 +665,16 @@ const saveMappingConfig = async () => {
       Object.entries(mappingConfigs).filter(([_, config]: [string, any]) => config.fieldName)
     )
 
-    await placeholderMappingApi.configureMappings(selectedChart.chartId, validMappings)
-    hasUnsavedChanges.value = false
+    await placeholderMappingApi.configureMappings(selectedRecord.value.chartId, validMappings)
     message.success('映射配置保存成功')
-
-    // 刷新映射列表
-    await refreshMappingList()
+    mappingModalVisible.value = false
+    await refreshList()
   } catch (error) {
     console.error('❌ [映射管理] 保存映射配置失败:', error)
     message.error('保存映射配置失败')
   } finally {
     savingConfig.value = false
   }
-}
-
-const generateSmartMappings = async () => {
-  if (!selectedChart.chartId || placeholders.value.length === 0) {
-    message.warning('请先选择图表并加载占位符')
-    return
-  }
-
-  generatingMappings.value = true
-  try {
-    const result = await placeholderMappingApi.generateDefaultMappings(
-      selectedChart.chartId,
-      placeholders.value
-    )
-
-    if (result && result.mappings) {
-      Object.assign(mappingConfigs, result.mappings)
-      hasUnsavedChanges.value = true
-      message.success('智能推荐完成')
-    }
-  } catch (error) {
-    console.error('❌ [映射管理] 智能推荐失败:', error)
-    message.error('智能推荐失败')
-  } finally {
-    generatingMappings.value = false
-  }
-}
-
-// 为单个占位符生成智能推荐
-const generateSmartMapping = (placeholder: string) => {
-  // 基于占位符名称的智能推荐逻辑
-  const lowerName = placeholder.toLowerCase()
-
-  let recommendedMapping = {
-    fieldName: '',
-    dataType: 'string',
-    aggregationType: 'none',
-    filters: {}
-  }
-
-  if (lowerName.includes('title')) {
-    recommendedMapping = { fieldName: 'category', dataType: 'string', aggregationType: 'none', filters: {} }
-  } else if (lowerName.includes('categories') || lowerName.includes('category')) {
-    recommendedMapping = { fieldName: 'month', dataType: 'array', aggregationType: 'list', filters: {} }
-  } else if (lowerName.includes('data') || lowerName.includes('value')) {
-    recommendedMapping = { fieldName: 'amount', dataType: 'array', aggregationType: 'list', filters: {} }
-  } else if (lowerName.includes('name')) {
-    recommendedMapping = { fieldName: 'product', dataType: 'string', aggregationType: 'none', filters: {} }
-  } else if (lowerName.includes('series')) {
-    if (lowerName.includes('data')) {
-      recommendedMapping = { fieldName: 'amount', dataType: 'array', aggregationType: 'list', filters: {} }
-    } else {
-      recommendedMapping = { fieldName: 'product', dataType: 'string', aggregationType: 'none', filters: {} }
-    }
-  }
-
-  if (recommendedMapping.fieldName) {
-    mappingConfigs[placeholder] = recommendedMapping
-    hasUnsavedChanges.value = true
-    message.success(`已为 ${placeholder} 推荐映射到 ${recommendedMapping.fieldName}`)
-  } else {
-    message.info(`无法为 ${placeholder} 生成推荐，请手动配置`)
-  }
-}
-
-
-
-const refreshMappingList = async () => {
-  listLoading.value = true
-  try {
-    console.log('🔄 [映射管理] 开始刷新映射列表...')
-    const result = await placeholderMappingApi.getAllMappings()
-    console.log('📊 [映射管理] API响应数据:', result)
-
-    if (result && result.mappings) {
-      mappingList.value = result.mappings
-      paginationConfig.total = result.totalCount || result.mappings.length
-      console.log('✅ [映射管理] 刷新映射列表成功，共 ' + result.totalCount + ' 条记录')
-      console.log('📋 [映射管理] 映射列表数据详情:', result.mappings)
-
-      // 检查每条记录的字段
-      result.mappings.forEach((item: any, index: number) => {
-        console.log(`📝 [映射管理] 记录${index + 1}:`, {
-          chartId: item.chartId,
-          chartType: item.chartType,
-          chartName: item.chartName,
-          universalTemplate: item.universalTemplate,
-          joltSpecFile: item.joltSpecFile,
-          placeholderCount: item.placeholderCount,
-          mappingCount: item.mappingCount
-        })
-      })
-    } else {
-      console.warn('⚠️ [映射管理] API响应数据格式异常:', result)
-    }
-  } catch (error) {
-    console.error('❌ [映射管理] 刷新映射列表失败:', error)
-    message.error('刷新映射列表失败')
-  } finally {
-    listLoading.value = false
-  }
-}
-
-const onSelectionChange = (selectedRowKeys: string[]) => {
-  selectedMappings.value = selectedRowKeys
-}
-
-const viewMappingDetail = (record: any) => {
-  selectedMappingDetail.value = record
-  detailModalVisible.value = true
-}
-
-
-
-const copyMapping = async (record: any) => {
-  // 这里可以实现复制到剪贴板或复制到其他图表的功能
-  message.info('复制功能开发中...')
-}
-
-// 配置映射（从列表操作）
-const configureMapping = (record: any) => {
-  console.log('🔧 [映射管理] 打开配置映射模态框:', record.chartId)
-
-  // 设置选中的图表信息
-  Object.assign(selectedChart, {
-    chartId: record.chartId,
-    templateType: record.chartType,
-    chartFile: '', // 这里可能需要从record中获取
-    chartName: record.chartName,
-    joltSpecFile: record.joltSpecFile
-  })
-
-  // 加载占位符和现有映射配置
-  Promise.all([
-    loadPlaceholders(record.chartId),
-    loadExistingMappings(record.chartId)
-  ]).then(() => {
-    mappingModalVisible.value = true
-    console.log('✅ [映射管理] 配置映射模态框已打开')
-  })
-}
-
-
-
-// 显示配置指南
-const showConfigGuide = (record: any) => {
-  console.log('📖 [映射管理] 打开配置指南模态框:', record.chartId)
-  selectedGuideRecord.value = record
-  configGuideModalVisible.value = true
-  console.log('✅ [映射管理] 配置指南模态框已打开')
 }
 
 // 拖拽功能实现
@@ -901,7 +685,10 @@ const startDrag = (event: MouseEvent, modalType: string) => {
   isDragging.value = true
   dragTarget.value = modalType
 
-  console.log('🖱️ [拖拽] 开始拖拽:', modalType)
+  // 添加拖拽状态的视觉反馈
+  document.body.classList.add('dragging')
+
+  console.log('🖱️ [拖拽] 开始拖拽:', modalType, '初始位置:', event.clientX, event.clientY)
 
   const startX = event.clientX
   const startY = event.clientY
@@ -910,7 +697,7 @@ const startDrag = (event: MouseEvent, modalType: string) => {
   const startTop = currentPosition.top
   const startLeft = currentPosition.left
 
-  console.log('📍 [拖拽] 初始位置:', { startTop, startLeft, startX, startY })
+  console.log('📍 [拖拽] 模态框当前位置:', { startTop, startLeft })
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.value) return
@@ -918,22 +705,38 @@ const startDrag = (event: MouseEvent, modalType: string) => {
     const deltaX = e.clientX - startX
     const deltaY = e.clientY - startY
 
-    // 获取窗口尺寸
-    const windowWidth = window.innerWidth
-    const windowHeight = window.innerHeight
+    // 获取视口尺寸
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
 
-    // 模态框尺寸（更保守的估算）
-    const modalWidth = modalType === 'mapping' ? 1000 : 1200
-    const modalHeight = 500
+    // 获取实际窗口尺寸
+    const windowElement = document.querySelector(
+      modalType === 'mapping' ? '.mapping-floating-window' : '.guide-floating-window'
+    ) as HTMLElement
 
-    // 计算新位置，确保不超出边界
-    const newTop = Math.max(0, Math.min(windowHeight - modalHeight, startTop + deltaY))
-    const newLeft = Math.max(0, Math.min(windowWidth - modalWidth, startLeft + deltaX))
+    let elementWidth = modalType === 'mapping' ? 1000 : 900  // 配置指南窗口优化为900px
+    let elementHeight = 500
 
-    const newPosition = {
-      top: newTop,
-      left: newLeft
+    if (windowElement) {
+      const rect = windowElement.getBoundingClientRect()
+      elementWidth = rect.width
+      elementHeight = rect.height
     }
+
+    // 计算新位置 - 允许更灵活的边界
+    // 左边界：允许拖拽到负坐标，但保留至少100px可见区域
+    const minLeft = -(elementWidth - 100)
+    // 右边界：允许拖拽到视口右侧，但保留至少100px可见区域
+    const maxLeft = viewportWidth - 100
+    // 上边界：不能超出视口顶部
+    const minTop = 0
+    // 下边界：允许拖拽到视口底部，但保留至少50px可见区域
+    const maxTop = viewportHeight - 50
+
+    const newTop = Math.max(minTop, Math.min(maxTop, startTop + deltaY))
+    const newLeft = Math.max(minLeft, Math.min(maxLeft, startLeft + deltaX))
+
+    const newPosition = { top: newTop, left: newLeft }
 
     // 更新位置
     if (modalType === 'mapping') {
@@ -943,80 +746,62 @@ const startDrag = (event: MouseEvent, modalType: string) => {
     }
 
     // 调试信息
-    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+    if (Math.abs(deltaX) % 30 === 0 || Math.abs(deltaY) % 30 === 0) {
       console.log('🔄 [拖拽] 位置更新:', {
         modalType,
         delta: { deltaX, deltaY },
         newPosition,
-        window: { windowWidth, windowHeight }
+        boundaries: {
+          viewport: { width: viewportWidth, height: viewportHeight },
+          element: { width: elementWidth, height: elementHeight },
+          limits: { minLeft, maxLeft, minTop, maxTop }
+        }
       })
     }
   }
 
   const handleMouseUp = () => {
-    console.log('🛑 [拖拽] 结束拖拽:', modalType)
+    const finalPosition = modalType === 'mapping' ? mappingModalPosition.value : guideModalPosition.value
+    console.log('🛑 [拖拽] 结束拖拽:', modalType, '最终位置:', finalPosition)
+
+    // 移除拖拽状态的视觉反馈
+    document.body.classList.remove('dragging')
+
     isDragging.value = false
     dragTarget.value = ''
     document.removeEventListener('mousemove', handleMouseMove)
     document.removeEventListener('mouseup', handleMouseUp)
-
-    // 确保最终位置正确应用
-    const finalPosition = modalType === 'mapping' ? mappingModalPosition.value : guideModalPosition.value
-    console.log('📍 [拖拽] 最终位置:', finalPosition)
   }
 
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
 }
 
-// 模态框点击置顶
-const bringToFront = (modalType: string) => {
-  const mappingModal = document.querySelector('.mapping-config-modal .ant-modal')
-  const guideModal = document.querySelector('.config-guide-modal .ant-modal')
+// 窗口点击置顶功能
+const bringToFront = (windowType: string) => {
+  console.log('🔝 [窗口] 置顶窗口:', windowType)
 
-  if (modalType === 'mapping' && mappingModal) {
-    (mappingModal as HTMLElement).style.zIndex = '1002'
-    if (guideModal) (guideModal as HTMLElement).style.zIndex = '1001'
-  } else if (modalType === 'guide' && guideModal) {
-    (guideModal as HTMLElement).style.zIndex = '1002'
-    if (mappingModal) (mappingModal as HTMLElement).style.zIndex = '1001'
+  const mappingWindow = document.querySelector('.mapping-floating-window')
+  const guideWindow = document.querySelector('.guide-floating-window')
+
+  if (windowType === 'mapping' && mappingWindow) {
+    (mappingWindow as HTMLElement).style.zIndex = '1003'
+    if (guideWindow) {
+      (guideWindow as HTMLElement).style.zIndex = '1002'
+    }
+  } else if (windowType === 'guide' && guideWindow) {
+    (guideWindow as HTMLElement).style.zIndex = '1003'
+    if (mappingWindow) {
+      (mappingWindow as HTMLElement).style.zIndex = '1001'
+    }
   }
 }
 
-const deleteMapping = async (record: any) => {
-  try {
-    await placeholderMappingApi.deleteMappings(record.chartId)
-    message.success('删除成功')
-    await refreshMappingList()
-  } catch (error) {
-    console.error('❌ [映射管理] 删除失败:', error)
-    message.error('删除失败')
-  }
-}
+// 配置指南内容生成
+const getOfficialExample = () => {
+  if (!selectedRecord.value) return '请选择图表'
 
-const showBatchDeleteModal = () => {
-  batchDeleteModalVisible.value = true
-}
-
-const confirmBatchDelete = async () => {
-  batchDeleting.value = true
-  try {
-    await placeholderMappingApi.batchDeleteMappings(selectedMappings.value)
-    message.success(`成功删除 ${selectedMappings.value.length} 个配置`)
-    selectedMappings.value = []
-    batchDeleteModalVisible.value = false
-    await refreshMappingList()
-  } catch (error) {
-    console.error('❌ [映射管理] 批量删除失败:', error)
-    message.error('批量删除失败')
-  } finally {
-    batchDeleting.value = false
-  }
-}
-
-// 配置指南内容生成方法
-const getOfficialExample = (record: any) => {
-  const examples = {
+  const examples: Record<string, string> = {
     '折线图': `{
   "title": {
     "text": "\${chart_title}"
@@ -1102,14 +887,30 @@ const getOfficialExample = (record: any) => {
     "type": "radar",
     "data": \${radar_data}
   }]
+}`,
+    '仪表盘': `{
+  "title": {
+    "text": "\${chart_title}"
+  },
+  "series": [{
+    "name": "仪表盘",
+    "type": "gauge",
+    "detail": { "formatter": "{value}%" },
+    "data": [{
+      "value": \${gauge_value},
+      "name": "完成率"
+    }]
+  }]
 }`
   }
 
-  return examples[record.chartType] || '暂无示例'
+  return examples[selectedRecord.value.chartType] || '暂无示例'
 }
 
-const getStructureDescription = (record: any) => {
-  const descriptions = {
+const getStructureDescription = () => {
+  if (!selectedRecord.value) return []
+
+  const descriptions: Record<string, string[]> = {
     '折线图': [
       'title: 图表标题配置，支持文本和样式设置',
       'xAxis: X轴配置，通常为类目轴，显示分类数据',
@@ -1136,13 +937,19 @@ const getStructureDescription = (record: any) => {
       'indicator: 雷达图指标配置，定义各个维度',
       'series: 雷达图数据系列，type设置为"radar"',
       'data: 雷达图数据，多维度数值数组'
+    ],
+    '仪表盘': [
+      'series: 仪表盘数据系列，type设置为"gauge"',
+      'data: 仪表盘数据，包含value和name',
+      'detail: 详细信息配置，如数值格式化',
+      'min/max: 仪表盘数值范围设置'
     ]
   }
 
-  return descriptions[record.chartType] || ['暂无描述']
+  return descriptions[selectedRecord.value.chartType] || ['暂无描述']
 }
 
-const getTransformationBefore = (record: any) => {
+const getTransformationBefore = () => {
   return `{
   "virtualDatabase": {
     "chartData": [
@@ -1161,8 +968,10 @@ const getTransformationBefore = (record: any) => {
 }`
 }
 
-const getTransformationAfter = (record: any) => {
-  const transformations = {
+const getTransformationAfter = () => {
+  if (!selectedRecord.value) return '请选择图表'
+
+  const transformations: Record<string, string> = {
     '折线图': `{
   "title": { "text": "销售数据" },
   "xAxis": { "data": ["1月", "2月", "3月"] },
@@ -1202,14 +1011,23 @@ const getTransformationAfter = (record: any) => {
     "type": "radar",
     "data": [{ "value": [80, 90] }]
   }]
+}`,
+    '仪表盘': `{
+  "title": { "text": "完成率" },
+  "series": [{
+    "type": "gauge",
+    "data": [{ "value": 75, "name": "完成率" }]
+  }]
 }`
   }
 
-  return transformations[record.chartType] || '暂无转换示例'
+  return transformations[selectedRecord.value.chartType] || '暂无转换示例'
 }
 
-const getPlaceholderList = (record: any) => {
-  const placeholders = {
+const getPlaceholderList = () => {
+  if (!selectedRecord.value) return []
+
+  const placeholders: Record<string, Array<{name: string, description: string, color: string}>> = {
     '折线图': [
       { name: '${chart_title}', description: '图表标题', color: 'blue' },
       { name: '${categories}', description: 'X轴分类数据', color: 'green' },
@@ -1230,279 +1048,537 @@ const getPlaceholderList = (record: any) => {
       { name: '${chart_title}', description: '图表标题', color: 'blue' },
       { name: '${radar_indicators}', description: '雷达图指标', color: 'cyan' },
       { name: '${radar_data}', description: '雷达图数据', color: 'magenta' }
+    ],
+    '仪表盘': [
+      { name: '${chart_title}', description: '图表标题', color: 'blue' },
+      { name: '${gauge_value}', description: '仪表盘数值', color: 'gold' }
     ]
   }
 
-  return placeholders[record.chartType] || []
+  return placeholders[selectedRecord.value.chartType] || []
 }
+
+
+
+
 
 // 监听模态框状态变化
 watch(mappingModalVisible, (newVal) => {
   console.log('👁️ [模态框] 配置映射模态框状态变化:', newVal)
+  if (newVal) {
+    console.log('📊 [模态框] 配置映射模态框已打开，当前记录:', selectedRecord.value)
+  }
 })
 
-watch(configGuideModalVisible, (newVal) => {
+watch(guideModalVisible, (newVal) => {
   console.log('👁️ [模态框] 配置指南模态框状态变化:', newVal)
+  if (newVal) {
+    console.log('📖 [模态框] 配置指南模态框已打开，当前记录:', selectedRecord.value)
+  }
 })
 
 // 生命周期
 onMounted(async () => {
-  await Promise.all([
-    loadAvailableFields(),
-    refreshMappingList()
-  ])
-
-  console.log('🚀 [映射管理] 页面初始化完成')
+  console.log('🚀 [映射管理] 页面挂载完成')
   console.log('📊 [映射管理] 初始模态框位置:', {
     mapping: mappingModalPosition.value,
     guide: guideModalPosition.value
   })
+  await refreshList()
 })
+
+console.log('🚀 [映射管理] 页面组件初始化')
 </script>
 
 <style scoped>
-.mapping-container {
-  padding: 16px;
+/* 页面基础样式 - 完全透明背景，不遮挡底层内容 */
+.mapping-page {
+  padding: 12px;
   background: none;
   min-height: auto;
   position: static;
-  z-index: auto;
 }
 
-/* 上下布局样式 - 完全透明平铺模式 */
-.top-section {
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+/* 区域卡片样式 - 极高透明度，最小化视觉干扰 */
+.selection-card,
+.list-card {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+  margin-bottom: 12px;
+  backdrop-filter: blur(2px);
 }
 
-.bottom-section {
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-/* 图表选择器在上下布局中的样式调整 */
-.top-section :deep(.ant-card) {
-  box-shadow: none;
-  border: 1px solid #f0f0f0;
-}
-
-.mapping-list-card {
-  border-radius: 8px;
-}
-
-.loading-container,
-.empty-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-/* 模态框内的映射配置样式 */
-.modal-mapping-content {
-  height: 100%;
-  overflow: hidden;
-}
-
-.mapping-header {
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.mapping-header h4 {
-  margin: 0 0 8px 0;
-  color: #262626;
-}
-
-.mapping-list-container {
-  height: calc(60vh - 120px);
-  overflow: hidden;
-}
-
-.mapping-table-header {
-  background: #fafafa;
-  padding: 8px 12px;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px 6px 0 0;
-  margin-bottom: 0;
-}
-
-.mapping-list {
-  max-height: calc(60vh - 180px);
-  overflow-y: auto;
-  border: 1px solid #f0f0f0;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  padding: 8px;
-}
-
-.mapping-item {
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
+.selection-card :deep(.ant-card-body),
+.list-card :deep(.ant-card-body) {
+  background: transparent;
   padding: 12px;
-  margin-bottom: 8px;
-  background: #fafafa;
-  transition: all 0.2s;
 }
 
-.mapping-item:hover {
-  border-color: #1890ff;
-  background: #f6ffed;
+.selection-card :deep(.ant-card-head),
+.list-card :deep(.ant-card-head) {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.placeholder-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.mapping-status {
-  font-size: 16px;
-  margin-left: 8px;
-}
-
-.mapping-actions {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 8px;
-}
-
-/* 确保下拉框有足够的宽度 */
-:deep(.ant-select) {
-  min-width: 120px;
-}
-
-:deep(.ant-select-selector) {
-  min-height: 28px;
-}
-
-/* 字段选择下拉框特殊样式 */
-.mapping-item .ant-col:nth-child(2) :deep(.ant-select) {
-  min-width: 200px;
-}
-
-.preview-content {
-  max-height: 400px;
-  overflow: auto;
-}
-
-.preview-content pre {
-  background: #f5f5f5;
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.mapping-list-content {
-  padding: 16px;
-}
-
-/* 表格样式优化 */
-:deep(.ant-table-thead > tr > th) {
-  background: #fafafa;
+/* 标题样式 */
+.section-title {
   font-weight: 600;
+  color: #1890ff;
+  font-size: 14px;
 }
 
-:deep(.ant-table-tbody > tr:hover > td) {
-  background: #f6ffed;
+/* 图表选择器样式 */
+.chart-selector {
+  background: transparent;
 }
 
-/* 标签样式优化 */
-:deep(.ant-tag) {
-  margin: 2px;
-  border-radius: 4px;
-}
-
-/* 描述列表样式 */
-:deep(.ant-descriptions-item-label) {
-  font-weight: 600;
-  color: #262626;
-}
-
-/* 模态框操作按钮区域 */
-.modal-actions {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 16px;
-}
-
-/* 模态框拖拽样式 */
-.mapping-config-modal {
-  z-index: 1001;
-}
-
-.config-guide-modal {
-  z-index: 1001;
-}
-
-/* 模态框定位样式 - 支持拖拽 */
-.mapping-config-modal :deep(.ant-modal),
-.config-guide-modal :deep(.ant-modal) {
-  max-width: 90vw;
-  position: fixed !important;
-  margin: 0 !important;
-  transform: none !important;
-  top: auto !important;
-  left: auto !important;
-}
-
-/* 模态框包装器样式 */
-.mapping-modal-wrap :deep(.ant-modal-wrap),
-.guide-modal-wrap :deep(.ant-modal-wrap) {
-  position: static !important;
-  overflow: visible !important;
-}
-
-/* 隐藏遮罩层 */
-.mapping-config-modal :deep(.ant-modal-mask),
-.config-guide-modal :deep(.ant-modal-mask),
-.mapping-modal-wrap :deep(.ant-modal-mask),
-.guide-modal-wrap :deep(.ant-modal-mask) {
-  display: none !important;
-}
-
-/* 确保模态框可以正确定位 */
-.mapping-config-modal,
-.config-guide-modal {
-  position: relative;
-}
-
-.mapping-config-modal :deep(.ant-modal-content),
-.config-guide-modal :deep(.ant-modal-content) {
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-}
-
+/* 拖拽标题样式 */
 .draggable-title {
   cursor: move;
   user-select: none;
   padding: 4px 0;
   font-weight: 600;
   color: #262626;
+  transition: all 0.2s;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: -8px -12px;
 }
 
 .draggable-title:hover {
   color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.1);
 }
 
 .draggable-title:active {
   cursor: grabbing;
+  background-color: rgba(24, 144, 255, 0.2);
+  transform: scale(0.98);
+}
+
+/* 拖拽时的全局样式 */
+body.dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+body.dragging * {
+  cursor: grabbing !important;
+}
+
+/* 配置映射独立浮动窗口样式 */
+.mapping-floating-window {
+  position: fixed;
+  width: 1000px; /* 保持原有宽度 */
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  z-index: 1001;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 配置指南独立浮动窗口样式 */
+.guide-floating-window {
+  position: fixed;
+  width: 900px; /* 优化后的宽度 */
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  z-index: 1002;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 窗口标题栏 */
+.window-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.window-header:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.window-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.title-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.title-text {
+  color: white;
+}
+
+.window-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.close-btn:hover {
+  background: #ff4757;
+}
+
+/* 窗口内容区域 */
+.window-content {
+  max-height: calc(80vh - 60px);
+  overflow-y: auto;
+  padding: 16px;
 }
 
 .guide-content {
+  height: 100%;
+}
+
+.guide-panels {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+}
+
+.guide-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.panel-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.panel-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section h5 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.section h6 {
+  margin: 12px 0 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #595959;
+}
+
+.code-container {
+  margin: 8px 0;
+}
+
+.code-block {
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.description-list {
+  margin: 8px 0;
+  padding-left: 16px;
+}
+
+.description-list li {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.placeholder-tags {
+  margin: 8px 0;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* 窗口底部操作栏样式 */
+.window-footer {
+  border-top: 1px solid #e8e8e8;
+  padding: 12px 16px;
+  background: #fafafa;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #d9d9d9;
+}
+
+.cancel-btn:hover {
+  background: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: white;
+  border: 1px solid #1890ff;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+}
+
+.primary-btn:disabled {
+  background: #f5f5f5;
+  color: #bfbfbf;
+  border-color: #d9d9d9;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 模态框样式 - 确保正确定位和无遮罩 */
+.mapping-modal :deep(.ant-modal),
+.guide-modal :deep(.ant-modal) {
+  position: fixed !important;
+  margin: 0 !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  max-width: none !important;
+  width: auto !important;
+}
+
+/* 确保模态框可以超出视口边界 */
+.mapping-modal :deep(.ant-modal),
+.guide-modal :deep(.ant-modal) {
+  overflow: visible !important;
+}
+
+/* 模态框内容区域样式 */
+.mapping-modal :deep(.ant-modal-content),
+.guide-modal :deep(.ant-modal-content) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: visible;
+}
+
+/* 模态框包装器样式 */
+.mapping-modal-wrap,
+.guide-modal-wrap {
+  position: static !important;
+  pointer-events: none;
+  z-index: auto !important;
+}
+
+.mapping-modal-wrap :deep(.ant-modal),
+.guide-modal-wrap :deep(.ant-modal) {
+  pointer-events: auto;
+}
+
+/* 配置映射模态框z-index */
+.mapping-modal-wrap {
+  z-index: 1001 !important;
+}
+
+.mapping-modal-wrap :deep(.ant-modal) {
+  z-index: 1001 !important;
+}
+
+/* 完全隐藏遮罩层 */
+.mapping-modal :deep(.ant-modal-mask),
+.guide-modal :deep(.ant-modal-mask),
+.mapping-modal-wrap :deep(.ant-modal-mask),
+.guide-modal-wrap :deep(.ant-modal-mask) {
+  display: none !important;
+}
+
+.mapping-modal :deep(.ant-modal-wrap),
+.guide-modal :deep(.ant-modal-wrap) {
+  position: static !important;
+  overflow: visible !important;
+  pointer-events: none;
+}
+
+.mapping-modal :deep(.ant-modal-wrap .ant-modal),
+.guide-modal :deep(.ant-modal-wrap .ant-modal) {
+  pointer-events: auto;
+}
+
+/* 模态框内容样式 */
+.modal-content {
   max-height: 70vh;
   overflow-y: auto;
 }
 
+/* 映射配置样式 */
+.mapping-config-section {
+  margin-top: 16px;
+}
+
+.mapping-config-section h4 {
+  margin: 16px 0 12px 0;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.mapping-header {
+  background: #fafafa;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  border: 1px solid #e8e8e8;
+}
+
+.mapping-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+
+.mapping-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.mapping-item:hover {
+  background-color: #f9f9f9;
+}
+
+.mapping-item:last-child {
+  border-bottom: none;
+}
+
+.placeholder-info {
+  display: flex;
+  align-items: center;
+}
+
+.mapping-progress {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f6f8fa;
+  border-radius: 4px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+/* 配置指南样式 */
 .guide-card {
   height: 100%;
   border-radius: 8px;
@@ -1543,6 +1619,46 @@ onMounted(async () => {
   color: #333;
 }
 
+/* JOLT规范文件内容样式 */
+.jolt-spec-section {
+  margin-top: 16px;
+}
+
+.jolt-spec-section h4 {
+  margin-bottom: 12px;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.jolt-spec-content .code-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+}
+
+.jolt-spec-content .code-block {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: #fafafa;
+}
+
+.json-highlight {
+  background: #fafafa;
+  color: #333;
+}
+
+.no-jolt-spec {
+  padding: 20px;
+  text-align: center;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+}
+
+
+
 .structure-description ul {
   margin: 8px 0;
   padding-left: 20px;
@@ -1565,79 +1681,95 @@ onMounted(async () => {
   border-radius: 4px;
 }
 
-/* 确保配置指南模态框可以独立拖拽 */
-.config-guide-modal :deep(.ant-modal-content) {
-  position: relative;
-  cursor: move;
+.code-example,
+.transformation-info .code-block {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
-.config-guide-modal :deep(.ant-modal-header) {
-  cursor: move;
-  user-select: none;
+/* 表格样式优化 */
+:deep(.ant-table-thead > tr > th) {
+  background: rgba(250, 250, 250, 0.8);
+  font-weight: 600;
+}
+
+:deep(.ant-table-tbody > tr:hover > td) {
+  background: rgba(246, 255, 237, 0.8);
+}
+
+/* 按钮样式优化 */
+:deep(.ant-btn-link) {
+  padding: 2px 4px;
+  height: auto;
+  font-size: 12px;
 }
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
-  .mapping-container {
-    padding: 16px;
+  .mapping-page {
+    padding: 8px;
   }
 
-  .top-section {
-    padding: 16px;
+  .selection-card,
+  .list-card {
+    margin-bottom: 8px;
   }
 
-  .modal-mapping-content {
-    max-height: 400px;
-  }
-
-  .config-guide-modal :deep(.ant-modal) {
-    width: 95vw !important;
-    max-width: none;
-  }
-
-  .guide-content {
-    max-height: 60vh;
-  }
-
-  /* 小屏幕下表格列宽调整 */
-  :deep(.ant-table-thead > tr > th) {
-    padding: 8px 4px;
-    font-size: 12px;
-  }
-
-  :deep(.ant-table-tbody > tr > td) {
-    padding: 8px 4px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 768px) {
-  .top-section {
-    padding: 12px;
-    margin-bottom: 16px;
-  }
-
-  .config-guide-modal :deep(.ant-modal) {
-    width: 98vw !important;
-    margin: 10px auto;
-  }
-
-  .guide-content {
+  .modal-content {
     max-height: 50vh;
+  }
+
+  /* 浮动窗口响应式 */
+  .mapping-floating-window {
+    width: 95vw;
+    max-width: 900px;
+  }
+
+  .guide-floating-window {
+    width: 95vw;
+    max-width: 800px;
+  }
+
+  .guide-panels {
+    flex-direction: column;
+    gap: 12px;
   }
 
   .code-block {
     font-size: 10px;
+    max-height: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mapping-floating-window,
+  .guide-floating-window {
+    width: 98vw;
+    max-height: 90vh;
   }
 
-  /* 移动端表格优化 */
-  :deep(.ant-table) {
-    font-size: 11px;
+  .window-header {
+    padding: 8px 12px;
   }
 
-  :deep(.ant-btn) {
-    padding: 2px 6px;
-    font-size: 11px;
+  .title-text {
+    font-size: 12px;
+  }
+
+  .panel-content {
+    padding: 12px;
+  }
+
+  .code-block {
+    font-size: 9px;
+    padding: 8px;
   }
 }
 </style>
