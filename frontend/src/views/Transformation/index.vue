@@ -191,6 +191,22 @@
                         <a-tag v-if="transformationStore.stage2Output" color="purple" size="small">
                           转换完成
                         </a-tag>
+                        <!-- 数据来源标识 -->
+                        <a-tag
+                          v-if="transformationStore.dataSourceType"
+                          :color="transformationStore.dataSourceType === 'VIRTUAL_DATABASE' ? 'green' : 'orange'"
+                          size="small"
+                        >
+                          {{ transformationStore.dataSourceType === 'VIRTUAL_DATABASE' ? '虚拟数据库' : '默认值' }}
+                        </a-tag>
+                        <!-- 映射覆盖率 -->
+                        <a-tag
+                          v-if="transformationStore.mappingCoverage > 0"
+                          :color="transformationStore.mappingCoverage === 100 ? 'green' : 'blue'"
+                          size="small"
+                        >
+                          映射率: {{ transformationStore.mappingCoverage }}%
+                        </a-tag>
                         <a-button
                           type="link"
                           size="small"
@@ -215,6 +231,16 @@
                         :disabled="!transformationStore.stage2Output"
                       >
                         复制数据
+                      </a-button>
+                      <!-- 映射配置提示 -->
+                      <a-button
+                        v-if="transformationStore.dataSourceType === 'DEFAULT_VALUES' || transformationStore.mappingCoverage < 100"
+                        size="small"
+                        type="primary"
+                        @click="goToMappingConfig"
+                      >
+                        <SettingOutlined />
+                        配置映射
                       </a-button>
                     </div>
                   </div>
@@ -527,15 +553,18 @@ import {
     LineChartOutlined,
     PieChartOutlined,
     RadarChartOutlined,
-    ReloadOutlined
+    ReloadOutlined,
+    SettingOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import * as echarts from 'echarts'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
+import { useRouter } from 'vue-router'
 
 const transformationStore = useTransformationStore()
+const router = useRouter()
 
 // 版本信息
 const currentVersion = ref(new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14))
@@ -839,6 +868,17 @@ const showDataComparison = () => {
   console.log('- 最终结果:', !!transformationStore.finalResult)
 
   dataComparisonVisible.value = true
+}
+
+// 跳转到映射配置页面
+const goToMappingConfig = () => {
+  console.log('🔗 [映射配置] 跳转到映射管理页面')
+
+  // 提示用户
+  message.info('正在跳转到映射配置页面...')
+
+  // 使用Vue Router跳转
+  router.push('/mapping')
 }
 
 // 执行转换功能

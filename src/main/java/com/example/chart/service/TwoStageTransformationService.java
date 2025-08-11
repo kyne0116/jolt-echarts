@@ -52,6 +52,8 @@ public class TwoStageTransformationService {
         private Set<String> placeholders;
         private Map<String, Object> queryResults;
         private String usedJoltSpec; // 新增：记录使用的Jolt规范文件名
+        private String dataSourceType; // 新增：数据来源类型
+        private int mappingCoverage; // 新增：映射覆盖率
 
         public TransformationResult(boolean success, String message, Object result) {
             this.success = success;
@@ -106,6 +108,22 @@ public class TwoStageTransformationService {
 
         public void setUsedJoltSpec(String usedJoltSpec) {
             this.usedJoltSpec = usedJoltSpec;
+        }
+
+        public String getDataSourceType() {
+            return dataSourceType;
+        }
+
+        public void setDataSourceType(String dataSourceType) {
+            this.dataSourceType = dataSourceType;
+        }
+
+        public int getMappingCoverage() {
+            return mappingCoverage;
+        }
+
+        public void setMappingCoverage(int mappingCoverage) {
+            this.mappingCoverage = mappingCoverage;
         }
     }
 
@@ -206,21 +224,34 @@ public class TwoStageTransformationService {
 
             // 优先尝试使用新的映射管理器
             try {
+                System.out.println("🔄 [两阶段转换] 尝试使用映射管理器进行数据回填...");
                 PlaceholderMappingManager.MappingResult mappingResult = mappingManager.executeMapping(chartId,
                         echartsTemplate);
 
                 if (mappingResult.isSuccess()) {
-                    System.out.println("✅ 使用映射管理器成功执行数据回填");
+                    System.out.println("✅ [两阶段转换] 映射管理器数据回填成功");
                     Object finalResult = mappingResult.getData().get("result");
+                    Map<String, Object> mappedData = (Map<String, Object>) mappingResult.getData().get("mappedData");
 
-                    TransformationResult result = new TransformationResult(true, "第二阶段转换成功（使用映射管理器）", finalResult);
-                    result.setQueryResults((Map<String, Object>) mappingResult.getData().get("mappedData"));
+                    // 验证数据来源
+                    boolean hasRealData = validateDataSource(mappedData);
+                    String dataSourceInfo = hasRealData ? "虚拟数据库" : "默认值";
+
+                    TransformationResult result = new TransformationResult(true,
+                            String.format("第二阶段转换成功（数据来源：%s）", dataSourceInfo), finalResult);
+                    result.setQueryResults(mappedData);
+                    result.setDataSourceType(hasRealData ? "VIRTUAL_DATABASE" : "DEFAULT_VALUES");
+                    result.setMappingCoverage(
+                            calculateMappingCoverage(placeholders, mappingResult.getUnmappedPlaceholders()));
+
+                    System.out.println("📊 [两阶段转换] 数据来源: " + dataSourceInfo +
+                            ", 映射覆盖率: " + result.getMappingCoverage() + "%");
                     return result;
                 } else {
-                    System.out.println("⚠️ 映射管理器执行失败，回退到传统方式: " + mappingResult.getMessage());
+                    System.out.println("⚠️ [两阶段转换] 映射管理器执行失败，回退到传统方式: " + mappingResult.getMessage());
                 }
             } catch (Exception e) {
-                System.out.println("⚠️ 映射管理器异常，回退到传统方式: " + e.getMessage());
+                System.out.println("⚠️ [两阶段转换] 映射管理器异常，回退到传统方式: " + e.getMessage());
             }
 
             // 回退到传统的映射服务和注册表
@@ -376,7 +407,8 @@ public class TwoStageTransformationService {
 
         // 部分实现的图表类型 - 使用新创建的JOLT SPEC文件
         chartToSpecMapping.put("basic_pie_chart", "pie-chart-placeholder.json");
-        chartToSpecMapping.put("doughnut_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("ring_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("nested_pie_chart", "pie-chart-placeholder.json");
         chartToSpecMapping.put("basic_radar_chart", "radar-chart-placeholder.json");
         chartToSpecMapping.put("filled_radar_chart", "radar-chart-placeholder.json");
         chartToSpecMapping.put("basic_gauge_chart", "gauge-chart-placeholder.json");
@@ -426,5 +458,53 @@ public class TwoStageTransformationService {
         info.put("mappingComplete", missingMappings.isEmpty());
 
         return info;
+    }
+
+    /**
+     * 验证数据来源是否为真实数据
+     */
+    private boolean validateDataSource(Map<String, Object> mappedData) {
+        if (mappedData == null || mappedData.isEmpty()) {
+            return false;
+        }
+
+        // 检查是否包含来自虚拟数据库的真实数据
+        for (Map.Entry<String, Object> entry : mappedData.entrySet()) {
+            Object value = entry.getValue();
+
+            // 检查是否为非空且非默认值
+            if (value != null && !value.toString().isEmpty() &&
+                    !value.toString().equals("null") &&
+                    !value.toString().equals("默认值") &&
+                    !value.toString().equals("default")) {
+
+                // 如果是数组或列表，检查是否包含真实数据
+                if (value instanceof List) {
+                    List<?> list = (List<?>) value;
+                    if (!list.isEmpty() && list.get(0) != null) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 计算映射覆盖率
+     */
+    private int calculateMappingCoverage(Set<String> totalPlaceholders, List<String> unmappedPlaceholders) {
+        if (totalPlaceholders == null || totalPlaceholders.isEmpty()) {
+            return 100;
+        }
+
+        int totalCount = totalPlaceholders.size();
+        int unmappedCount = unmappedPlaceholders != null ? unmappedPlaceholders.size() : 0;
+        int mappedCount = totalCount - unmappedCount;
+
+        return Math.round((float) mappedCount / totalCount * 100);
     }
 }

@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
         name: "Mapping",
         component: () => import("@/views/Mapping/index.vue"),
         meta: {
-          title: "占位符映射管理",
+          title: "数据映射管理",
           icon: "LinkOutlined",
           description: "核心功能：智能映射配置与实时预览",
           featured: true,
@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
         name: "VirtualDatabase",
         component: () => import("@/views/VirtualDatabase/index.vue"),
         meta: {
-          title: "虚拟数据库",
+          title: "数据管理",
           icon: "DatabaseOutlined",
           description: "统一数据源管理与CRUD操作",
         },
@@ -44,7 +44,7 @@ const routes: RouteRecordRaw[] = [
         name: "Transformation",
         component: () => import("@/views/Transformation/index.vue"),
         meta: {
-          title: "两阶段转换",
+          title: "图表转换预览",
           icon: "SwapOutlined",
           description: "结构转换与数据回填演示",
         },

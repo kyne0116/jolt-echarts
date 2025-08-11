@@ -35,23 +35,19 @@
             <LinkOutlined />
           </template>
           <span class="menu-title">
-            占位符映射管理
+            数据映射管理
             <a-tag color="gold" size="small" class="feature-tag">核心</a-tag>
           </span>
         </a-menu-item>
 
-        <a-menu-item key="/virtual-database">
-          <template #icon>
-            <DatabaseOutlined />
-          </template>
-          <span class="menu-title">虚拟数据库</span>
-        </a-menu-item>
-
-        <a-menu-item key="/transformation">
+        <a-menu-item key="/transformation" class="featured-menu-item">
           <template #icon>
             <SwapOutlined />
           </template>
-          <span class="menu-title">两阶段转换</span>
+          <span class="menu-title">
+            图表转换预览
+            <a-tag color="gold" size="small" class="feature-tag">核心</a-tag>
+          </span>
         </a-menu-item>
 
         <a-menu-item key="/template">
@@ -59,6 +55,13 @@
             <FileTextOutlined />
           </template>
           <span class="menu-title">模板管理</span>
+        </a-menu-item>
+
+        <a-menu-item key="/virtual-database">
+          <template #icon>
+            <DatabaseOutlined />
+          </template>
+          <span class="menu-title">数据管理</span>
         </a-menu-item>
       </a-menu>
     </a-layout-sider>

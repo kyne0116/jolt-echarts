@@ -317,9 +317,10 @@ public class MappingRelationshipService {
 
         // PIE类型图表
         chartMappings.put("basic_pie_chart", universalMappings);
-        chartMappings.put("doughnut_chart", universalMappings);
         chartMappings.put("rose_chart", universalMappings);
         chartMappings.put("pie_chart", universalMappings); // 兼容版本
+        chartMappings.put("ring_chart", universalMappings); // 环形图
+        chartMappings.put("nested_pie_chart", universalMappings); // 嵌套饼图
 
         // RADAR类型图表
         chartMappings.put("basic_radar_chart", universalMappings);

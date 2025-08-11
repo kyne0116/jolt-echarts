@@ -566,15 +566,24 @@ const loadMappingTemplates = async () => {
     const response = await fetch('/api/chart/dynamic-mapping/templates')
     const result = await response.json()
 
-    if (result.success) {
-      mappingTemplates.value = Object.values(result.data.templates)
+    if (result.success && result.data && result.data.templates) {
+      mappingTemplates.value = Object.values(result.data.templates).map((template: any) => ({
+        templateId: template.id,
+        templateName: template.name,
+        description: template.description,
+        category: template.category,
+        mappingCount: template.rules ? template.rules.length : 0,
+        usageCount: Math.floor(Math.random() * 50), // 模拟使用次数
+        systemTemplate: true,
+        rules: template.rules || []
+      }))
       console.log('✅ [映射配置] 加载映射模板成功:', mappingTemplates.value.length)
     } else {
-      message.error('加载映射模板失败: ' + result.message)
+      message.error('加载映射模板失败: ' + (result.message || '数据格式错误'))
     }
   } catch (error) {
     console.error('❌ [映射配置] 加载映射模板失败:', error)
-    message.error('加载映射模板失败')
+    message.error('加载映射模板失败: ' + (error.message || '网络错误'))
   } finally {
     templateLoading.value = false
   }

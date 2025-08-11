@@ -243,12 +243,6 @@ export const placeholderMappingApi = {
   getMappings: (chartId: string) =>
     request.get(`/chart/placeholder-mapping/${chartId}/mappings`).then(unwrap),
 
-  // 执行映射并预览结果
-  previewMapping: (chartId: string, requestBody?: any) =>
-    request
-      .post(`/chart/placeholder-mapping/${chartId}/preview`, requestBody || {})
-      .then(unwrap),
-
   // 获取可用的数据库字段列表
   getAvailableFields: () =>
     request.get("/chart/placeholder-mapping/available-fields").then(unwrap),
@@ -257,6 +251,30 @@ export const placeholderMappingApi = {
   deleteMappings: (chartId: string) =>
     request
       .delete(`/chart/placeholder-mapping/${chartId}/mappings`)
+      .then(unwrap),
+
+  // 获取所有映射配置列表
+  getAllMappings: () =>
+    request.get("/chart/placeholder-mapping/list").then(unwrap),
+
+  // 复制映射配置
+  copyMappings: (sourceChartId: string, targetChartId: string) =>
+    request
+      .post(`/chart/placeholder-mapping/${sourceChartId}/copy/${targetChartId}`)
+      .then(unwrap),
+
+  // 批量删除映射配置
+  batchDeleteMappings: (chartIds: string[]) =>
+    request
+      .delete("/chart/placeholder-mapping/batch", { data: { chartIds } })
+      .then(unwrap),
+
+  // 智能推荐映射配置
+  generateDefaultMappings: (chartId: string, placeholders: string[]) =>
+    request
+      .post(`/chart/placeholder-mapping/${chartId}/generate-defaults`, {
+        placeholders,
+      })
       .then(unwrap),
 };
 
@@ -284,6 +302,56 @@ export const chartConfigApi = {
   // 获取图表测试数据
   getTestData: (chartType: string) =>
     request.get(`/chart/config/test-data/${chartType}`).then(unwrap),
+};
+
+// 模板管理API
+export const templateApi = {
+  // 获取所有模板列表
+  list: () => request.get("/templates").then(unwrap),
+
+  // 根据chartId获取模板
+  getByChartId: (chartId: string) =>
+    request.get(`/templates/${chartId}`).then(unwrap),
+
+  // 创建新模板
+  create: (template: any) =>
+    request.post("/templates", template).then(unwrap),
+
+  // 更新模板
+  update: (chartId: string, template: any) =>
+    request.put(`/templates/${chartId}`, template).then(unwrap),
+
+  // 删除模板
+  delete: (chartId: string) =>
+    request.delete(`/templates/${chartId}`).then(unwrap),
+
+  // 获取支持的图表类型
+  getSupportedChartTypes: () =>
+    request.get("/chart/config/chart-types").then(unwrap),
+
+  // 获取模板分类信息
+  getTemplateCategories: () =>
+    request.get("/chart/config/template-categories").then(unwrap),
+
+  // 从JOLT文件导入模板
+  importFromJolt: (chartId: string) =>
+    request.post(`/templates/import-jolt/${chartId}`).then(unwrap),
+
+  // 从ECharts示例导入模板
+  importFromExample: (chartId: string) =>
+    request.post(`/templates/import-example/${chartId}`).then(unwrap),
+
+  // 导出模板为JSON
+  exportTemplate: (chartId: string) =>
+    request.get(`/templates/${chartId}/export`).then(unwrap),
+
+  // 验证模板格式
+  validateTemplate: (template: any) =>
+    request.post("/templates/validate", template).then(unwrap),
+
+  // 提取占位符
+  extractPlaceholders: (template: any) =>
+    request.post("/templates/extract-placeholders", template).then(unwrap),
 };
 
 export default api;

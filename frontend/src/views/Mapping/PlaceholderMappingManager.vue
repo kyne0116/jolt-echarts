@@ -296,16 +296,17 @@
 </template>
 
 <script setup lang="ts">
+import { placeholderMappingApi } from '@/api'
 import {
-  BulbOutlined,
-  CheckCircleOutlined,
-  DeleteOutlined,
-  ExclamationCircleOutlined,
-  EyeOutlined,
-  PlayCircleOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  SaveOutlined
+    BulbOutlined,
+    CheckCircleOutlined,
+    DeleteOutlined,
+    ExclamationCircleOutlined,
+    EyeOutlined,
+    PlayCircleOutlined,
+    PlusOutlined,
+    ReloadOutlined,
+    SaveOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -378,12 +379,11 @@ watch(selectedChartId, (newChartId) => {
 // 加载可用字段
 const loadAvailableFields = async () => {
   try {
-    const response = await fetch('/api/chart/placeholder-mapping/available-fields')
-    const result = await response.json()
-    
-    if (result.success) {
-      availableFields.value = result.data.fields
-      
+    const result = await placeholderMappingApi.getAvailableFields()
+
+    if (result && result.fields) {
+      availableFields.value = result.fields
+
       // 按组分类字段
       const groups = availableFields.value.reduce((acc, field) => {
         const group = acc.find(g => g.name === field.group)
@@ -394,15 +394,15 @@ const loadAvailableFields = async () => {
         }
         return acc
       }, [] as any[])
-      
+
       groupedFields.value = groups
       console.log('✅ [映射管理] 加载可用字段成功:', availableFields.value.length)
     } else {
-      message.error('加载可用字段失败: ' + result.message)
+      message.error('加载可用字段失败: 数据格式错误')
     }
   } catch (error) {
     console.error('❌ [映射管理] 加载可用字段失败:', error)
-    message.error('加载可用字段失败')
+    message.error('加载可用字段失败: ' + (error.message || '网络错误'))
   }
 }
 
@@ -425,21 +425,20 @@ const onChartChange = async (chartId: string) => {
 // 刷新占位符
 const refreshPlaceholders = async () => {
   if (!selectedChartId.value) return
-  
+
   placeholderLoading.value = true
   try {
-    const response = await fetch(`/api/chart/placeholder-mapping/${selectedChartId.value}/placeholders`)
-    const result = await response.json()
-    
-    if (result.success) {
-      placeholders.value = result.data.placeholders || []
+    const result = await placeholderMappingApi.getPlaceholders(selectedChartId.value)
+
+    if (result && result.placeholders) {
+      placeholders.value = result.placeholders || []
       console.log('✅ [映射管理] 加载占位符成功:', placeholders.value.length)
     } else {
-      message.error('加载占位符失败: ' + result.message)
+      message.error('加载占位符失败: 数据格式错误')
     }
   } catch (error) {
     console.error('❌ [映射管理] 加载占位符失败:', error)
-    message.error('加载占位符失败')
+    message.error('加载占位符失败: ' + (error.message || '网络错误'))
   } finally {
     placeholderLoading.value = false
   }
@@ -448,11 +447,10 @@ const refreshPlaceholders = async () => {
 // 加载现有映射配置
 const loadExistingMappings = async (chartId: string) => {
   try {
-    const response = await fetch(`/api/chart/placeholder-mapping/${chartId}/mappings`)
-    const result = await response.json()
-    
-    if (result.success && result.data.hasConfig) {
-      mappings.value = result.data.mappings || {}
+    const result = await placeholderMappingApi.getMappings(chartId)
+
+    if (result && result.hasConfig) {
+      mappings.value = result.mappings || {}
       console.log('✅ [映射管理] 加载现有映射配置:', Object.keys(mappings.value).length)
     }
   } catch (error) {
@@ -552,30 +550,20 @@ const saveAllMappings = async () => {
     message.warning('请先选择图表类型')
     return
   }
-  
+
   savingMappings.value = true
   try {
-    const response = await fetch(`/api/chart/placeholder-mapping/${selectedChartId.value}/mappings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        mappings: mappings.value
-      })
-    })
-    
-    const result = await response.json()
-    
-    if (result.success) {
+    const result = await placeholderMappingApi.configureMappings(selectedChartId.value, mappings.value)
+
+    if (result && result.success) {
       hasUnsavedChanges.value = false
       message.success('映射配置保存成功')
     } else {
-      message.error('保存失败: ' + result.message)
+      message.error('保存失败: ' + (result?.message || '未知错误'))
     }
   } catch (error) {
     console.error('❌ [映射管理] 保存映射配置失败:', error)
-    message.error('保存映射配置失败')
+    message.error('保存映射配置失败: ' + (error.message || '网络错误'))
   } finally {
     savingMappings.value = false
   }
@@ -634,28 +622,20 @@ const previewMapping = async () => {
     message.warning('请先选择图表类型')
     return
   }
-  
+
   previewLoading.value = true
   try {
-    const response = await fetch(`/api/chart/placeholder-mapping/${selectedChartId.value}/preview`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({})
-    })
-    
-    const result = await response.json()
-    
-    if (result.success) {
-      previewResult.value = result.data
+    const result = await placeholderMappingApi.previewMapping(selectedChartId.value, {})
+
+    if (result) {
+      previewResult.value = result
       message.success('预览生成成功')
     } else {
-      message.error('预览失败: ' + result.message)
+      message.error('预览失败: 数据格式错误')
     }
   } catch (error) {
     console.error('❌ [映射管理] 预览映射失败:', error)
-    message.error('预览映射失败')
+    message.error('预览映射失败: ' + (error.message || '网络错误'))
   } finally {
     previewLoading.value = false
   }

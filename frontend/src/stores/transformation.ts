@@ -42,6 +42,11 @@ export const useTransformationStore = defineStore("transformation", () => {
   const error = ref<string | null>(null);
   const executionTime = ref(0);
 
+  // 新增：数据来源和映射信息
+  const dataSourceType = ref<string>("");
+  const mappingCoverage = ref<number>(0);
+  const queryResults = ref<Record<string, any> | null>(null);
+
   // 计算属性
   const currentStep = computed(() => {
     const runningStep = steps.value.find((step) => step.status === "running");
@@ -83,6 +88,12 @@ export const useTransformationStore = defineStore("transformation", () => {
     finalResult.value = null;
     error.value = null;
     executionTime.value = 0;
+
+    // 重置新增的状态
+    dataSourceType.value = "";
+    mappingCoverage.value = 0;
+    queryResults.value = null;
+
     console.log("✅ 状态重置完成");
   };
 
@@ -145,12 +156,30 @@ export const useTransformationStore = defineStore("transformation", () => {
         stage1Output.value
       );
       console.log("⚡ 第二阶段响应:", stage2Response);
+
       // 兼容不同的响应字段名
       stage2Output.value =
         stage2Response.finalEChartsConfig ||
         stage2Response.result ||
         stage2Response;
       console.log("⚡ 第二阶段输出:", stage2Output.value);
+
+      // 提取数据来源和映射信息
+      if (stage2Response.dataSourceType) {
+        dataSourceType.value = stage2Response.dataSourceType;
+        console.log("📊 数据来源类型:", dataSourceType.value);
+      }
+
+      if (stage2Response.mappingCoverage !== undefined) {
+        mappingCoverage.value = stage2Response.mappingCoverage;
+        console.log("📈 映射覆盖率:", mappingCoverage.value + "%");
+      }
+
+      if (stage2Response.queryResults) {
+        queryResults.value = stage2Response.queryResults;
+        console.log("🔍 查询结果:", Object.keys(queryResults.value));
+      }
+
       updateStepStatus("stage2", "completed", stage2Response);
 
       // 步骤4: 完成
@@ -235,6 +264,11 @@ export const useTransformationStore = defineStore("transformation", () => {
     loading,
     error,
     executionTime,
+
+    // 新增状态
+    dataSourceType,
+    mappingCoverage,
+    queryResults,
 
     // 计算属性
     currentStep,

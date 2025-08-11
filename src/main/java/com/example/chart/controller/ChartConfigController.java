@@ -1,5 +1,6 @@
 package com.example.chart.controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +50,8 @@ public class ChartConfigController {
                 pathToChartId.put("柱状图/基础柱状图.json", "basic_bar_chart");
                 pathToChartId.put("柱状图/堆叠柱状图.json", "stacked_bar_chart");
                 pathToChartId.put("饼图/富文本标签.json", "basic_pie_chart");
-                pathToChartId.put("饼图/圆角环形图.json", "doughnut_chart");
+                pathToChartId.put("饼图/圆角环形图.json", "ring_chart");
+                pathToChartId.put("饼图/嵌套饼图.json", "nested_pie_chart");
                 pathToChartId.put("雷达图/基础雷达图.json", "basic_radar_chart");
                 pathToChartId.put("仪表盘/基础仪表盘.json", "basic_gauge_chart");
                 pathToChartId.put("仪表盘/进度仪表盘.json", "progress_gauge_chart");
@@ -65,7 +67,7 @@ public class ChartConfigController {
                 Map<String, List<String>> categories = new HashMap<>();
                 categories.put("折线图", Arrays.asList("basic_line_chart", "smooth_line_chart", "stacked_line_chart"));
                 categories.put("柱状图", Arrays.asList("basic_bar_chart", "stacked_bar_chart"));
-                categories.put("饼图", Arrays.asList("basic_pie_chart", "doughnut_chart"));
+                categories.put("饼图", Arrays.asList("basic_pie_chart", "ring_chart", "nested_pie_chart"));
                 categories.put("雷达图", Arrays.asList("basic_radar_chart"));
                 categories.put("仪表盘", Arrays.asList("basic_gauge_chart", "progress_gauge_chart", "grade_gauge_chart"));
 
@@ -130,7 +132,8 @@ public class ChartConfigController {
                                 config.put("description", "基础饼图：圆形饼状图");
                                 break;
 
-                        case "doughnut_chart":
+                        case "ring_chart":
+                        case "nested_pie_chart":
                                 config.put("radius", Arrays.asList("40%", "70%"));
                                 config.put("center", Arrays.asList("50%", "50%"));
                                 config.put("description", "圆环图：中空的环形饼图");
@@ -202,7 +205,8 @@ public class ChartConfigController {
                 rules.put("smooth_line_chart", smoothRules);
                 rules.put("basic_line_chart", basicRules);
                 rules.put("basic_pie_chart", pieRules);
-                rules.put("doughnut_chart", doughnutRules);
+                rules.put("ring_chart", doughnutRules);
+                rules.put("nested_pie_chart", doughnutRules);
 
                 logger.info("✅ [配置接口] 返回预处理规则");
                 return ResponseEntity.ok(ApiResponse.ok(rules));
@@ -222,7 +226,8 @@ public class ChartConfigController {
                 pathToChartId.put("柱状图/基础柱状图.json", "basic_bar_chart");
                 pathToChartId.put("柱状图/堆叠柱状图.json", "stacked_bar_chart");
                 pathToChartId.put("饼图/富文本标签.json", "basic_pie_chart");
-                pathToChartId.put("饼图/圆角环形图.json", "doughnut_chart");
+                pathToChartId.put("饼图/圆角环形图.json", "ring_chart");
+                pathToChartId.put("饼图/嵌套饼图.json", "nested_pie_chart");
                 pathToChartId.put("雷达图/基础雷达图.json", "basic_radar_chart");
                 pathToChartId.put("仪表盘/基础仪表盘.json", "basic_gauge_chart");
                 pathToChartId.put("仪表盘/进度仪表盘.json", "progress_gauge_chart");
@@ -246,7 +251,8 @@ public class ChartConfigController {
                 pathToChartId.put("柱状图/基础柱状图.json", "basic_bar_chart");
                 pathToChartId.put("柱状图/堆叠柱状图.json", "stacked_bar_chart");
                 pathToChartId.put("饼图/富文本标签.json", "basic_pie_chart");
-                pathToChartId.put("饼图/圆角环形图.json", "doughnut_chart");
+                pathToChartId.put("饼图/圆角环形图.json", "ring_chart");
+                pathToChartId.put("饼图/嵌套饼图.json", "nested_pie_chart");
                 pathToChartId.put("雷达图/基础雷达图.json", "basic_radar_chart");
                 pathToChartId.put("仪表盘/基础仪表盘.json", "basic_gauge_chart");
                 pathToChartId.put("仪表盘/进度仪表盘.json", "progress_gauge_chart");
@@ -354,7 +360,8 @@ public class ChartConfigController {
                                                                                                 "搜索引擎")))));
                                 break;
 
-                        case "doughnut_chart":
+                        case "ring_chart":
+                        case "nested_pie_chart":
                                 // 圆环图测试数据 - 修复颜色图例问题
                                 testData.put("title", Map.of("text", "动态营销渠道分析"));
                                 testData.put("tooltip", Map.of(
@@ -496,5 +503,113 @@ public class ChartConfigController {
 
                 logger.info("✅ [配置接口] 返回图表 {} 的测试数据", chartType);
                 return ResponseEntity.ok(ApiResponse.ok(testData));
+        }
+        
+        /**
+         * 获取模板分类信息
+         */
+        @GetMapping("/template-categories")
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getTemplateCategories() {
+                logger.info("📋 [配置接口] 获取模板分类信息");
+                
+                Map<String, Object> categories = new HashMap<>();
+                
+                // 统计信息
+                Map<String, Object> stats = new HashMap<>();
+                stats.put("totalTypes", 14);
+                stats.put("completedTypes", 6);
+                stats.put("developmentTypes", 6);
+                stats.put("pendingTypes", 2);
+                
+                // 分类详细信息
+                List<Map<String, Object>> categoryDetails = new ArrayList<>();
+                
+                // CARTESIAN 类型详情
+                Map<String, Object> cartesian = new HashMap<>();
+                cartesian.put("type", "cartesian");
+                cartesian.put("name", "CARTESIAN (直角坐标系)");
+                cartesian.put("description", "折线图、柱状图、面积图等");
+                cartesian.put("total", 6);
+                cartesian.put("completed", 5);
+                cartesian.put("development", 0);
+                cartesian.put("pending", 1);
+                List<Map<String, Object>> cartesianCharts = Arrays.asList(
+                    createChartStatus("basic_line_chart", "基础折线图", "completed"),
+                    createChartStatus("smooth_line_chart", "平滑折线图", "completed"),
+                    createChartStatus("stacked_line_chart", "堆叠折线图", "completed"),
+                    createChartStatus("basic_bar_chart", "基础柱状图", "completed"),
+                    createChartStatus("stacked_bar_chart", "堆叠柱状图", "completed"),
+                    createChartStatus("basic_area_chart", "基础面积图", "pending")
+                );
+                cartesian.put("charts", cartesianCharts);
+                categoryDetails.add(cartesian);
+                
+                // PIE 类型详情
+                Map<String, Object> pie = new HashMap<>();
+                pie.put("type", "pie");
+                pie.put("name", "PIE (饼图类)");
+                pie.put("description", "饼图、环形图、玫瑰图等");
+                pie.put("total", 4);
+                pie.put("completed", 1);
+                pie.put("development", 2);
+                pie.put("pending", 1);
+                List<Map<String, Object>> pieCharts = Arrays.asList(
+                    createChartStatus("basic_pie_chart", "基础饼图", "development"),
+                    createChartStatus("doughnut_chart", "环形图", "development"),
+                    createChartStatus("rose_chart", "玫瑰图", "pending"),
+                    createChartStatus("pie_chart", "饼图(兼容)", "completed")
+                );
+                pie.put("charts", pieCharts);
+                categoryDetails.add(pie);
+                
+                // RADAR 类型详情
+                Map<String, Object> radar = new HashMap<>();
+                radar.put("type", "radar");
+                radar.put("name", "RADAR (雷达图类)");
+                radar.put("description", "雷达图、极坐标图等");
+                radar.put("total", 2);
+                radar.put("completed", 0);
+                radar.put("development", 1);
+                radar.put("pending", 1);
+                List<Map<String, Object>> radarCharts = Arrays.asList(
+                    createChartStatus("basic_radar_chart", "基础雷达图", "development"),
+                    createChartStatus("filled_radar_chart", "填充雷达图", "pending")
+                );
+                radar.put("charts", radarCharts);
+                categoryDetails.add(radar);
+                
+                // GAUGE 类型详情
+                Map<String, Object> gauge = new HashMap<>();
+                gauge.put("type", "gauge");
+                gauge.put("name", "GAUGE (仪表盘类)");
+                gauge.put("description", "仪表盘、进度条等");
+                gauge.put("total", 3);
+                gauge.put("completed", 0);
+                gauge.put("development", 3);
+                gauge.put("pending", 0);
+                List<Map<String, Object>> gaugeCharts = Arrays.asList(
+                    createChartStatus("basic_gauge_chart", "基础仪表盘", "development"),
+                    createChartStatus("progress_gauge_chart", "进度仪表盘", "development"),
+                    createChartStatus("grade_gauge_chart", "等级仪表盘", "development")
+                );
+                gauge.put("charts", gaugeCharts);
+                categoryDetails.add(gauge);
+                
+                categories.put("stats", stats);
+                categories.put("categories", categoryDetails);
+                
+                logger.info("✅ [配置接口] 返回模板分类信息");
+                return ResponseEntity.ok(ApiResponse.ok(categories));
+        }
+        
+        /**
+         * 创建图表状态信息
+         */
+        private Map<String, Object> createChartStatus(String id, String name, String status) {
+                Map<String, Object> chart = new HashMap<>();
+                chart.put("id", id);
+                chart.put("name", name);
+                chart.put("status", status);
+                return chart;
         }
 }

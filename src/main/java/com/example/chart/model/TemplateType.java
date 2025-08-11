@@ -103,7 +103,7 @@ public enum TemplateType {
                 };
             case PIE:
                 return new String[]{
-                    "basic_pie_chart", "doughnut_chart", "rose_chart"
+                    "basic_pie_chart", "ring_chart", "nested_pie_chart", "rose_chart"
                 };
             case RADAR:
                 return new String[]{

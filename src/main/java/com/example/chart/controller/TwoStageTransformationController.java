@@ -72,7 +72,8 @@ public class TwoStageTransformationController {
             chartTypeNames.put("basic_bar_chart", "基础柱状图");
             chartTypeNames.put("stacked_bar_chart", "堆叠柱状图");
             chartTypeNames.put("basic_pie_chart", "富文本标签");
-            chartTypeNames.put("doughnut_chart", "圆角环形图");
+            chartTypeNames.put("ring_chart", "环形图");
+            chartTypeNames.put("nested_pie_chart", "嵌套饼图");
             chartTypeNames.put("basic_radar_chart", "基础雷达图");
             chartTypeNames.put("basic_gauge_chart", "基础仪表盘");
             chartTypeNames.put("progress_gauge_chart", "进度仪表盘");
@@ -86,7 +87,8 @@ public class TwoStageTransformationController {
             chartCategories.put("basic_bar_chart", "柱状图");
             chartCategories.put("stacked_bar_chart", "柱状图");
             chartCategories.put("basic_pie_chart", "饼图");
-            chartCategories.put("doughnut_chart", "饼图");
+            chartCategories.put("ring_chart", "饼图");
+            chartCategories.put("nested_pie_chart", "饼图");
             chartCategories.put("basic_radar_chart", "雷达图");
             chartCategories.put("basic_gauge_chart", "仪表盘");
             chartCategories.put("progress_gauge_chart", "仪表盘");
@@ -528,7 +530,8 @@ public class TwoStageTransformationController {
         pathToIdMapping.put("柱状图/基础柱状图.json", "basic_bar_chart");
         pathToIdMapping.put("柱状图/堆叠柱状图.json", "stacked_bar_chart");
         pathToIdMapping.put("饼图/富文本标签.json", "basic_pie_chart");
-        pathToIdMapping.put("饼图/圆角环形图.json", "doughnut_chart");
+        pathToIdMapping.put("饼图/圆角环形图.json", "ring_chart");
+        pathToIdMapping.put("饼图/嵌套饼图.json", "nested_pie_chart");
         pathToIdMapping.put("雷达图/基础雷达图.json", "basic_radar_chart");
         pathToIdMapping.put("仪表盘/基础仪表盘.json", "basic_gauge_chart");
         pathToIdMapping.put("仪表盘/进度仪表盘.json", "progress_gauge_chart");
@@ -544,7 +547,7 @@ public class TwoStageTransformationController {
         java.util.Set<String> implementedCharts = java.util.Set.of(
             "stacked_line_chart", "basic_bar_chart", "stacked_bar_chart", 
             "basic_line_chart", "smooth_line_chart", "basic_pie_chart", 
-            "doughnut_chart", "basic_radar_chart", "basic_gauge_chart",
+            "ring_chart", "nested_pie_chart", "basic_radar_chart", "basic_gauge_chart",
             "progress_gauge_chart", "grade_gauge_chart"
         );
         
