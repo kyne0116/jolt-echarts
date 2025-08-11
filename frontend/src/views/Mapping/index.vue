@@ -40,7 +40,9 @@
           :pagination="paginationConfig"
           :loading="loading"
           size="small"
-          row-key="chartId"
+          row-key="instanceId"
+          :scroll="{ x: 1200 }"
+          class="compact-table"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'actions'">
@@ -430,7 +432,9 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 
 // 接口类型定义
 interface MappingRecord {
+  instanceId: number
   chartId: string
+  instanceName: string
   chartType: string
   chartName: string
   universalTemplate: string
@@ -504,15 +508,17 @@ const mappingProgress = computed(() => {
   return Math.round((mappedCount.value / placeholders.value.length) * 100)
 })
 
-// 表格列定义
+// 表格列定义 - 按要求重新排列列顺序，紧凑型样式
 const tableColumns = [
-  { title: '图表ID', dataIndex: 'chartId', key: 'chartId', width: 120 },
-  { title: '图表类型', dataIndex: 'chartType', key: 'chartType', width: 100 },
-  { title: '图表名称', dataIndex: 'chartName', key: 'chartName', width: 150 },
-  { title: '通用JSON模板', dataIndex: 'universalTemplate', key: 'universalTemplate', width: 180 },
-  { title: 'JOLT转换规范', dataIndex: 'joltSpecFile', key: 'joltSpecFile', width: 150 },
-  { title: '占位符数量', dataIndex: 'placeholderCount', key: 'placeholderCount', width: 100 },
-  { title: '操作', key: 'actions', width: 280, fixed: 'right' }
+  { title: '实例ID', dataIndex: 'instanceId', key: 'instanceId', width: 70, align: 'center' },
+  { title: '实例名称', dataIndex: 'instanceName', key: 'instanceName', width: 180, ellipsis: true },
+  { title: '通用JSON模板', dataIndex: 'universalTemplate', key: 'universalTemplate', width: 160, ellipsis: true },
+  { title: '图表类型', dataIndex: 'chartType', key: 'chartType', width: 80, align: 'center' },
+  { title: '图表名称', dataIndex: 'chartName', key: 'chartName', width: 130, ellipsis: true },
+  { title: '图表ID', dataIndex: 'chartId', key: 'chartId', width: 140, ellipsis: true },
+  { title: 'JOLT转换规范', dataIndex: 'joltSpecFile', key: 'joltSpecFile', width: 140, ellipsis: true },
+  { title: '占位符数量', dataIndex: 'placeholderCount', key: 'placeholderCount', width: 90, align: 'center' },
+  { title: '操作', key: 'actions', width: 260, fixed: 'right' }
 ]
 
 // 分页配置 - 与数据管理页面保持一致
@@ -2496,6 +2502,39 @@ body.dragging * {
 
   .panel-content {
     padding: 12px;
+  }
+
+  /* 紧凑型表格样式 */
+  .compact-table {
+    :deep(.ant-table-thead > tr > th) {
+      padding: 8px 12px !important;
+      font-size: 12px;
+      font-weight: 600;
+      background: #fafafa;
+      border-bottom: 1px solid #e8e8e8;
+    }
+
+    :deep(.ant-table-tbody > tr > td) {
+      padding: 6px 12px !important;
+      font-size: 12px;
+      line-height: 1.4;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    :deep(.ant-table-tbody > tr:hover > td) {
+      background: #f5f5f5;
+    }
+
+    :deep(.ant-btn-link) {
+      padding: 0 4px;
+      font-size: 12px;
+      height: auto;
+      line-height: 1.4;
+    }
+
+    :deep(.ant-space-item) {
+      margin-right: 4px !important;
+    }
   }
 
   .code-block {

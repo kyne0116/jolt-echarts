@@ -627,6 +627,7 @@ public class PlaceholderMappingManager {
         System.out.println("📊 [映射管理] 当前映射存储中的图表数量: " + mappingStore.size());
 
         List<Map<String, Object>> configList = new ArrayList<>();
+        int instanceId = 1; // 自增实例ID
 
         for (Map.Entry<String, Map<String, FieldMapping>> entry : mappingStore.entrySet()) {
             String chartId = entry.getKey();
@@ -648,8 +649,13 @@ public class PlaceholderMappingManager {
                     ", 规范: " + joltSpecFile +
                     ", 占位符数: " + placeholderCount);
 
+            // 生成实例名称
+            String instanceName = generateInstanceName(chartType, chartName);
+
             Map<String, Object> configInfo = new HashMap<>();
-            configInfo.put("chartId", chartId);
+            configInfo.put("instanceId", instanceId); // 使用自增数字作为实例ID
+            configInfo.put("chartId", chartId); // 保留原始chartId作为图表ID
+            configInfo.put("instanceName", instanceName);
             configInfo.put("chartType", chartType);
             configInfo.put("chartName", chartName);
             configInfo.put("universalTemplate", universalTemplate);
@@ -672,10 +678,95 @@ public class PlaceholderMappingManager {
             configInfo.put("mappingDetails", mappingDetails);
 
             configList.add(configInfo);
+            instanceId++; // 递增实例ID
         }
 
         System.out.println("✅ [映射管理] 映射配置列表生成完成，共 " + configList.size() + " 条记录");
         return configList;
+    }
+
+    /**
+     * 生成实例名称
+     * 根据图表类型和图表名称生成易于理解的业务描述名称
+     */
+    private String generateInstanceName(String chartType, String chartName) {
+        // 预定义的前三条数据样例
+        String[] predefinedNames = {
+                "2025年销售业绩排行",
+                "2024年销售渠道分布",
+                "2025年销售产品占比"
+        };
+
+        // 根据图表类型确定使用哪个预定义名称
+        int index = getInstanceIndex(chartType);
+        if (index < predefinedNames.length) {
+            return predefinedNames[index];
+        }
+
+        // 如果超出预定义范围，使用原有逻辑
+        int currentYear = java.time.LocalDate.now().getYear();
+        switch (chartType) {
+            case "折线图":
+                return currentYear + "年" + getBusinessContext(chartName) + "趋势分析";
+            case "柱状图":
+                return currentYear + "年" + getBusinessContext(chartName) + "对比分析";
+            case "饼图":
+                return currentYear + "年" + getBusinessContext(chartName) + "占比分析";
+            case "雷达图":
+                return currentYear + "年" + getBusinessContext(chartName) + "综合评估";
+            case "仪表盘":
+                return currentYear + "年" + getBusinessContext(chartName) + "指标监控";
+            default:
+                return currentYear + "年" + getBusinessContext(chartName) + "数据分析";
+        }
+    }
+
+    /**
+     * 根据图表类型获取实例索引，用于确定使用哪个预定义名称
+     */
+    private int getInstanceIndex(String chartType) {
+        switch (chartType) {
+            case "折线图":
+                return 0; // 2025年销售业绩排行
+            case "柱状图":
+                return 1; // 2024年销售渠道分布
+            case "饼图":
+                return 2; // 2025年销售产品占比
+            default:
+                return 3; // 超出预定义范围
+        }
+    }
+
+    /**
+     * 根据图表名称提取业务上下文
+     */
+    private String getBusinessContext(String chartName) {
+        if (chartName == null || chartName.isEmpty()) {
+            return "业务数据";
+        }
+
+        // 移除常见的图表类型后缀
+        String context = chartName
+                .replace("基础", "")
+                .replace("平滑", "")
+                .replace("堆叠", "")
+                .replace("富文本标签", "")
+                .replace("圆角环形", "")
+                .replace("进度", "")
+                .replace("等级", "")
+                .replace("折线图", "")
+                .replace("柱状图", "")
+                .replace("饼图", "")
+                .replace("雷达图", "")
+                .replace("仪表盘", "")
+                .trim();
+
+        // 如果处理后为空，使用默认值
+        if (context.isEmpty()) {
+            return "销售业绩";
+        }
+
+        return context;
     }
 
     /**
