@@ -398,25 +398,45 @@ public class TwoStageTransformationService {
     private String getJoltSpecFileByChartId(String chartId) {
         Map<String, String> chartToSpecMapping = new HashMap<>();
 
-        // 已实现的图表类型 (5种) - 有完整的JOLT SPEC文件
-        chartToSpecMapping.put("stacked_line_chart", "line-chart-stacked.json");
-        chartToSpecMapping.put("basic_bar_chart", "bar-chart-placeholder.json");
-        chartToSpecMapping.put("stacked_bar_chart", "bar-chart-placeholder.json");
+        // CARTESIAN (直角坐标系) - 折线图
         chartToSpecMapping.put("basic_line_chart", "line-chart-placeholder.json");
         chartToSpecMapping.put("smooth_line_chart", "line-chart-placeholder.json");
+        chartToSpecMapping.put("stacked_line_chart", "line-chart-stacked.json");
+        chartToSpecMapping.put("step_line_chart", "line-chart-placeholder.json");
+        
+        // CARTESIAN (直角坐标系) - 柱状图
+        chartToSpecMapping.put("basic_bar_chart", "bar-chart-placeholder.json");
+        chartToSpecMapping.put("stacked_bar_chart", "bar-chart-placeholder.json");
+        chartToSpecMapping.put("horizontal_bar_chart", "bar-chart-placeholder.json");
+        chartToSpecMapping.put("grouped_bar_chart", "bar-chart-placeholder.json");
+        
+        // CARTESIAN (直角坐标系) - 面积图
+        chartToSpecMapping.put("basic_area_chart", "area-chart-placeholder.json");
+        chartToSpecMapping.put("stacked_area_chart", "area-chart-placeholder.json");
+        
+        // CARTESIAN (直角坐标系) - 散点图
+        chartToSpecMapping.put("scatter_chart", "scatter-chart-placeholder.json");
+        chartToSpecMapping.put("bubble_chart", "scatter-chart-placeholder.json");
 
-        // 部分实现的图表类型 - 使用新创建的JOLT SPEC文件
+        // PIE (饼图类)
         chartToSpecMapping.put("basic_pie_chart", "pie-chart-placeholder.json");
-        chartToSpecMapping.put("ring_chart", "pie-chart-placeholder.json");
-        chartToSpecMapping.put("nested_pie_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("doughnut_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("rose_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("pie_chart", "pie-chart-placeholder.json");
+
+        // RADAR (雷达图类)
         chartToSpecMapping.put("basic_radar_chart", "radar-chart-placeholder.json");
         chartToSpecMapping.put("filled_radar_chart", "radar-chart-placeholder.json");
+        chartToSpecMapping.put("polar_chart", "radar-chart-placeholder.json");
+        chartToSpecMapping.put("radar_multiple_chart", "radar-chart-placeholder.json");
+
+        // GAUGE (仪表盘类)
         chartToSpecMapping.put("basic_gauge_chart", "gauge-chart-placeholder.json");
         chartToSpecMapping.put("progress_gauge_chart", "gauge-chart-placeholder.json");
         chartToSpecMapping.put("grade_gauge_chart", "gauge-chart-placeholder.json");
-
-        // 兼容版本
-        chartToSpecMapping.put("pie_chart", "pie-chart-placeholder.json");
+        chartToSpecMapping.put("speedometer_chart", "gauge-chart-placeholder.json");
+        chartToSpecMapping.put("thermometer_chart", "gauge-chart-placeholder.json");
+        chartToSpecMapping.put("ring_progress_chart", "gauge-chart-placeholder.json");
 
         String specFile = chartToSpecMapping.get(chartId);
         if (specFile == null) {

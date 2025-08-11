@@ -38,14 +38,13 @@ public class UniversalTemplateController {
     private static final String TEMPLATE_BASE_PATH = "src/main/resources/universal-templates/";
     private static final String CLASSPATH_TEMPLATE_BASE = "universal-templates/";
     
-    // 8个通用模板的映射关系
+    // 7个通用模板的映射关系
     private static final Map<String, String> TEMPLATE_MAPPINGS = new HashMap<String, String>() {{
         put("line-chart-template", "line-chart-template.json");
         put("bar-chart-template", "bar-chart-template.json");
         put("area-chart-template", "area-chart-template.json");
         put("scatter-chart-template", "scatter-chart-template.json");
         put("pie-chart-template", "pie-chart-template.json");
-        put("treemap-chart-template", "treemap-chart-template.json");
         put("radar-chart-template", "radar-chart-template.json");
         put("gauge-chart-template", "gauge-chart-template.json");
     }};
@@ -78,11 +77,6 @@ public class UniversalTemplateController {
         put("rose_chart", "pie-chart-template");
         put("pie_chart", "pie-chart-template");
         
-        // 层次图系列 -> treemap-chart-template
-        put("nested_pie_chart", "treemap-chart-template");
-        put("sunburst_chart", "treemap-chart-template");
-        put("treemap_chart", "treemap-chart-template");
-        put("funnel_chart", "treemap-chart-template");
         
         // 雷达图系列 -> radar-chart-template
         put("basic_radar_chart", "radar-chart-template");

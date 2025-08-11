@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h2>通用模板管理</h2>
-      <p class="page-description">管理8个通用模板文件，支持30种图表类型</p>
+      <p class="page-description">管理7个通用模板文件，支持26种图表类型</p>
     </div>
 
     <!-- 操作工具栏 -->
@@ -24,7 +24,6 @@
         >
           <a-select-option value="CARTESIAN">直角坐标系</a-select-option>
           <a-select-option value="PIE">饼图类</a-select-option>
-          <a-select-option value="TREE">层次图类</a-select-option>
           <a-select-option value="RADAR">雷达图类</a-select-option>
           <a-select-option value="GAUGE">仪表盘类</a-select-option>
         </a-select>
@@ -42,10 +41,10 @@
     <!-- 简单统计 -->
     <div class="stats-summary">
       <a-space>
-        <a-tag color="blue">总计: {{ stats.totalTemplates || 8 }}</a-tag>
+        <a-tag color="blue">总计: {{ stats.totalTemplates || 7 }}</a-tag>
         <a-tag color="green">可用: {{ stats.availableTemplates || 0 }}</a-tag>
         <a-tag color="red">缺失: {{ stats.missingTemplates || 0 }}</a-tag>
-        <a-tag color="purple">图表类型: {{ stats.totalSupportedChartTypes || 30 }}</a-tag>
+        <a-tag color="purple">图表类型: {{ stats.totalSupportedChartTypes || 26 }}</a-tag>
       </a-space>
     </div>
 
@@ -349,7 +348,6 @@ const getCategoryColor = (category: string) => {
   const colors: Record<string, string> = {
     'CARTESIAN': 'blue',
     'PIE': 'orange',
-    'TREE': 'purple',
     'RADAR': 'cyan',
     'GAUGE': 'magenta'
   }
@@ -360,7 +358,6 @@ const getCategoryName = (category: string) => {
   const names: Record<string, string> = {
     'CARTESIAN': '直角坐标系',
     'PIE': '饼图类',
-    'TREE': '层次图类',
     'RADAR': '雷达图类',
     'GAUGE': '仪表盘类'
   }

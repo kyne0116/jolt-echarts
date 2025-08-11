@@ -157,15 +157,24 @@
                         placeholder="选择字段"
                         size="small"
                         style="width: 100%"
+                        show-search
+                        :filter-option="(input, option) =>
+                          option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0"
                         @change="onMappingChange(placeholder)"
                       >
-                        <a-select-option
-                          v-for="field in availableFields"
-                          :key="field.name"
-                          :value="field.name"
+                        <a-select-opt-group
+                          v-for="group in groupedFields"
+                          :key="group.name"
+                          :label="group.name"
                         >
-                          {{ field.displayName }}
-                        </a-select-option>
+                          <a-select-option
+                            v-for="field in group.fields"
+                            :key="field.name"
+                            :value="field.name"
+                          >
+                            {{ field.label }} ({{ field.name }})
+                          </a-select-option>
+                        </a-select-opt-group>
                       </a-select>
                     </a-col>
                     <a-col :span="5">
@@ -548,6 +557,24 @@ const echartsDataTitle = computed(() => {
 const databaseViewTitle = computed(() => {
   const joltSpecFile = selectedRecord.value?.joltSpecFile || ''
   return joltSpecFile ? `数据库视图数据（${joltSpecFile}）` : '数据库视图数据'
+})
+
+// 字段分组计算属性
+const groupedFields = computed(() => {
+  const groups: Record<string, any[]> = {}
+
+  availableFields.value.forEach(field => {
+    const groupName = field.group || '其他'
+    if (!groups[groupName]) {
+      groups[groupName] = []
+    }
+    groups[groupName].push(field)
+  })
+
+  return Object.keys(groups).map(name => ({
+    name,
+    fields: groups[name]
+  }))
 })
 
 // 配置映射独立窗口样式

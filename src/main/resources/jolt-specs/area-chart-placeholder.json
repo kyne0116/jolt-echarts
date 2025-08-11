@@ -1,0 +1,114 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "chartMeta": {
+        "title": "title.text",
+        "subtitle": "title.subtext"
+      },
+      "axisConfig": {
+        "xAxis": {
+          "name": "xAxis.name",
+          "nameLocation": "xAxis.nameLocation",
+          "type": "xAxis.type",
+          "boundaryGap": "xAxis.boundaryGap"
+        },
+        "yAxis": {
+          "name": "yAxis.name", 
+          "nameLocation": "yAxis.nameLocation",
+          "type": "yAxis.type",
+          "min": "yAxis.min",
+          "max": "yAxis.max"
+        }
+      },
+      "dataStructure": {
+        "categories": "xAxis.data",
+        "series": {
+          "*": {
+            "values": "series[&1].data",
+            "seriesName": "series[&1].name",
+            "seriesType": "series[&1].type",
+            "stackGroup": "series[&1].stack",
+            "smoothStyle": "series[&1].smooth",
+            "areaStyle": {
+              "opacity": "series[&1].areaStyle.opacity",
+              "color": "series[&1].areaStyle.color",
+              "origin": "series[&1].areaStyle.origin"
+            },
+            "lineStyle": {
+              "width": "series[&1].lineStyle.width",
+              "type": "series[&1].lineStyle.type",
+              "color": "series[&1].lineStyle.color"
+            },
+            "symbolConfig": {
+              "symbol": "series[&1].symbol",
+              "symbolSize": "series[&1].symbolSize",
+              "showSymbol": "series[&1].showSymbol"
+            }
+          }
+        }
+      },
+      "styleConfig": {
+        "theme": "backgroundColor",
+        "colorPalette": "color",
+        "gridConfig": {
+          "left": "grid.left",
+          "right": "grid.right", 
+          "top": "grid.top",
+          "bottom": "grid.bottom"
+        }
+      }
+    }
+  },
+  {
+    "operation": "shift",
+    "spec": {
+      "*": "&",
+      "series": {
+        "*": {
+          "name": "legend.data[&1]",
+          "*": "series[&1].&"
+        }
+      }
+    }
+  },
+  {
+    "operation": "default",
+    "spec": {
+      "xAxis": {
+        "type": "category",
+        "boundaryGap": false
+      },
+      "yAxis": {
+        "type": "value"
+      },
+      "series": {
+        "*": {
+          "type": "line",
+          "areaStyle": {}
+        }
+      },
+      "tooltip": {
+        "trigger": "axis",
+        "axisPointer": {
+          "type": "cross",
+          "label": {
+            "backgroundColor": "#6a7985"
+          }
+        }
+      },
+      "legend": {
+        "type": "scroll",
+        "orient": "horizontal",
+        "left": "center",
+        "top": "bottom"
+      },
+      "grid": {
+        "left": "3%",
+        "right": "4%",
+        "bottom": "15%",
+        "containLabel": true
+      }
+    }
+  }
+]
