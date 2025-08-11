@@ -1,601 +1,542 @@
 <template>
-  <div class="template-file-management">
-    <!-- 页面头部 -->
+  <div class="template-management">
+    <!-- 页面标题 -->
     <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 class="page-title">
-            <DatabaseOutlined class="title-icon" />
-            模板文件管理
-          </h1>
-          <p class="page-subtitle">管理ECharts图表模板的JSON文件和JOLT转换规范文件</p>
-        </div>
-        <div class="header-actions">
-          <a-space size="middle">
-            <a-input-search
-              v-model:value="searchKeyword"
-              placeholder="搜索图表类型或名称"
-              style="width: 300px"
-              @search="handleSearch"
-            >
-              <template #enterButton>
-                <SearchOutlined />
-              </template>
-            </a-input-search>
-            <a-select
-              v-model:value="statusFilter"
-              placeholder="筛选状态"
-              style="width: 120px"
-              allowClear
-              @change="handleStatusFilter"
-            >
-              <a-select-option value="completed">完整实现</a-select-option>
-              <a-select-option value="development">开发中</a-select-option>
-              <a-select-option value="pending">待开发</a-select-option>
-            </a-select>
-            <a-select
-              v-model:value="categoryFilter"
-              placeholder="筛选分类"
-              style="width: 120px"
-              allowClear
-              @change="handleCategoryFilter"
-            >
-              <a-select-option value="CARTESIAN">直角坐标系</a-select-option>
-              <a-select-option value="PIE">饼图类</a-select-option>
-              <a-select-option value="RADAR">雷达图类</a-select-option>
-              <a-select-option value="GAUGE">仪表盘类</a-select-option>
-            </a-select>
-            <a-button @click="refreshData" :loading="loading">
-              <ReloadOutlined />
-              刷新
-            </a-button>
-          </a-space>
-        </div>
-      </div>
+      <h2>通用模板管理</h2>
+      <p class="page-description">管理8个通用模板文件，支持30种图表类型</p>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="stats-cards">
-      <a-row :gutter="16">
-        <a-col :span="6">
-          <a-card size="small">
-            <a-statistic 
-              title="图表类型总数" 
-              :value="stats.total" 
-              :value-style="{ color: '#1890ff' }"
-            >
-              <template #prefix>
-                <AppstoreOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-        <a-col :span="6">
-          <a-card size="small">
-            <a-statistic 
-              title="完整实现" 
-              :value="stats.completed" 
-              :value-style="{ color: '#52c41a' }"
-            >
-              <template #prefix>
-                <CheckCircleOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-        <a-col :span="6">
-          <a-card size="small">
-            <a-statistic 
-              title="开发中" 
-              :value="stats.development" 
-              :value-style="{ color: '#1890ff' }"
-            >
-              <template #prefix>
-                <ClockCircleOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-        <a-col :span="6">
-          <a-card size="small">
-            <a-statistic 
-              title="待开发" 
-              :value="stats.pending" 
-              :value-style="{ color: '#faad14' }"
-            >
-              <template #prefix>
-                <ExclamationCircleOutlined />
-              </template>
-            </a-statistic>
-          </a-card>
-        </a-col>
-      </a-row>
-    </div>
-
-    <!-- 数据表格 -->
-    <div class="table-container">
-      <a-card>
-        <a-table
-          :columns="columns"
-          :data-source="filteredData"
-          :pagination="pagination"
-          :loading="loading"
-          row-key="chartType"
-          size="middle"
-          :scroll="{ x: 1200 }"
+    <!-- 操作工具栏 -->
+    <div class="toolbar">
+      <a-space>
+        <a-input-search
+          v-model:value="searchKeyword"
+          placeholder="搜索模板"
+          style="width: 250px"
+          @search="handleSearch"
+        />
+        <a-select
+          v-model:value="categoryFilter"
+          placeholder="筛选分类"
+          style="width: 150px"
+          allowClear
+          @change="handleFilter"
         >
-          <!-- 图表类型列 -->
-          <template #chartType="{ record }">
-            <div class="chart-type-cell">
-              <a-tag :color="getCategoryColor(record.category)" size="small">
-                {{ record.category }}
-              </a-tag>
-              <div>
-                <div class="chart-name">{{ record.chartName }}</div>
-                <div class="chart-id">{{ record.chartType }}</div>
-              </div>
-            </div>
-          </template>
-
-          <!-- 实现状态列 -->
-          <template #status="{ record }">
-            <a-tag :color="getStatusColor(record.status)">
-              {{ getStatusText(record.status) }}
-            </a-tag>
-          </template>
-
-          <!-- JSON模板文件列 -->
-          <template #jsonTemplate="{ record }">
-            <div class="file-cell">
-              <div class="file-info">
-                <span class="file-name">{{ record.jsonTemplate?.fileName || '未设置' }}</span>
-                <div v-if="record.jsonTemplate?.exists" class="file-meta">
-                  <span class="file-size">{{ formatFileSize(record.jsonTemplate?.size) }}</span>
-                  <span class="file-time">{{ formatTime(record.jsonTemplate?.lastModified) }}</span>
-                </div>
-                <span v-else class="file-missing">文件不存在</span>
-              </div>
-              <div class="file-actions">
-                <a-space size="small">
-                  <a-tooltip title="上传文件">
-                    <a-upload
-                      :show-upload-list="false"
-                      :before-upload="(file) => handleJsonUpload(file, record.chartType)"
-                      accept=".json"
-                    >
-                      <a-button type="text" size="small">
-                        <UploadOutlined />
-                      </a-button>
-                    </a-upload>
-                  </a-tooltip>
-                  <a-tooltip title="下载文件">
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      :disabled="!record.jsonTemplate?.exists"
-                      @click="handleJsonDownload(record.chartType)"
-                    >
-                      <DownloadOutlined />
-                    </a-button>
-                  </a-tooltip>
-                  <a-tooltip title="预览内容">
-                    <a-button 
-                      type="text" 
-                      size="small"
-                      :disabled="!record.jsonTemplate?.exists"
-                      @click="handleJsonPreview(record.chartType)"
-                    >
-                      <EyeOutlined />
-                    </a-button>
-                  </a-tooltip>
-                  <a-popconfirm 
-                    title="确定删除此文件?" 
-                    @confirm="handleJsonDelete(record.chartType)"
-                  >
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      danger
-                      :disabled="!record.jsonTemplate?.exists"
-                    >
-                      <DeleteOutlined />
-                    </a-button>
-                  </a-popconfirm>
-                </a-space>
-              </div>
-            </div>
-          </template>
-
-          <!-- JOLT规范文件列 -->
-          <template #joltSpec="{ record }">
-            <div class="file-cell">
-              <div class="file-info">
-                <span class="file-name">{{ record.joltSpec?.fileName || '未设置' }}</span>
-                <div v-if="record.joltSpec?.exists" class="file-meta">
-                  <span class="file-size">{{ formatFileSize(record.joltSpec?.size) }}</span>
-                  <span class="file-time">{{ formatTime(record.joltSpec?.lastModified) }}</span>
-                </div>
-                <span v-else class="file-missing">文件不存在</span>
-              </div>
-              <div class="file-actions">
-                <a-space size="small">
-                  <a-tooltip title="上传文件">
-                    <a-upload
-                      :show-upload-list="false"
-                      :before-upload="(file) => handleJoltUpload(file, record.chartType)"
-                      accept=".json"
-                    >
-                      <a-button type="text" size="small">
-                        <UploadOutlined />
-                      </a-button>
-                    </a-upload>
-                  </a-tooltip>
-                  <a-tooltip title="下载文件">
-                    <a-button 
-                      type="text" 
-                      size="small"
-                      :disabled="!record.joltSpec?.exists"
-                      @click="handleJoltDownload(record.chartType)"
-                    >
-                      <DownloadOutlined />
-                    </a-button>
-                  </a-tooltip>
-                  <a-tooltip title="预览内容">
-                    <a-button 
-                      type="text" 
-                      size="small"
-                      :disabled="!record.joltSpec?.exists"
-                      @click="handleJoltPreview(record.chartType)"
-                    >
-                      <EyeOutlined />
-                    </a-button>
-                  </a-tooltip>
-                  <a-popconfirm 
-                    title="确定删除此文件?" 
-                    @confirm="handleJoltDelete(record.chartType)"
-                  >
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      danger
-                      :disabled="!record.joltSpec?.exists"
-                    >
-                      <DeleteOutlined />
-                    </a-button>
-                  </a-popconfirm>
-                </a-space>
-              </div>
-            </div>
-          </template>
-        </a-table>
-      </a-card>
+          <a-select-option value="CARTESIAN">直角坐标系</a-select-option>
+          <a-select-option value="PIE">饼图类</a-select-option>
+          <a-select-option value="TREE">层次图类</a-select-option>
+          <a-select-option value="RADAR">雷达图类</a-select-option>
+          <a-select-option value="GAUGE">仪表盘类</a-select-option>
+        </a-select>
+        <a-button @click="refreshData" :loading="loading">
+          <ReloadOutlined />
+          刷新
+        </a-button>
+        <a-button type="primary" @click="showUploadModal">
+          <UploadOutlined />
+          上传模板
+        </a-button>
+      </a-space>
     </div>
 
-    <!-- 文件预览模态框 -->
+    <!-- 简单统计 -->
+    <div class="stats-summary">
+      <a-space>
+        <a-tag color="blue">总计: {{ stats.totalTemplates || 8 }}</a-tag>
+        <a-tag color="green">可用: {{ stats.availableTemplates || 0 }}</a-tag>
+        <a-tag color="red">缺失: {{ stats.missingTemplates || 0 }}</a-tag>
+        <a-tag color="purple">图表类型: {{ stats.totalSupportedChartTypes || 30 }}</a-tag>
+      </a-space>
+    </div>
+
+    <!-- 主表格 -->
+    <div class="table-container">
+      <a-table
+        :columns="columns"
+        :data-source="filteredData"
+        :loading="loading"
+        :pagination="pagination"
+        row-key="templateKey"
+        size="middle"
+        bordered
+        :scroll="{ x: 1200 }"
+      >
+        <!-- 模板名称列 -->
+        <template #templateName="{ record }">
+          <div class="template-title">{{ record.templateName }}</div>
+        </template>
+
+        <!-- 模板键列 -->
+        <template #templateKey="{ record }">
+          <code class="template-key">{{ record.templateKey }}</code>
+        </template>
+
+        <!-- 文件名列 -->
+        <template #fileName="{ record }">
+          <code class="template-file">{{ record.fileName }}</code>
+        </template>
+
+        <!-- 分类列 -->
+        <template #category="{ record }">
+          <a-tag :color="getCategoryColor(record.templateCategory)">
+            {{ getCategoryName(record.templateCategory) }}
+          </a-tag>
+        </template>
+
+        <!-- 状态列 -->
+        <template #status="{ record }">
+          <a-tag v-if="record.fileExists" color="success">
+            <CheckOutlined />
+            可用
+          </a-tag>
+          <a-tag v-else color="error">
+            <CloseOutlined />
+            缺失
+          </a-tag>
+        </template>
+
+
+        <!-- 文件信息列 -->
+        <template #fileInfo="{ record }">
+          <div v-if="record.fileExists && record.fileInfo">
+            <div class="file-size">{{ formatFileSize(record.fileInfo.size) }}</div>
+            <div class="file-time">{{ formatTime(record.fileInfo.lastModified) }}</div>
+          </div>
+          <div v-else class="no-file">
+            <MinusOutlined />
+            无文件
+          </div>
+        </template>
+
+        <!-- 操作列 -->
+        <template #actions="{ record }">
+          <a-space size="small">
+            <a-upload
+              :show-upload-list="false"
+              :before-upload="(file) => handleUpload(file, record.templateKey)"
+              accept=".json"
+            >
+              <a-button type="primary" size="small">
+                <UploadOutlined />
+                上传
+              </a-button>
+            </a-upload>
+            <a-button 
+              size="small" 
+              :disabled="!record.fileExists"
+              @click="handleDownload(record.templateKey)"
+            >
+              <DownloadOutlined />
+              下载
+            </a-button>
+            <a-button 
+              size="small"
+              :disabled="!record.fileExists"
+              @click="handlePreview(record.templateKey)"
+            >
+              <EyeOutlined />
+              预览
+            </a-button>
+            <a-popconfirm 
+              title="确定删除此模板？" 
+              @confirm="handleDelete(record.templateKey)"
+            >
+              <a-button 
+                size="small" 
+                danger
+                :disabled="!record.fileExists"
+              >
+                <DeleteOutlined />
+                删除
+              </a-button>
+            </a-popconfirm>
+          </a-space>
+        </template>
+      </a-table>
+    </div>
+
+    <!-- 预览模态框 -->
     <a-modal
-      v-model:open="previewModalVisible"
-      :title="`文件预览 - ${previewData?.fileName}`"
+      v-model:open="previewVisible"
+      title="模板预览"
       width="800px"
       :footer="null"
+      centered
     >
-      <div v-if="previewData" class="preview-content">
-        <div class="preview-meta">
-          <a-descriptions size="small" :column="2" bordered>
-            <a-descriptions-item label="文件名">{{ previewData.fileName }}</a-descriptions-item>
-            <a-descriptions-item label="文件大小">{{ formatFileSize(previewData.size) }}</a-descriptions-item>
-            <a-descriptions-item label="修改时间" :span="2">
-              {{ formatTime(previewData.lastModified) }}
-            </a-descriptions-item>
-          </a-descriptions>
-        </div>
-        <a-divider />
-        <div class="preview-json">
-          <pre class="json-content">{{ previewData.rawContent }}</pre>
+      <div v-if="previewData">
+        <a-descriptions size="small" bordered :column="2" style="margin-bottom: 16px">
+          <a-descriptions-item label="模板名称">{{ previewData.displayName }}</a-descriptions-item>
+          <a-descriptions-item label="分类">{{ previewData.category }}</a-descriptions-item>
+          <a-descriptions-item label="文件名">{{ previewData.fileName }}</a-descriptions-item>
+          <a-descriptions-item label="更新时间">{{ formatTime(previewData.timestamp) }}</a-descriptions-item>
+        </a-descriptions>
+        <div class="json-preview">
+          <pre>{{ formatJson(previewData.content) }}</pre>
         </div>
       </div>
+    </a-modal>
+
+    <!-- 支持图表类型模态框 -->
+    <a-modal
+      v-model:open="chartTypesVisible"
+      title="支持的图表类型"
+      width="600px"
+      :footer="null"
+      centered
+    >
+      <div v-if="selectedTemplate">
+        <div class="template-header">
+          <h4>{{ selectedTemplate.templateName }}</h4>
+          <a-tag :color="getCategoryColor(selectedTemplate.templateCategory)">
+            {{ selectedTemplate.templateCategory }}
+          </a-tag>
+        </div>
+        <a-list
+          :data-source="selectedTemplate.supportedChartTypes || []"
+          size="small"
+        >
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-list-item-meta>
+                <template #title>{{ getChartTypeName(item) }}</template>
+                <template #description>
+                  <a-tag size="small">{{ item }}</a-tag>
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+      </div>
+    </a-modal>
+
+    <!-- 上传模态框 -->
+    <a-modal
+      v-model:open="uploadVisible"
+      title="上传模板文件"
+      width="500px"
+      @ok="handleUploadConfirm"
+      @cancel="uploadVisible = false"
+    >
+      <a-upload-dragger
+        v-model:fileList="uploadFileList"
+        accept=".json"
+        :before-upload="() => false"
+        @change="handleUploadChange"
+      >
+        <p class="ant-upload-drag-icon">
+          <InboxOutlined />
+        </p>
+        <p class="ant-upload-text">点击或拖拽上传JSON模板文件</p>
+      </a-upload-dragger>
     </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-  AppstoreOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  DatabaseOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  ExclamationCircleOutlined,
-  EyeOutlined,
   ReloadOutlined,
-  SearchOutlined,
-  UploadOutlined
+  UploadOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  DeleteOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  MinusOutlined,
+  InboxOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { computed, onMounted, ref } from 'vue'
-import { request } from '@/api'
+import { universalTemplateApi } from '@/api'
 
 // 响应式数据
 const loading = ref(false)
 const searchKeyword = ref('')
-const statusFilter = ref('')
 const categoryFilter = ref('')
 const tableData = ref<any[]>([])
-const previewModalVisible = ref(false)
+const stats = ref<any>({})
+const previewVisible = ref(false)
 const previewData = ref<any>(null)
+const chartTypesVisible = ref(false)
+const selectedTemplate = ref<any>(null)
+const uploadVisible = ref(false)
+const uploadFileList = ref<any[]>([])
+
+// 分页配置
+const pagination = {
+  pageSize: 10,
+  showSizeChanger: true,
+  showQuickJumper: true,
+  showTotal: (total: number) => `共 ${total} 个模板`
+}
 
 // 表格列配置
 const columns = [
   {
-    title: '图表类型',
-    dataIndex: 'chartType',
-    key: 'chartType',
-    width: 200,
-    slots: { customRender: 'chartType' },
-    sorter: (a: any, b: any) => a.chartName.localeCompare(b.chartName)
+    title: '模板名称',
+    dataIndex: 'templateName',
+    key: 'templateName',
+    width: 180,
+    slots: { customRender: 'templateName' }
   },
   {
-    title: '实现状态',
-    dataIndex: 'status',
-    key: 'status',
+    title: '模板键',
+    dataIndex: 'templateKey',
+    key: 'templateKey',
+    width: 160,
+    slots: { customRender: 'templateKey' }
+  },
+  {
+    title: '文件名',
+    dataIndex: 'fileName',
+    key: 'fileName',
+    width: 180,
+    slots: { customRender: 'fileName' }
+  },
+  {
+    title: '分类',
+    dataIndex: 'templateCategory',
+    key: 'templateCategory',
     width: 100,
+    slots: { customRender: 'category' },
+    align: 'center'
+  },
+  {
+    title: '状态',
+    dataIndex: 'fileExists',
+    key: 'fileExists',
+    width: 80,
     slots: { customRender: 'status' },
-    filters: [
-      { text: '完整实现', value: 'completed' },
-      { text: '开发中', value: 'development' },
-      { text: '待开发', value: 'pending' }
-    ],
-    onFilter: (value: string, record: any) => record.status === value
+    align: 'center'
   },
   {
-    title: 'JSON模板文件',
-    dataIndex: 'jsonTemplate',
-    key: 'jsonTemplate',
-    width: 300,
-    slots: { customRender: 'jsonTemplate' }
+    title: '文件信息',
+    dataIndex: 'fileInfo',
+    key: 'fileInfo',
+    width: 120,
+    slots: { customRender: 'fileInfo' }
   },
   {
-    title: 'JOLT规范文件',
-    dataIndex: 'joltSpec',
-    key: 'joltSpec',
-    width: 300,
-    slots: { customRender: 'joltSpec' }
+    title: '操作',
+    key: 'actions',
+    width: 280,
+    slots: { customRender: 'actions' },
+    fixed: 'right'
   }
 ]
 
-// 分页配置
-const pagination = {
-  current: 1,
-  pageSize: 10,
-  showSizeChanger: true,
-  showQuickJumper: true,
-  showTotal: (total: number, range: [number, number]) => 
-    `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-}
-
-// 计算属性
+// 过滤数据
 const filteredData = computed(() => {
-  let data = [...tableData.value]
+  let data = tableData.value
   
-  // 搜索过滤
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     data = data.filter(item =>
-      item.chartName.toLowerCase().includes(keyword) ||
-      item.chartType.toLowerCase().includes(keyword)
+      item.templateName?.toLowerCase().includes(keyword) ||
+      item.templateKey?.toLowerCase().includes(keyword) ||
+      item.templateCategory?.toLowerCase().includes(keyword)
     )
   }
   
-  // 状态过滤
-  if (statusFilter.value) {
-    data = data.filter(item => item.status === statusFilter.value)
-  }
-  
-  // 分类过滤
   if (categoryFilter.value) {
-    data = data.filter(item => item.category === categoryFilter.value)
+    data = data.filter(item => item.templateCategory === categoryFilter.value)
   }
   
   return data
 })
 
-const stats = computed(() => {
-  const total = tableData.value.length
-  const completed = tableData.value.filter(item => item.status === 'completed').length
-  const development = tableData.value.filter(item => item.status === 'development').length
-  const pending = tableData.value.filter(item => item.status === 'pending').length
-  
-  return { total, completed, development, pending }
-})
-
 // 工具方法
 const getCategoryColor = (category: string) => {
-  const colorMap: Record<string, string> = {
-    CARTESIAN: '#1890ff',
-    PIE: '#fa8c16',
-    RADAR: '#722ed1',
-    GAUGE: '#13c2c2'
+  const colors: Record<string, string> = {
+    'CARTESIAN': 'blue',
+    'PIE': 'orange',
+    'TREE': 'purple',
+    'RADAR': 'cyan',
+    'GAUGE': 'magenta'
   }
-  return colorMap[category] || '#d9d9d9'
+  return colors[category] || 'default'
 }
 
-const getStatusColor = (status: string) => {
-  const colorMap: Record<string, string> = {
-    completed: '#52c41a',
-    development: '#1890ff',
-    pending: '#faad14'
+const getCategoryName = (category: string) => {
+  const names: Record<string, string> = {
+    'CARTESIAN': '直角坐标系',
+    'PIE': '饼图类',
+    'TREE': '层次图类',
+    'RADAR': '雷达图类',
+    'GAUGE': '仪表盘类'
   }
-  return colorMap[status] || '#d9d9d9'
-}
-
-const getStatusText = (status: string) => {
-  const textMap: Record<string, string> = {
-    completed: '完整实现',
-    development: '开发中',
-    pending: '待开发'
-  }
-  return textMap[status] || '未知'
+  return names[category] || category
 }
 
 const formatFileSize = (bytes: number) => {
   if (!bytes) return '0 B'
   const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
+  const sizes = ['B', 'KB', 'MB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const formatTime = (timestamp: number) => {
   if (!timestamp) return '未知'
-  return new Date(timestamp).toLocaleString()
+  return new Date(timestamp).toLocaleString('zh-CN')
 }
 
-// 事件处理
-const handleSearch = () => {
-  // 搜索逻辑已在计算属性中实现
+const formatJson = (jsonData: any) => {
+  if (typeof jsonData === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(jsonData), null, 2)
+    } catch {
+      return jsonData
+    }
+  }
+  return JSON.stringify(jsonData, null, 2)
 }
 
-const handleStatusFilter = () => {
-  // 过滤逻辑已在计算属性中实现
+const getChartTypeName = (chartType: string) => {
+  const nameMap: Record<string, string> = {
+    basic_line_chart: '基础折线图',
+    smooth_line_chart: '平滑折线图',
+    stacked_line_chart: '堆叠折线图',
+    step_line_chart: '阶梯折线图',
+    basic_bar_chart: '基础柱状图',
+    stacked_bar_chart: '堆叠柱状图',
+    horizontal_bar_chart: '水平柱状图',
+    grouped_bar_chart: '分组柱状图',
+    basic_area_chart: '基础面积图',
+    stacked_area_chart: '堆叠面积图',
+    scatter_chart: '散点图',
+    bubble_chart: '气泡图',
+    basic_pie_chart: '基础饼图',
+    doughnut_chart: '环形图',
+    rose_chart: '玫瑰图',
+    pie_chart: '饼图',
+    nested_pie_chart: '嵌套饼图',
+    sunburst_chart: '旭日图',
+    treemap_chart: '矩形树图',
+    funnel_chart: '漏斗图',
+    basic_radar_chart: '基础雷达图',
+    filled_radar_chart: '填充雷达图',
+    polar_chart: '极坐标图',
+    radar_multiple_chart: '多系列雷达图',
+    basic_gauge_chart: '基础仪表盘',
+    progress_gauge_chart: '进度仪表盘',
+    grade_gauge_chart: '等级仪表盘',
+    speedometer_chart: '速度表图',
+    thermometer_chart: '温度计图',
+    ring_progress_chart: '环形进度图'
+  }
+  return nameMap[chartType] || chartType
 }
 
-const handleCategoryFilter = () => {
-  // 过滤逻辑已在计算属性中实现
-}
-
+// API调用方法
 const refreshData = async () => {
   loading.value = true
   try {
-    const response = await request.get('/template-files/table')
+    const response = await universalTemplateApi.getTable()
     tableData.value = response.data || []
-    message.success('数据刷新成功')
+    stats.value = response.statistics || {}
+    message.success('数据加载成功')
   } catch (error) {
     message.error('数据加载失败')
-    console.error('刷新数据失败:', error)
+    console.error('加载失败:', error)
   } finally {
     loading.value = false
   }
 }
 
-// JSON模板文件操作
-const handleJsonUpload = async (file: File, chartType: string) => {
+const handleSearch = (value: string) => {
+  searchKeyword.value = value
+}
+
+const handleFilter = (value: string) => {
+  categoryFilter.value = value
+}
+
+const handleUpload = async (file: File, templateKey: string) => {
   try {
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('chartType', chartType)
-    
-    await request.post('/template-files/json-template/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    
-    message.success('JSON模板文件上传成功')
+    await universalTemplateApi.upload(templateKey, formData)
+    message.success(`模板 ${templateKey} 上传成功`)
     refreshData()
   } catch (error) {
-    message.error('JSON模板文件上传失败')
+    message.error(`上传失败`)
   }
-  return false // 阻止默认上传
+  return false
 }
 
-const handleJsonDownload = async (chartType: string) => {
+const handleDownload = async (templateKey: string) => {
   try {
-    const response = await fetch(`/api/template-files/json-template/download?chartType=${chartType}`)
-    if (response.ok) {
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const contentDisposition = response.headers.get('content-disposition')
-      const fileName = contentDisposition?.match(/filename="(.+)"/)?.[1] || `${chartType}-template.json`
-      a.href = url
-      a.download = fileName
-      a.click()
-      window.URL.revokeObjectURL(url)
-      message.success('文件下载成功')
-    } else {
-      message.error('文件下载失败')
-    }
+    const downloadUrl = universalTemplateApi.downloadUrl(templateKey)
+    const response = await fetch(downloadUrl)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${templateKey}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    message.success('下载成功')
   } catch (error) {
-    message.error('文件下载失败')
+    message.error('下载失败')
   }
 }
 
-const handleJsonPreview = async (chartType: string) => {
+const handlePreview = async (templateKey: string) => {
   try {
-    const response = await request.get(`/template-files/json-template/preview?chartType=${chartType}`)
+    const response = await universalTemplateApi.preview(templateKey)
     previewData.value = response
-    previewModalVisible.value = true
+    previewVisible.value = true
   } catch (error) {
-    message.error('文件预览失败')
+    message.error('预览失败')
   }
 }
 
-const handleJsonDelete = async (chartType: string) => {
+const handleDelete = async (templateKey: string) => {
   try {
-    await request.delete(`/template-files/json-template?chartType=${chartType}`)
-    message.success('JSON模板文件删除成功')
+    await universalTemplateApi.delete(templateKey)
+    message.success('删除成功')
     refreshData()
   } catch (error) {
-    message.error('JSON模板文件删除失败')
+    message.error('删除失败')
   }
 }
 
-// JOLT规范文件操作
-const handleJoltUpload = async (file: File, chartType: string) => {
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('chartType', chartType)
-    
-    await request.post('/template-files/jolt-spec/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    
-    message.success('JOLT规范文件上传成功')
-    refreshData()
-  } catch (error) {
-    message.error('JOLT规范文件上传失败')
-  }
-  return false // 阻止默认上传
+const showChartTypes = (template: any) => {
+  selectedTemplate.value = template
+  chartTypesVisible.value = true
 }
 
-const handleJoltDownload = async (chartType: string) => {
+const showUploadModal = () => {
+  uploadVisible.value = true
+  uploadFileList.value = []
+}
+
+const handleUploadChange = (info: any) => {
+  uploadFileList.value = info.fileList
+}
+
+const handleUploadConfirm = async () => {
+  if (uploadFileList.value.length === 0) {
+    message.warning('请选择文件')
+    return
+  }
+
   try {
-    const response = await fetch(`/api/template-files/jolt-spec/download?chartType=${chartType}`)
-    if (response.ok) {
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const contentDisposition = response.headers.get('content-disposition')
-      const fileName = contentDisposition?.match(/filename="(.+)"/)?.[1] || `${chartType}-spec.json`
-      a.href = url
-      a.download = fileName
-      a.click()
-      window.URL.revokeObjectURL(url)
-      message.success('文件下载成功')
-    } else {
-      message.error('文件下载失败')
+    for (const fileItem of uploadFileList.value) {
+      const file = fileItem.originFileObj
+      const fileName = file.name.replace('.json', '')
+      const formData = new FormData()
+      formData.append('file', file)
+      await universalTemplateApi.upload(fileName, formData)
     }
-  } catch (error) {
-    message.error('文件下载失败')
-  }
-}
-
-const handleJoltPreview = async (chartType: string) => {
-  try {
-    const response = await request.get(`/template-files/jolt-spec/preview?chartType=${chartType}`)
-    previewData.value = response
-    previewModalVisible.value = true
-  } catch (error) {
-    message.error('文件预览失败')
-  }
-}
-
-const handleJoltDelete = async (chartType: string) => {
-  try {
-    await request.delete(`/template-files/jolt-spec?chartType=${chartType}`)
-    message.success('JOLT规范文件删除成功')
+    message.success('批量上传成功')
+    uploadVisible.value = false
+    uploadFileList.value = []
     refreshData()
   } catch (error) {
-    message.error('JOLT规范文件删除失败')
+    message.error('上传失败')
   }
 }
 
@@ -606,219 +547,144 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.template-file-management {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f0f2f5;
+.template-management {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
 }
 
 .page-header {
   background: white;
   padding: 24px;
-  border-bottom: 1px solid #e8e8e8;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1600px;
-  margin: 0 auto;
-}
-
-.title-section {
-  flex: 1;
-}
-
-.page-title {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
-  color: #262626;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.title-icon {
+.page-header h2 {
+  margin: 0 0 8px;
   color: #1890ff;
+  font-size: 24px;
 }
 
-.page-subtitle {
+.page-description {
   margin: 0;
   color: #666;
   font-size: 14px;
-  line-height: 1.5;
 }
 
-.header-actions {
-  flex-shrink: 0;
+.toolbar {
+  background: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.stats-cards {
-  padding: 16px;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
+.stats-summary {
+  background: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .table-container {
-  flex: 1;
-  padding: 0 16px 16px 16px;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
-  min-height: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.chart-type-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.chart-name {
-  font-weight: 500;
-  color: #262626;
+.template-title {
+  font-weight: bold;
+  color: #1890ff;
   font-size: 14px;
 }
 
-.chart-id {
+.template-key {
+  color: #666;
   font-size: 12px;
-  color: #999;
-  font-family: 'Monaco', 'Menlo', monospace;
-}
-
-.file-cell {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.file-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.file-name {
-  display: block;
-  font-weight: 500;
-  color: #262626;
-  font-size: 13px;
-  font-family: 'Monaco', 'Menlo', monospace;
-  word-break: break-all;
-}
-
-.file-meta {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.file-size,
-.file-time {
-  font-size: 11px;
-  color: #999;
-}
-
-.file-missing {
-  color: #ff4d4f;
-  font-size: 12px;
-  font-style: italic;
-}
-
-.file-actions {
-  flex-shrink: 0;
-}
-
-.preview-content {
-  max-height: 600px;
-  overflow: hidden;
-}
-
-.preview-meta {
-  margin-bottom: 16px;
-}
-
-.preview-json {
-  max-height: 450px;
-  overflow: auto;
+  font-family: 'Courier New', monospace;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
   border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  background: #fafafa;
 }
 
-.json-content {
-  padding: 16px;
-  margin: 0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+.template-file {
+  color: #666;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  background: #f0f2ff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #d4e3ff;
+}
+
+
+.file-size {
+  font-weight: bold;
+  color: #1890ff;
+  font-size: 12px;
+}
+
+.file-time {
+  color: #666;
+  font-size: 11px;
+}
+
+.no-file {
+  color: #999;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.json-preview {
+  background: #f5f5f5;
+  border-radius: 4px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.json-preview pre {
+  font-family: 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.5;
-  color: #262626;
-  background: transparent;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  margin: 0;
+  padding: 16px;
+  background: #2d3748;
+  color: #e2e8f0;
+  border-radius: 4px;
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  
-  .header-actions {
-    justify-content: center;
-  }
+.template-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
+.template-header h4 {
+  margin: 0;
+  color: #1890ff;
+}
+
+/* 响应式处理 */
 @media (max-width: 768px) {
-  .stats-cards .ant-col {
-    margin-bottom: 16px;
+  .template-management {
+    padding: 12px;
   }
   
-  .file-cell {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+  .toolbar {
+    padding: 12px;
   }
   
-  .file-actions {
-    justify-content: center;
+  .page-header {
+    padding: 16px;
   }
-}
-
-/* 表格样式优化 */
-:deep(.ant-table-tbody > tr:hover > td) {
-  background: #f5f5f5;
-}
-
-:deep(.ant-table-thead > tr > th) {
-  background: #fafafa;
-  font-weight: 600;
-}
-
-/* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 }
 </style>

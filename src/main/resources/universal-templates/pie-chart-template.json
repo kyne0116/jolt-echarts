@@ -1,0 +1,97 @@
+{
+  "chartMeta": {
+    "title": "${chart_title}",
+    "subtitle": "${chart_subtitle}",
+    "chartType": "${chart_type}",
+    "templateCategory": "PIE",
+    "description": "${chart_description}"
+  },
+  "dataStructure": {
+    "series": [
+      {
+        "seriesName": "${series_name}",
+        "seriesType": "pie",
+        "data": "${pie_data}",
+        "radius": "${pie_radius}",
+        "center": "${pie_center}",
+        "roseType": "${rose_type}",
+        "selectedMode": "${selected_mode}",
+        "avoidLabelOverlap": "${avoid_label_overlap}",
+        "stillShowZeroSum": "${show_zero_sum}",
+        "label": {
+          "show": "${show_label}",
+          "position": "${label_position}",
+          "formatter": "${label_formatter}",
+          "fontSize": "${label_font_size}",
+          "color": "${label_color}",
+          "fontWeight": "${label_font_weight}",
+          "rich": "${label_rich_text}"
+        },
+        "labelLine": {
+          "show": "${show_label_line}",
+          "length": "${label_line_length}",
+          "length2": "${label_line_length2}",
+          "smooth": "${label_line_smooth}"
+        },
+        "itemStyle": {
+          "borderRadius": "${border_radius}",
+          "borderColor": "${border_color}",
+          "borderWidth": "${border_width}",
+          "shadowBlur": "${shadow_blur}",
+          "shadowColor": "${shadow_color}",
+          "shadowOffsetX": "${shadow_offset_x}",
+          "shadowOffsetY": "${shadow_offset_y}"
+        },
+        "emphasis": {
+          "focus": "${emphasis_focus}",
+          "itemStyle": {
+            "shadowBlur": "${emphasis_shadow_blur}",
+            "shadowOffsetX": "${emphasis_shadow_offset_x}",
+            "shadowColor": "${emphasis_shadow_color}"
+          }
+        }
+      }
+    ]
+  },
+  "styleConfig": {
+    "showLegend": "${show_legend}",
+    "legendPosition": "${legend_position}",
+    "legendOrient": "${legend_orient}",
+    "legendAlign": "${legend_align}",
+    "showTooltip": "${show_tooltip}",
+    "tooltipTrigger": "${tooltip_trigger}",
+    "tooltipFormatter": "${tooltip_formatter}",
+    "colorPalette": "${color_palette}",
+    "animation": "${enable_animation}",
+    "animationType": "${animation_type}",
+    "animationDuration": "${animation_duration}",
+    "animationEasing": "${animation_easing}"
+  },
+  "interactionConfig": {
+    "toolboxConfig": {
+      "show": "${show_toolbox}",
+      "features": "${toolbox_features}"
+    },
+    "brushConfig": {
+      "show": "${enable_brush}"
+    }
+  },
+  "pieSpecialConfig": {
+    "minAngle": "${min_angle}",
+    "minShowLabelAngle": "${min_show_label_angle}",
+    "clockwise": "${clockwise}",
+    "startAngle": "${start_angle}",
+    "padAngle": "${pad_angle}",
+    "percentPrecision": "${percent_precision}",
+    "animationTypeUpdate": "${animation_type_update}",
+    "animationEasingUpdate": "${animation_easing_update}",
+    "animationDurationUpdate": "${animation_duration_update}"
+  },
+  "nestedPieConfig": {
+    "enabled": "${enable_nested}",
+    "innerRadius": "${inner_radius}",
+    "outerRadius": "${outer_radius}",
+    "innerData": "${inner_pie_data}",
+    "outerData": "${outer_pie_data}"
+  }
+}

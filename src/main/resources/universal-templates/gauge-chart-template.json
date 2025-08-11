@@ -1,0 +1,214 @@
+{
+  "chartMeta": {
+    "title": "${chart_title}",
+    "subtitle": "${chart_subtitle}",
+    "chartType": "${chart_type}",
+    "templateCategory": "GAUGE",
+    "description": "${chart_description}"
+  },
+  "dataStructure": {
+    "series": [
+      {
+        "seriesName": "${series_name}",
+        "seriesType": "gauge",
+        "data": "${gauge_data}",
+        "min": "${gauge_min}",
+        "max": "${gauge_max}",
+        "center": "${gauge_center}",
+        "radius": "${gauge_radius}",
+        "startAngle": "${start_angle}",
+        "endAngle": "${end_angle}",
+        "clockwise": "${clockwise}",
+        "splitNumber": "${split_number}",
+        "silent": "${silent_mode}",
+        "animation": "${enable_animation}",
+        "animationThreshold": "${animation_threshold}",
+        "animationDuration": "${animation_duration}",
+        "animationEasing": "${animation_easing}",
+        "animationDelay": "${animation_delay}",
+        "animationDurationUpdate": "${animation_duration_update}",
+        "animationEasingUpdate": "${animation_easing_update}",
+        "animationDelayUpdate": "${animation_delay_update}",
+        "axisLine": {
+          "show": "${show_axis_line}",
+          "roundCap": "${round_cap}",
+          "lineStyle": {
+            "width": "${axis_line_width}",
+            "color": "${axis_line_color}",
+            "shadowBlur": "${axis_line_shadow_blur}",
+            "shadowColor": "${axis_line_shadow_color}",
+            "shadowOffsetX": "${axis_line_shadow_offset_x}",
+            "shadowOffsetY": "${axis_line_shadow_offset_y}"
+          }
+        },
+        "progress": {
+          "show": "${show_progress}",
+          "overlap": "${progress_overlap}",
+          "width": "${progress_width}",
+          "roundCap": "${progress_round_cap}",
+          "clip": "${progress_clip}",
+          "itemStyle": {
+            "color": "${progress_color}",
+            "shadowBlur": "${progress_shadow_blur}",
+            "shadowColor": "${progress_shadow_color}",
+            "shadowOffsetX": "${progress_shadow_offset_x}",
+            "shadowOffsetY": "${progress_shadow_offset_y}"
+          }
+        },
+        "splitLine": {
+          "show": "${show_split_line}",
+          "length": "${split_line_length}",
+          "distance": "${split_line_distance}",
+          "lineStyle": {
+            "width": "${split_line_width}",
+            "color": "${split_line_color}",
+            "cap": "${split_line_cap}"
+          }
+        },
+        "axisTick": {
+          "show": "${show_axis_tick}",
+          "splitNumber": "${tick_split_number}",
+          "length": "${tick_length}",
+          "distance": "${tick_distance}",
+          "lineStyle": {
+            "width": "${tick_line_width}",
+            "color": "${tick_line_color}",
+            "cap": "${tick_line_cap}"
+          }
+        },
+        "axisLabel": {
+          "show": "${show_axis_label}",
+          "distance": "${label_distance}",
+          "color": "${label_color}",
+          "fontSize": "${label_font_size}",
+          "fontWeight": "${label_font_weight}",
+          "formatter": "${label_formatter}"
+        },
+        "pointer": {
+          "show": "${show_pointer}",
+          "showAbove": "${pointer_show_above}",
+          "length": "${pointer_length}",
+          "width": "${pointer_width}",
+          "keepAspect": "${pointer_keep_aspect}",
+          "itemStyle": {
+            "color": "${pointer_color}",
+            "borderWidth": "${pointer_border_width}",
+            "borderColor": "${pointer_border_color}",
+            "shadowBlur": "${pointer_shadow_blur}",
+            "shadowColor": "${pointer_shadow_color}",
+            "shadowOffsetX": "${pointer_shadow_offset_x}",
+            "shadowOffsetY": "${pointer_shadow_offset_y}"
+          }
+        },
+        "anchor": {
+          "show": "${show_anchor}",
+          "showAbove": "${anchor_show_above}",
+          "size": "${anchor_size}",
+          "icon": "${anchor_icon}",
+          "offsetCenter": "${anchor_offset_center}",
+          "keepAspect": "${anchor_keep_aspect}",
+          "itemStyle": {
+            "color": "${anchor_color}",
+            "borderWidth": "${anchor_border_width}",
+            "borderColor": "${anchor_border_color}",
+            "shadowBlur": "${anchor_shadow_blur}",
+            "shadowColor": "${anchor_shadow_color}",
+            "shadowOffsetX": "${anchor_shadow_offset_x}",
+            "shadowOffsetY": "${anchor_shadow_offset_y}"
+          }
+        },
+        "itemStyle": {
+          "color": "${item_color}",
+          "borderColor": "${item_border_color}",
+          "borderWidth": "${item_border_width}",
+          "borderType": "${item_border_type}",
+          "borderCap": "${item_border_cap}",
+          "borderJoin": "${item_border_join}",
+          "borderDashOffset": "${item_border_dash_offset}",
+          "borderMiterLimit": "${item_border_miter_limit}",
+          "shadowBlur": "${item_shadow_blur}",
+          "shadowColor": "${item_shadow_color}",
+          "shadowOffsetX": "${item_shadow_offset_x}",
+          "shadowOffsetY": "${item_shadow_offset_y}",
+          "opacity": "${item_opacity}"
+        },
+        "emphasis": {
+          "disabled": "${emphasis_disabled}",
+          "itemStyle": {
+            "color": "${emphasis_item_color}",
+            "borderColor": "${emphasis_item_border_color}",
+            "borderWidth": "${emphasis_item_border_width}",
+            "shadowBlur": "${emphasis_item_shadow_blur}",
+            "shadowColor": "${emphasis_item_shadow_color}",
+            "shadowOffsetX": "${emphasis_item_shadow_offset_x}",
+            "shadowOffsetY": "${emphasis_item_shadow_offset_y}"
+          }
+        },
+        "detail": {
+          "show": "${show_detail}",
+          "backgroundColor": "${detail_background_color}",
+          "borderWidth": "${detail_border_width}",
+          "borderColor": "${detail_border_color}",
+          "width": "${detail_width}",
+          "height": "${detail_height}",
+          "padding": "${detail_padding}",
+          "offsetCenter": "${detail_offset_center}",
+          "formatter": "${detail_formatter}",
+          "color": "${detail_color}",
+          "fontSize": "${detail_font_size}",
+          "fontWeight": "${detail_font_weight}",
+          "fontFamily": "${detail_font_family}",
+          "lineHeight": "${detail_line_height}",
+          "width": "${detail_width}",
+          "height": "${detail_height}",
+          "textBorderColor": "${detail_text_border_color}",
+          "textBorderWidth": "${detail_text_border_width}",
+          "textShadowColor": "${detail_text_shadow_color}",
+          "textShadowBlur": "${detail_text_shadow_blur}",
+          "textShadowOffsetX": "${detail_text_shadow_offset_x}",
+          "textShadowOffsetY": "${detail_text_shadow_offset_y}",
+          "overflow": "${detail_overflow}",
+          "ellipsis": "${detail_ellipsis}",
+          "valueAnimation": "${detail_value_animation}",
+          "precision": "${detail_precision}"
+        }
+      }
+    ]
+  },
+  "styleConfig": {
+    "showLegend": "${show_legend}",
+    "legendPosition": "${legend_position}",
+    "showTooltip": "${show_tooltip}",
+    "tooltipTrigger": "${tooltip_trigger}",
+    "tooltipFormatter": "${tooltip_formatter}",
+    "colorPalette": "${color_palette}",
+    "animation": "${enable_animation}",
+    "animationDuration": "${animation_duration}",
+    "animationEasing": "${animation_easing}"
+  },
+  "interactionConfig": {
+    "toolboxConfig": {
+      "show": "${show_toolbox}",
+      "features": "${toolbox_features}"
+    }
+  },
+  "gaugeSpecialConfig": {
+    "type": "${gauge_type}",
+    "multipleGauge": "${enable_multiple}",
+    "progressMode": "${progress_mode}",
+    "gradeColors": "${grade_colors}",
+    "dangerZone": "${danger_zone_config}",
+    "warningZone": "${warning_zone_config}",
+    "normalZone": "${normal_zone_config}",
+    "thermometerConfig": {
+      "enabled": "${thermometer_enabled}",
+      "bulbRadius": "${thermometer_bulb_radius}",
+      "tubeWidth": "${thermometer_tube_width}"
+    },
+    "ringProgressConfig": {
+      "enabled": "${ring_progress_enabled}",
+      "innerRadius": "${ring_inner_radius}",
+      "outerRadius": "${ring_outer_radius}"
+    }
+  }
+}

@@ -292,8 +292,39 @@
               <div class="panel-content">
                 <div class="section">
                   <h5>图表配置模板</h5>
-                  <div class="code-container">
-                    <pre class="code-block"><code>{{ getOfficialExample() }}</code></pre>
+                  <div v-if="universalTemplateLoading" class="loading-container">
+                    <a-spin tip="正在加载通用模板..." />
+                  </div>
+                  <div v-else-if="universalTemplateError" class="error-container">
+                    <a-alert
+                      :message="universalTemplateError"
+                      type="error"
+                      show-icon
+                      style="margin-bottom: 16px;"
+                    />
+                    <a-button
+                      type="primary"
+                      size="small"
+                      @click="loadUniversalTemplate(selectedRecord?.chartId || '')"
+                    >
+                      重新加载
+                    </a-button>
+                  </div>
+                  <div v-else-if="universalTemplateContent" class="code-container">
+                    <div class="code-header">
+                      <span class="code-title">{{ universalTemplateTitle }}</span>
+                      <a-button
+                        type="text"
+                        size="small"
+                        @click="copyToClipboard(JSON.stringify(universalTemplateContent, null, 2))"
+                      >
+                        复制
+                      </a-button>
+                    </div>
+                    <pre class="code-block universal-template-code"><code>{{ JSON.stringify(universalTemplateContent, null, 2) }}</code></pre>
+                  </div>
+                  <div v-else class="empty-container">
+                    <a-empty description="暂无模板数据" />
                   </div>
                 </div>
                 <div class="section">
@@ -326,13 +357,13 @@
               </div>
               <div class="panel-content">
                 <div class="section">
-                  <h5>数据库视图数据</h5>
+                  <h5>{{ databaseViewTitle }}</h5>
                   <div class="code-container">
                     <pre class="code-block"><code>{{ getDatabaseViewData() }}</code></pre>
                   </div>
 
                   <h6 style="display: flex; align-items: center; justify-content: space-between;">
-                    <span>ECharts数据示例</span>
+                    <span>{{ echartsDataTitle }}</span>
                     <a-button
                       type="primary"
                       size="small"
@@ -381,7 +412,7 @@
 </template>
 
 <script setup lang="ts">
-import { placeholderMappingApi } from '@/api'
+import { placeholderMappingApi, universalTemplateApi } from '@/api'
 import ChartSelector from '@/components/ChartSelector.vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -442,6 +473,12 @@ const availableFields = ref<any[]>([])
 const joltSpecContent = ref<any>(null)
 const joltSpecLoading = ref(false)
 
+// 通用模板相关状态
+const universalTemplateContent = ref<any>(null)
+const universalTemplateFileName = ref<string>('')
+const universalTemplateLoading = ref(false)
+const universalTemplateError = ref<string | null>(null)
+
 // 图表预览相关状态
 const chartPreviewVisible = ref(false)
 const chartPreviewData = ref<any>(null)
@@ -496,6 +533,22 @@ const mappingModalTitle = computed(() =>
 const guideModalTitle = computed(() =>
   selectedRecord.value ? `配置指南 - ${selectedRecord.value.chartName}` : '配置指南'
 )
+
+// 动态标题计算属性
+const universalTemplateTitle = computed(() => {
+  const fileName = universalTemplateFileName.value
+  return fileName ? `通用模板内容（${fileName}）` : '通用模板内容'
+})
+
+const echartsDataTitle = computed(() => {
+  const chartName = selectedRecord.value?.chartName || ''
+  return chartName ? `ECharts数据示例（${chartName}）` : 'ECharts数据示例'
+})
+
+const databaseViewTitle = computed(() => {
+  const joltSpecFile = selectedRecord.value?.joltSpecFile || ''
+  return joltSpecFile ? `数据库视图数据（${joltSpecFile}）` : '数据库视图数据'
+})
 
 // 配置映射独立窗口样式
 const mappingWindowStyle = computed(() => ({
@@ -565,9 +618,13 @@ const configureMapping = async (record: MappingRecord) => {
   console.log('✅ [映射管理] 配置映射模态框已打开')
 }
 
-const showConfigGuide = (record: MappingRecord) => {
+const showConfigGuide = async (record: MappingRecord) => {
   console.log('📖 [映射管理] 显示配置指南:', record.chartId)
   selectedRecord.value = record
+
+  // 加载通用模板内容
+  await loadUniversalTemplate(record.chartId)
+
   guideModalVisible.value = true
   console.log('✅ [映射管理] 配置指南模态框已打开')
 }
@@ -639,6 +696,40 @@ const loadJoltSpecContent = async (chartId: string) => {
     joltSpecContent.value = null
   } finally {
     joltSpecLoading.value = false
+  }
+}
+
+// 加载通用模板内容
+const loadUniversalTemplate = async (chartId: string) => {
+  if (!chartId) return
+
+  universalTemplateLoading.value = true
+  universalTemplateError.value = null
+  try {
+    console.log('🔄 [配置指南] 开始加载通用模板:', chartId)
+    const response = await universalTemplateApi.getByChartType(chartId)
+    universalTemplateContent.value = response.content
+    universalTemplateFileName.value = response.fileName || ''
+    console.log('✅ [配置指南] 通用模板加载成功:', chartId, response)
+  } catch (error) {
+    console.error('❌ [配置指南] 加载通用模板失败:', error)
+    universalTemplateError.value = '加载通用模板失败'
+    universalTemplateContent.value = null
+    universalTemplateFileName.value = ''
+    message.error('加载通用模板失败')
+  } finally {
+    universalTemplateLoading.value = false
+  }
+}
+
+// 复制到剪贴板
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    message.success('已复制到剪贴板')
+  } catch (error) {
+    console.error('复制失败:', error)
+    message.error('复制失败')
   }
 }
 
@@ -2236,6 +2327,62 @@ body.dragging * {
   padding: 8px;
   background: #fafafa;
   border-radius: 4px;
+}
+
+/* 通用模板样式 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px dashed #d9d9d9;
+}
+
+.error-container {
+  padding: 16px;
+  background: #fff2f0;
+  border-radius: 6px;
+  border: 1px solid #ffccc7;
+}
+
+.empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px dashed #d9d9d9;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f0f0f0;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.code-title {
+  font-weight: 500;
+  color: #262626;
+  font-size: 13px;
+}
+
+.universal-template-code {
+  background: #f8f8f8 !important;
+  border: 1px solid #e8e8e8;
+  border-radius: 0 0 6px 6px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #2c3e50;
 }
 
 .code-example,

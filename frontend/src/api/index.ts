@@ -379,4 +379,83 @@ export const templateApi = {
     request.post("/templates/extract-placeholders", template).then(unwrap),
 };
 
+// 通用模板API
+export const universalTemplateApi = {
+  // 获取所有通用模板的管理表格数据
+  getTable: () => request.get("/universal-templates/table"),
+
+  // 根据模板键获取通用模板内容
+  getByTemplateKey: (templateKey: string) =>
+    request.get(`/universal-templates/${templateKey}`).then(unwrap),
+
+  // 根据图表类型获取对应的通用模板
+  getByChartType: (chartType: string) =>
+    request.get(`/universal-templates/by-chart-type/${chartType}`).then(unwrap),
+
+  // 预览通用模板内容
+  preview: (templateKey: string) =>
+    request.get(`/universal-templates/preview/${templateKey}`),
+
+  // 上传通用模板文件
+  upload: (templateKey: string, formData: FormData) =>
+    api.post(`/universal-templates/upload/${templateKey}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(res => res.data),
+
+  // 下载通用模板文件 (使用原生fetch以支持文件下载)
+  downloadUrl: (templateKey: string) => `/api/universal-templates/download/${templateKey}`,
+
+  // 删除通用模板文件
+  delete: (templateKey: string) =>
+    request.delete(`/universal-templates/${templateKey}`),
+
+  // 获取支持的图表类型列表
+  getSupportedChartTypes: () =>
+    request.get("/universal-templates/supported-chart-types").then(unwrap),
+
+  // 批量上传通用模板文件
+  batchUpload: async (files: { templateKey: string; formData: FormData }[]) => {
+    const results = await Promise.allSettled(
+      files.map(({ templateKey, formData }) => 
+        api.post(`/universal-templates/upload/${templateKey}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        }).then(res => res.data).then(data => ({ 
+          success: true, 
+          templateKey, 
+          data 
+        })).catch(error => ({ 
+          success: false, 
+          templateKey, 
+          error 
+        }))
+      )
+    );
+    
+    return results.map(result => result.status === 'fulfilled' ? result.value : result.reason);
+  },
+
+  // 健康检查
+  health: () => request.get("/universal-templates/health").then(unwrap),
+
+  // 获取模板统计信息
+  getStatistics: () => request.get("/universal-templates/table").then(data => data.statistics || {}),
+
+  // 验证模板格式
+  validate: (templateKey: string, templateData: any) =>
+    request.post(`/universal-templates/${templateKey}/validate`, templateData).then(unwrap),
+
+  // 重置模板到默认状态
+  reset: (templateKey: string) =>
+    request.post(`/universal-templates/${templateKey}/reset`).then(unwrap),
+
+  // 导出所有通用模板为压缩包
+  exportAll: () => `/api/universal-templates/export/all`,
+
+  // 导入通用模板压缩包
+  importAll: (formData: FormData) =>
+    api.post("/universal-templates/import/all", formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(res => res.data),
+};
+
 export default api;

@@ -1,0 +1,125 @@
+{
+  "chartMeta": {
+    "title": "${chart_title}",
+    "subtitle": "${chart_subtitle}",
+    "chartType": "${chart_type}",
+    "templateCategory": "CARTESIAN",
+    "description": "${chart_description}"
+  },
+  "axisConfig": {
+    "xAxis": {
+      "type": "${x_axis_type}",
+      "name": "${x_axis_name}",
+      "nameLocation": "${x_axis_name_location}",
+      "min": "${x_axis_min}",
+      "max": "${x_axis_max}",
+      "scale": "${x_axis_scale}",
+      "splitLine": {
+        "show": "${x_axis_splitline}"
+      }
+    },
+    "yAxis": {
+      "type": "${y_axis_type}",
+      "name": "${y_axis_name}",
+      "nameLocation": "${y_axis_name_location}",
+      "min": "${y_axis_min}",
+      "max": "${y_axis_max}",
+      "scale": "${y_axis_scale}",
+      "splitLine": {
+        "show": "${y_axis_splitline}"
+      }
+    }
+  },
+  "dataStructure": {
+    "series": [
+      {
+        "seriesName": "${series_1_name}",
+        "data": "${series_1_data}",
+        "seriesType": "scatter",
+        "symbolSize": "${symbol_size}",
+        "symbol": "${symbol_type}",
+        "itemStyle": {
+          "color": "${series_1_color}",
+          "borderColor": "${border_color}",
+          "borderWidth": "${border_width}",
+          "opacity": "${symbol_opacity}"
+        },
+        "emphasis": {
+          "focus": "${emphasis_focus}",
+          "itemStyle": {
+            "borderColor": "${emphasis_border_color}",
+            "borderWidth": "${emphasis_border_width}"
+          }
+        }
+      },
+      {
+        "seriesName": "${series_2_name}",
+        "data": "${series_2_data}",
+        "seriesType": "scatter",
+        "symbolSize": "${symbol_size_2}",
+        "symbol": "${symbol_type_2}",
+        "itemStyle": {
+          "color": "${series_2_color}",
+          "borderColor": "${border_color}",
+          "borderWidth": "${border_width}",
+          "opacity": "${symbol_opacity}"
+        },
+        "emphasis": {
+          "focus": "${emphasis_focus}",
+          "itemStyle": {
+            "borderColor": "${emphasis_border_color}",
+            "borderWidth": "${emphasis_border_width}"
+          }
+        }
+      }
+    ]
+  },
+  "styleConfig": {
+    "showLegend": "${show_legend}",
+    "legendPosition": "${legend_position}",
+    "showTooltip": "${show_tooltip}",
+    "tooltipTrigger": "${tooltip_trigger}",
+    "tooltipFormatter": "${tooltip_formatter}",
+    "showGrid": "${show_grid}",
+    "gridConfig": {
+      "left": "${grid_left}",
+      "right": "${grid_right}",
+      "top": "${grid_top}",
+      "bottom": "${grid_bottom}",
+      "containLabel": "${contain_label}"
+    },
+    "colorPalette": "${color_palette}",
+    "animation": "${enable_animation}",
+    "animationDuration": "${animation_duration}"
+  },
+  "interactionConfig": {
+    "enableBrush": "${enable_brush}",
+    "brushConfig": {
+      "toolbox": "${brush_toolbox}",
+      "brushLink": "${brush_link}",
+      "throttleType": "${brush_throttle_type}",
+      "throttleDelay": "${brush_throttle_delay}"
+    },
+    "enableDataZoom": "${enable_datazoom}",
+    "dataZoomConfig": {
+      "type": "${datazoom_type}",
+      "xAxisIndex": "${datazoom_x_index}",
+      "yAxisIndex": "${datazoom_y_index}"
+    },
+    "toolboxConfig": {
+      "show": "${show_toolbox}",
+      "features": "${toolbox_features}"
+    }
+  },
+  "scatterSpecialConfig": {
+    "enableLargeData": "${enable_large}",
+    "largeThreshold": "${large_threshold}",
+    "progressive": "${progressive}",
+    "progressiveThreshold": "${progressive_threshold}",
+    "regressionLine": {
+      "show": "${show_regression}",
+      "type": "${regression_type}",
+      "color": "${regression_color}"
+    }
+  }
+}

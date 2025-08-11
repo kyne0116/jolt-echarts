@@ -1,0 +1,123 @@
+{
+  "chartMeta": {
+    "title": "${chart_title}",
+    "subtitle": "${chart_subtitle}",
+    "chartType": "${chart_type}",
+    "templateCategory": "CARTESIAN",
+    "description": "${chart_description}"
+  },
+  "axisConfig": {
+    "xAxis": {
+      "type": "category",
+      "boundaryGap": "${boundary_gap}",
+      "name": "${x_axis_name}",
+      "nameLocation": "${x_axis_name_location}"
+    },
+    "yAxis": {
+      "type": "value",
+      "name": "${y_axis_name}",
+      "nameLocation": "${y_axis_name_location}",
+      "min": "${y_axis_min}",
+      "max": "${y_axis_max}"
+    }
+  },
+  "dataStructure": {
+    "categories": "${categories}",
+    "series": [
+      {
+        "seriesName": "${series_1_name}",
+        "values": "${series_1_data}",
+        "seriesType": "line",
+        "smoothStyle": "${smooth_enabled}",
+        "stackGroup": "${stack_group}",
+        "lineStyle": {
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "symbolConfig": {
+          "symbol": "${symbol_type}",
+          "symbolSize": "${symbol_size}",
+          "showSymbol": "${show_symbol}"
+        }
+      },
+      {
+        "seriesName": "${series_2_name}",
+        "values": "${series_2_data}",
+        "seriesType": "line",
+        "smoothStyle": "${smooth_enabled}",
+        "stackGroup": "${stack_group}",
+        "lineStyle": {
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "symbolConfig": {
+          "symbol": "${symbol_type}",
+          "symbolSize": "${symbol_size}",
+          "showSymbol": "${show_symbol}"
+        }
+      },
+      {
+        "seriesName": "${series_3_name}",
+        "values": "${series_3_data}",
+        "seriesType": "line",
+        "smoothStyle": "${smooth_enabled}",
+        "stackGroup": "${stack_group}",
+        "lineStyle": {
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "symbolConfig": {
+          "symbol": "${symbol_type}",
+          "symbolSize": "${symbol_size}",
+          "showSymbol": "${show_symbol}"
+        }
+      },
+      {
+        "seriesName": "${series_4_name}",
+        "values": "${series_4_data}",
+        "seriesType": "line",
+        "smoothStyle": "${smooth_enabled}",
+        "stackGroup": "${stack_group}",
+        "lineStyle": {
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "symbolConfig": {
+          "symbol": "${symbol_type}",
+          "symbolSize": "${symbol_size}",
+          "showSymbol": "${show_symbol}"
+        }
+      }
+    ]
+  },
+  "styleConfig": {
+    "showLegend": "${show_legend}",
+    "legendPosition": "${legend_position}",
+    "showTooltip": "${show_tooltip}",
+    "tooltipTrigger": "${tooltip_trigger}",
+    "showGrid": "${show_grid}",
+    "gridConfig": {
+      "left": "${grid_left}",
+      "right": "${grid_right}",
+      "top": "${grid_top}",
+      "bottom": "${grid_bottom}",
+      "containLabel": "${contain_label}"
+    },
+    "colorPalette": "${color_palette}",
+    "animation": "${enable_animation}",
+    "animationDuration": "${animation_duration}"
+  },
+  "interactionConfig": {
+    "enableBrush": "${enable_brush}",
+    "enableDataZoom": "${enable_datazoom}",
+    "dataZoomConfig": {
+      "type": "${datazoom_type}",
+      "start": "${datazoom_start}",
+      "end": "${datazoom_end}"
+    },
+    "toolboxConfig": {
+      "show": "${show_toolbox}",
+      "features": "${toolbox_features}"
+    }
+  }
+}

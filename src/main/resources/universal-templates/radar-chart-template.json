@@ -1,0 +1,235 @@
+{
+  "chartMeta": {
+    "title": "${chart_title}",
+    "subtitle": "${chart_subtitle}",
+    "chartType": "${chart_type}",
+    "templateCategory": "RADAR",
+    "description": "${chart_description}"
+  },
+  "radarConfig": {
+    "radar": {
+      "indicator": "${radar_indicators}",
+      "shape": "${radar_shape}",
+      "center": "${radar_center}",
+      "radius": "${radar_radius}",
+      "startAngle": "${start_angle}",
+      "nameGap": "${name_gap}",
+      "splitNumber": "${split_number}",
+      "scale": "${enable_scale}",
+      "silent": "${silent_mode}",
+      "triggerEvent": "${trigger_event}",
+      "name": {
+        "show": "${show_indicator_name}",
+        "formatter": "${name_formatter}",
+        "fontSize": "${name_font_size}",
+        "color": "${name_color}",
+        "fontWeight": "${name_font_weight}"
+      },
+      "nameGap": "${name_gap}",
+      "splitLine": {
+        "show": "${show_split_line}",
+        "lineStyle": {
+          "color": "${split_line_color}",
+          "width": "${split_line_width}",
+          "type": "${split_line_type}"
+        }
+      },
+      "splitArea": {
+        "show": "${show_split_area}",
+        "areaStyle": {
+          "color": "${split_area_colors}",
+          "shadowBlur": "${split_area_shadow_blur}",
+          "shadowColor": "${split_area_shadow_color}",
+          "shadowOffsetX": "${split_area_shadow_offset_x}",
+          "shadowOffsetY": "${split_area_shadow_offset_y}",
+          "opacity": "${split_area_opacity}"
+        }
+      },
+      "axisLine": {
+        "show": "${show_axis_line}",
+        "lineStyle": {
+          "color": "${axis_line_color}",
+          "width": "${axis_line_width}",
+          "type": "${axis_line_type}"
+        }
+      },
+      "axisTick": {
+        "show": "${show_axis_tick}",
+        "length": "${axis_tick_length}",
+        "lineStyle": {
+          "color": "${axis_tick_color}",
+          "width": "${axis_tick_width}"
+        }
+      },
+      "axisLabel": {
+        "show": "${show_axis_label}",
+        "formatter": "${axis_label_formatter}",
+        "fontSize": "${axis_label_font_size}",
+        "color": "${axis_label_color}"
+      }
+    }
+  },
+  "dataStructure": {
+    "series": [
+      {
+        "seriesName": "${series_1_name}",
+        "seriesType": "radar",
+        "data": "${series_1_data}",
+        "symbol": "${symbol_type}",
+        "symbolSize": "${symbol_size}",
+        "lineStyle": {
+          "color": "${line_color_1}",
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "itemStyle": {
+          "color": "${item_color_1}",
+          "borderColor": "${item_border_color}",
+          "borderWidth": "${item_border_width}"
+        },
+        "areaStyle": {
+          "color": "${area_color_1}",
+          "opacity": "${area_opacity}"
+        },
+        "label": {
+          "show": "${show_label}",
+          "position": "${label_position}",
+          "formatter": "${label_formatter}",
+          "fontSize": "${label_font_size}",
+          "color": "${label_color}"
+        },
+        "emphasis": {
+          "focus": "${emphasis_focus}",
+          "areaStyle": {
+            "color": "${emphasis_area_color}",
+            "opacity": "${emphasis_area_opacity}"
+          },
+          "lineStyle": {
+            "color": "${emphasis_line_color}",
+            "width": "${emphasis_line_width}"
+          }
+        }
+      },
+      {
+        "seriesName": "${series_2_name}",
+        "seriesType": "radar",
+        "data": "${series_2_data}",
+        "symbol": "${symbol_type}",
+        "symbolSize": "${symbol_size}",
+        "lineStyle": {
+          "color": "${line_color_2}",
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "itemStyle": {
+          "color": "${item_color_2}",
+          "borderColor": "${item_border_color}",
+          "borderWidth": "${item_border_width}"
+        },
+        "areaStyle": {
+          "color": "${area_color_2}",
+          "opacity": "${area_opacity}"
+        },
+        "label": {
+          "show": "${show_label}",
+          "position": "${label_position}",
+          "formatter": "${label_formatter}",
+          "fontSize": "${label_font_size}",
+          "color": "${label_color}"
+        },
+        "emphasis": {
+          "focus": "${emphasis_focus}",
+          "areaStyle": {
+            "color": "${emphasis_area_color_2}",
+            "opacity": "${emphasis_area_opacity}"
+          },
+          "lineStyle": {
+            "color": "${emphasis_line_color_2}",
+            "width": "${emphasis_line_width}"
+          }
+        }
+      },
+      {
+        "seriesName": "${series_3_name}",
+        "seriesType": "radar",
+        "data": "${series_3_data}",
+        "symbol": "${symbol_type}",
+        "symbolSize": "${symbol_size}",
+        "lineStyle": {
+          "color": "${line_color_3}",
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "itemStyle": {
+          "color": "${item_color_3}",
+          "borderColor": "${item_border_color}",
+          "borderWidth": "${item_border_width}"
+        },
+        "areaStyle": {
+          "color": "${area_color_3}",
+          "opacity": "${area_opacity}"
+        },
+        "label": {
+          "show": "${show_label}",
+          "position": "${label_position}",
+          "formatter": "${label_formatter}",
+          "fontSize": "${label_font_size}",
+          "color": "${label_color}"
+        }
+      },
+      {
+        "seriesName": "${series_4_name}",
+        "seriesType": "radar",
+        "data": "${series_4_data}",
+        "symbol": "${symbol_type}",
+        "symbolSize": "${symbol_size}",
+        "lineStyle": {
+          "color": "${line_color_4}",
+          "width": "${line_width}",
+          "type": "${line_type}"
+        },
+        "itemStyle": {
+          "color": "${item_color_4}",
+          "borderColor": "${item_border_color}",
+          "borderWidth": "${item_border_width}"
+        },
+        "areaStyle": {
+          "color": "${area_color_4}",
+          "opacity": "${area_opacity}"
+        }
+      }
+    ]
+  },
+  "styleConfig": {
+    "showLegend": "${show_legend}",
+    "legendPosition": "${legend_position}",
+    "showTooltip": "${show_tooltip}",
+    "tooltipTrigger": "${tooltip_trigger}",
+    "tooltipFormatter": "${tooltip_formatter}",
+    "colorPalette": "${color_palette}",
+    "animation": "${enable_animation}",
+    "animationDuration": "${animation_duration}",
+    "animationEasing": "${animation_easing}"
+  },
+  "interactionConfig": {
+    "toolboxConfig": {
+      "show": "${show_toolbox}",
+      "features": "${toolbox_features}"
+    }
+  },
+  "polarSpecialConfig": {
+    "polarRadius": "${polar_radius}",
+    "polarCenter": "${polar_center}",
+    "angleAxis": {
+      "type": "${angle_axis_type}",
+      "data": "${angle_axis_data}",
+      "clockwise": "${clockwise}",
+      "startAngle": "${polar_start_angle}"
+    },
+    "radiusAxis": {
+      "type": "${radius_axis_type}",
+      "min": "${radius_axis_min}",
+      "max": "${radius_axis_max}"
+    }
+  }
+}
