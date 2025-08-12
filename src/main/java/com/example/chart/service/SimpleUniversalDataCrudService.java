@@ -1,6 +1,5 @@
 package com.example.chart.service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,19 +42,25 @@ public class SimpleUniversalDataCrudService {
 
     /**
      * 生成示例数据 - 优化年份和地区分布以支持筛选测试
+     * 特别针对"张三和李四2025年销售业绩排行"场景优化数据生成
      */
     private void generateSampleData() {
-        // 生成40条示例数据 - 确保筛选条件有足够的测试数据
-        String[] categories = { "电子产品", "服装", "食品", "家居", "图书" };
+        // 基础数据配置
+        String[] categories = { "销售业绩", "电子产品", "服装", "食品", "家居" };
         String[] channels = { "线上", "线下", "移动端", "电话销售", "直销" };
         String[] products = { "iPhone 15", "MacBook Pro", "iPad", "AirPods", "Apple Watch",
                 "Nike运动鞋", "Adidas外套", "优衣库T恤", "星巴克咖啡", "可口可乐" };
         String[] regions = { "华北", "华东", "华南", "华中", "西北", "西南", "东北" };
         String[] salesmen = { "张三", "李四", "王五", "赵六", "钱七", "孙八", "周九", "吴十" };
-        String[] years = { "2023", "2024", "2025" }; // 固定年份选项，便于筛选测试
+        String[] years = { "2023", "2024", "2025" };
 
         Random random = new Random();
 
+        // 1. 首先生成张三和李四2025年的专门数据（12个月，每月1条）
+        generateSpecificSalesData("张三", "2025", categories, channels, products, regions, random);
+        generateSpecificSalesData("李四", "2025", categories, channels, products, regions, random);
+
+        // 2. 生成其他通用测试数据
         for (int i = 0; i < 40; i++) {
             UniversalChartDataView data = new UniversalChartDataView();
 
@@ -65,25 +70,25 @@ public class SimpleUniversalDataCrudService {
             // 时间维度数据 - 均匀分布年份
             String selectedYear = years[i % years.length];
             data.setYear(selectedYear);
-            
+
             // 根据年份生成合理的月份和日期
             int month = random.nextInt(12) + 1;
-            int day = random.nextInt(28) + 1; // 使用28天避免月份天数问题
+            int day = random.nextInt(28) + 1;
             data.setMonth(String.format("%02d", month));
             data.setDate(String.format("%s-%02d-%02d", selectedYear, month, day));
 
-            // 业务分类数据 - 确保地区均匀分布
+            // 业务分类数据
             data.setCategory(categories[i % categories.length]);
             data.setChannel(channels[i % channels.length]);
             data.setProduct(products[i % products.length]);
-            data.setRegion(regions[i % regions.length]); // 轮换地区，确保每个地区都有数据
+            data.setRegion(regions[i % regions.length]);
             data.setSalesman(salesmen[i % salesmen.length]);
 
             // 数值数据 - 根据地区和年份调整数据范围
             double baseAmount = 1000.0;
             double regionMultiplier = getRegionMultiplier(data.getRegion());
             double yearMultiplier = getYearMultiplier(data.getYear());
-            
+
             data.setAmount(baseAmount * regionMultiplier * yearMultiplier + random.nextDouble() * 20000.0);
             data.setQuantity(random.nextInt(500) + 10);
             data.setPercentage(random.nextDouble() * 100);
@@ -95,11 +100,58 @@ public class SimpleUniversalDataCrudService {
             dataStore.put(data.getId(), data);
         }
 
-        logger.info("✅ 生成了 {} 条示例数据，年份分布: {}, 地区分布: {} 个", 
-                   dataStore.size(), years.length, regions.length);
-        
+        logger.info("✅ 生成了 {} 条示例数据，包含张三和李四2025年专门数据", dataStore.size());
+
         // 输出分布统计用于验证
         logDataDistribution();
+        logSalesmanDataDistribution();
+    }
+
+    /**
+     * 为特定销售人员生成2025年的月度销售数据
+     */
+    private void generateSpecificSalesData(String salesman, String year, String[] categories,
+            String[] channels, String[] products, String[] regions, Random random) {
+        for (int month = 1; month <= 12; month++) {
+            UniversalChartDataView data = new UniversalChartDataView();
+
+            // 主键ID
+            data.setId(idGenerator.getAndIncrement());
+
+            // 时间维度
+            data.setYear(year);
+            data.setMonth(String.format("%02d", month));
+            data.setDate(String.format("%s-%02d-15", year, month)); // 固定为每月15日
+
+            // 业务分类 - 专门设置为销售业绩
+            data.setCategory("销售业绩");
+            data.setChannel(channels[random.nextInt(channels.length)]);
+            data.setProduct(products[random.nextInt(products.length)]);
+            data.setRegion(salesman.equals("张三") ? "华北" : "华南"); // 张三华北，李四华南
+            data.setSalesman(salesman);
+
+            // 数值数据 - 为张三和李四生成不同的业绩模式
+            double baseAmount;
+            if (salesman.equals("张三")) {
+                // 张三：稳定增长型，基础业绩较高
+                baseAmount = 100000 + (month * 5000) + random.nextDouble() * 20000;
+            } else {
+                // 李四：波动型，后期发力
+                baseAmount = 80000 + (month > 6 ? month * 8000 : month * 3000) + random.nextDouble() * 25000;
+            }
+
+            data.setAmount(baseAmount);
+            data.setQuantity(random.nextInt(100) + 50);
+            data.setPercentage(random.nextDouble() * 100);
+
+            // 系统字段
+            data.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(30)));
+            data.setUpdatedAt(LocalDateTime.now());
+
+            dataStore.put(data.getId(), data);
+        }
+
+        logger.info("✅ 为销售人员 {} 生成了 {} 年的12个月销售数据", salesman, year);
     }
 
     /**
@@ -107,14 +159,22 @@ public class SimpleUniversalDataCrudService {
      */
     private double getRegionMultiplier(String region) {
         switch (region) {
-            case "华东": return 1.5;
-            case "华南": return 1.3;
-            case "华北": return 1.2;
-            case "华中": return 1.0;
-            case "西南": return 0.9;
-            case "西北": return 0.8;
-            case "东北": return 0.85;
-            default: return 1.0;
+            case "华东":
+                return 1.5;
+            case "华南":
+                return 1.3;
+            case "华北":
+                return 1.2;
+            case "华中":
+                return 1.0;
+            case "西南":
+                return 0.9;
+            case "西北":
+                return 0.8;
+            case "东北":
+                return 0.85;
+            default:
+                return 1.0;
         }
     }
 
@@ -123,10 +183,14 @@ public class SimpleUniversalDataCrudService {
      */
     private double getYearMultiplier(String year) {
         switch (year) {
-            case "2023": return 0.9;
-            case "2024": return 1.0;
-            case "2025": return 1.1;
-            default: return 1.0;
+            case "2023":
+                return 0.9;
+            case "2024":
+                return 1.0;
+            case "2025":
+                return 1.1;
+            default:
+                return 1.0;
         }
     }
 
@@ -139,7 +203,7 @@ public class SimpleUniversalDataCrudService {
                 .collect(java.util.stream.Collectors.groupingBy(
                         UniversalChartDataView::getYear,
                         java.util.stream.Collectors.counting()));
-        
+
         // 地区分布
         Map<String, Long> regionDistribution = dataStore.values().stream()
                 .collect(java.util.stream.Collectors.groupingBy(
@@ -148,6 +212,30 @@ public class SimpleUniversalDataCrudService {
 
         logger.info("📊 年份分布: {}", yearDistribution);
         logger.info("📊 地区分布: {}", regionDistribution);
+    }
+
+    /**
+     * 输出销售人员数据分布统计
+     */
+    private void logSalesmanDataDistribution() {
+        // 销售人员分布
+        Map<String, Long> salesmanDistribution = dataStore.values().stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        UniversalChartDataView::getSalesman,
+                        java.util.stream.Collectors.counting()));
+
+        // 张三和李四2025年数据统计
+        long zhangsan2025Count = dataStore.values().stream()
+                .filter(data -> "张三".equals(data.getSalesman()) && "2025".equals(data.getYear()))
+                .count();
+
+        long lisi2025Count = dataStore.values().stream()
+                .filter(data -> "李四".equals(data.getSalesman()) && "2025".equals(data.getYear()))
+                .count();
+
+        logger.info("📊 销售人员分布: {}", salesmanDistribution);
+        logger.info("📊 张三2025年数据: {} 条", zhangsan2025Count);
+        logger.info("📊 李四2025年数据: {} 条", lisi2025Count);
     }
 
     /**
@@ -267,7 +355,8 @@ public class SimpleUniversalDataCrudService {
         return dataStore.values().stream()
                 .filter(data -> {
                     boolean matchYear = (year == null || year.trim().isEmpty()) || year.equals(data.getYear());
-                    boolean matchRegion = (region == null || region.trim().isEmpty()) || region.equals(data.getRegion());
+                    boolean matchRegion = (region == null || region.trim().isEmpty())
+                            || region.equals(data.getRegion());
                     return matchYear && matchRegion;
                 })
                 .collect(java.util.stream.Collectors.toList());

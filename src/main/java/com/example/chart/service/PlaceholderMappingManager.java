@@ -481,34 +481,52 @@ public class PlaceholderMappingManager {
     }
 
     /**
-     * 初始化基础折线图的映射关系
+     * 初始化基础折线图的映射关系 - 专门针对"张三和李四2025年销售业绩排行"场景
      */
     private void initializeBasicLineChartMappings() {
         String chartId = "basic_line_chart";
         Map<String, FieldMapping> mappings = new HashMap<>();
 
-        // 图表标题映射
+        // 图表标题映射 - 固定为销售业绩
         FieldMapping titleMapping = new FieldMapping("category", "string");
         titleMapping.setAggregationType("none");
-        titleMapping.getFilters().put("category", "基础折线图演示");
+        titleMapping.getFilters().put("category", "销售业绩");
         mappings.put("${chart_title}", titleMapping);
 
-        // X轴分类数据映射
+        // X轴分类数据映射 - 2025年的月份列表
         FieldMapping categoriesMapping = new FieldMapping("month", "array");
         categoriesMapping.setAggregationType("list");
+        categoriesMapping.getFilters().put("year", "2025");
+        categoriesMapping.getFilters().put("category", "销售业绩");
         mappings.put("${categories}", categoriesMapping);
 
-        // 系列名称映射
-        FieldMapping seriesNameMapping = new FieldMapping("product", "string");
-        seriesNameMapping.setAggregationType("none");
-        seriesNameMapping.getFilters().put("product", "产品A");
-        mappings.put("${series_1_name}", seriesNameMapping);
+        // 张三系列名称映射
+        FieldMapping series1NameMapping = new FieldMapping("salesman", "string");
+        series1NameMapping.setAggregationType("none");
+        series1NameMapping.getFilters().put("salesman", "张三");
+        mappings.put("${series_1_name}", series1NameMapping);
 
-        // 系列数据映射
-        FieldMapping seriesDataMapping = new FieldMapping("amount", "array");
-        seriesDataMapping.setAggregationType("list");
-        seriesDataMapping.getFilters().put("product", "产品A");
-        mappings.put("${series_1_data}", seriesDataMapping);
+        // 张三销售数据映射
+        FieldMapping series1DataMapping = new FieldMapping("amount", "array");
+        series1DataMapping.setAggregationType("list");
+        series1DataMapping.getFilters().put("salesman", "张三");
+        series1DataMapping.getFilters().put("year", "2025");
+        series1DataMapping.getFilters().put("category", "销售业绩");
+        mappings.put("${series_1_data}", series1DataMapping);
+
+        // 李四系列名称映射
+        FieldMapping series2NameMapping = new FieldMapping("salesman", "string");
+        series2NameMapping.setAggregationType("none");
+        series2NameMapping.getFilters().put("salesman", "李四");
+        mappings.put("${series_2_name}", series2NameMapping);
+
+        // 李四销售数据映射
+        FieldMapping series2DataMapping = new FieldMapping("amount", "array");
+        series2DataMapping.setAggregationType("list");
+        series2DataMapping.getFilters().put("salesman", "李四");
+        series2DataMapping.getFilters().put("year", "2025");
+        series2DataMapping.getFilters().put("category", "销售业绩");
+        mappings.put("${series_2_data}", series2DataMapping);
 
         // 图表类型映射
         FieldMapping chartTypeMapping = new FieldMapping("category", "string");
@@ -516,7 +534,7 @@ public class PlaceholderMappingManager {
         mappings.put("${chart_type}", chartTypeMapping);
 
         configureMappings(chartId, mappings);
-        System.out.println("✅ [映射管理] 基础折线图映射关系配置完成");
+        System.out.println("✅ [映射管理] 张三和李四销售业绩折线图映射关系配置完成");
     }
 
     /**

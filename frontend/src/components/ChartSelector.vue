@@ -157,7 +157,7 @@ const loadEChartsDirectory = async () => {
   categoriesLoading.value = true
   try {
     console.log('📂 [图表选择器] 开始加载ECharts目录结构...')
-    const response = await twoStageApi.getEChartsDirectory()
+    const response = await twoStageApi.scanEChartsDirectory()
     console.log('📦 [图表选择器] API响应数据:', response)
 
     if (response && response.directoryStructure) {

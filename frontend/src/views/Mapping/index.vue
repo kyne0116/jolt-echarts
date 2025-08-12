@@ -53,6 +53,15 @@
                 <a-button type="link" size="small" @click="configureMapping(record)">
                   配置映射
                 </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="previewChart(record)"
+                  :loading="buttonLoading[record.chartId]"
+                >
+                  <EyeOutlined />
+                  预览图表
+                </a-button>
                 <a-button type="link" size="small" @click="showConfigGuide(record)">
                   配置指南
                 </a-button>
@@ -379,7 +388,7 @@
                       type="primary"
                       size="small"
                       @click="showChartPreview"
-                      :loading="previewLoading"
+                      :loading="modalLoading"
                     >
                       预览
                     </a-button>
@@ -408,10 +417,10 @@
       centered
     >
       <div class="chart-preview-content">
-        <div v-if="previewLoading" class="preview-loading">
+        <div v-if="modalLoading" class="preview-loading">
           <a-spin tip="正在生成图表预览..." size="large" />
         </div>
-        <div v-show="!previewLoading" class="preview-container">
+        <div v-show="!modalLoading" class="preview-container">
           <div ref="chartPreviewRef" class="chart-preview-canvas" style="height: 500px; width: 100%;"></div>
           <div v-if="!chartPreviewData" class="no-preview">
             <a-empty description="暂无预览数据" />
@@ -419,13 +428,41 @@
         </div>
       </div>
     </a-modal>
+
+    <!-- 图表预览弹窗 -->
+    <a-modal
+      v-model:open="chartPreviewVisible"
+      title="图表预览"
+      width="80%"
+      :footer="null"
+      :destroyOnClose="true"
+    >
+      <div class="chart-preview-container">
+        <div v-if="previewError" class="preview-error">
+          <a-alert
+            :message="previewError"
+            type="error"
+            show-icon
+            :closable="false"
+          />
+        </div>
+        <div v-else-if="previewChartConfig" class="chart-container">
+          <div ref="chartPreviewRef" style="width: 100%; height: 500px;"></div>
+        </div>
+        <div v-else class="preview-loading">
+          <a-spin size="large" tip="正在生成图表预览...">
+            <div style="height: 400px;"></div>
+          </a-spin>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { placeholderMappingApi, universalTemplateApi } from '@/api'
+import { placeholderMappingApi, twoStageApi, universalTemplateApi } from '@/api'
 import ChartSelector from '@/components/ChartSelector.vue'
-import { ReloadOutlined } from '@ant-design/icons-vue'
+import { EyeOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import * as echarts from 'echarts'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
@@ -455,6 +492,14 @@ const chartSelectorRef = ref()
 const loading = ref(false)
 const mappingList = ref<MappingRecord[]>([])
 const selectedRecord = ref<MappingRecord | null>(null)
+
+// 图表预览相关
+const chartPreviewVisible = ref(false)
+const buttonLoading = ref<Record<string, boolean>>({})  // 按钮加载状态
+const modalLoading = ref(false)  // 弹窗加载状态
+const previewChartConfig = ref<any>(null)
+const previewError = ref<string>('')
+const chartPreviewRef = ref<HTMLElement>()
 
 // 选中的图表信息
 const selectedChart = reactive<SelectedChart>({
@@ -492,11 +537,8 @@ const universalTemplateFileName = ref<string>('')
 const universalTemplateLoading = ref(false)
 const universalTemplateError = ref<string | null>(null)
 
-// 图表预览相关状态
-const chartPreviewVisible = ref(false)
+// 图表预览数据
 const chartPreviewData = ref<any>(null)
-const previewLoading = ref(false)
-const chartPreviewRef = ref<HTMLElement | null>(null)
 
 // 计算属性
 const mappedCount = computed(() => {
@@ -610,15 +652,15 @@ const refreshList = async () => {
   loading.value = true
 
   try {
-    const result = await placeholderMappingApi.getAllMappings()
-    console.log('📋 [映射管理] API响应数据:', result)
+    const listResult = await placeholderMappingApi.getAllMappings()
+    console.log('📋 [映射管理] API响应数据:', listResult)
 
-    if (result && result.mappings) {
-      mappingList.value = result.mappings
-      paginationConfig.total = result.totalCount || result.mappings.length
-      console.log('✅ [映射管理] 刷新成功，共', result.totalCount, '条记录')
+    if (listResult && listResult.mappings) {
+      mappingList.value = listResult.mappings
+      paginationConfig.total = listResult.totalCount || listResult.mappings.length
+      console.log('✅ [映射管理] 刷新成功，共', listResult.totalCount, '条记录')
     } else {
-      console.warn('⚠️ [映射管理] API响应数据格式异常:', result)
+      console.warn('⚠️ [映射管理] API响应数据格式异常:', listResult)
       message.warning('数据格式异常')
     }
   } catch (error) {
@@ -667,12 +709,136 @@ const deleteMapping = (record: MappingRecord) => {
   message.info(`删除映射: ${record.chartName}`)
 }
 
+// 预览图表
+const previewChart = async (record: MappingRecord) => {
+  console.log('🎨 [图表预览] 开始预览图表:', record)
+
+  // 设置加载状态
+  buttonLoading.value[record.chartId] = true
+  modalLoading.value = true
+  previewError.value = ''
+  previewChartConfig.value = null
+
+  try {
+    // 先测试健康检查
+    console.log('🔍 [图表预览] 测试API连接...')
+    try {
+      const healthResponse = await twoStageApi.health()
+      console.log('✅ [图表预览] 健康检查成功:', healthResponse)
+    } catch (healthError) {
+      console.error('❌ [图表预览] 健康检查失败:', healthError)
+      throw new Error('后端服务不可用，请检查服务状态')
+    }
+
+    // 调用两阶段转换验证API
+    console.log('🚀 [图表预览] 调用转换验证API...')
+    const transformResponse = await twoStageApi.validate(record.chartId)
+    console.log('📋 [图表预览] API响应:', transformResponse)
+
+    if (!transformResponse) {
+      throw new Error('图表转换失败：无响应数据')
+    }
+
+    // 处理不同的响应格式，提取ECharts配置
+    let chartConfig
+    if (transformResponse.success && transformResponse.data) {
+      // 标准ApiResponse格式
+      const responseData = transformResponse.data
+      chartConfig = responseData.echartsConfig || responseData
+    } else if (transformResponse.data) {
+      // 直接data格式
+      chartConfig = transformResponse.data.echartsConfig || transformResponse.data
+    } else {
+      // 直接配置格式
+      chartConfig = transformResponse.echartsConfig || transformResponse
+    }
+
+    console.log('✅ [图表预览] 转换成功，ECharts配置:', chartConfig)
+
+    // 验证ECharts配置的有效性
+    if (!chartConfig || typeof chartConfig !== 'object') {
+      throw new Error('无效的ECharts配置数据')
+    }
+
+    // 保存配置并显示预览
+    previewChartConfig.value = chartConfig
+    chartPreviewVisible.value = true
+
+    // 等待DOM更新后渲染图表
+    await nextTick()
+    renderPreviewChart(chartConfig)
+
+    message.success('图表预览生成成功')
+
+  } catch (error: any) {
+    console.error('❌ [图表预览] 预览失败:', error)
+    previewError.value = error.message || '图表预览失败'
+    message.error('图表预览失败: ' + (error.message || '未知错误'))
+
+    // 不要在错误时显示预览弹窗
+    chartPreviewVisible.value = false
+    previewChartConfig.value = null
+  } finally {
+    // 确保加载状态被重置
+    buttonLoading.value[record.chartId] = false
+    modalLoading.value = false
+  }
+}
+
+// 渲染预览图表
+const renderPreviewChart = (chartConfig: any) => {
+  console.log('🎨 [图表预览] 开始渲染图表，配置:', chartConfig)
+
+  if (!chartPreviewRef.value) {
+    console.error('❌ [图表预览] 图表容器未找到')
+    previewError.value = '图表容器未找到'
+    return
+  }
+
+  try {
+    // 验证图表配置
+    if (!chartConfig || typeof chartConfig !== 'object') {
+      throw new Error('无效的图表配置')
+    }
+
+    // 清理之前的实例
+    if ((chartPreviewRef.value as any)._chartInstance) {
+      (chartPreviewRef.value as any)._chartInstance.dispose()
+    }
+
+    // 初始化ECharts实例
+    console.log('🔧 [图表预览] 初始化ECharts实例')
+    const previewChartInstance = echarts.init(chartPreviewRef.value)
+
+    // 设置图表配置
+    console.log('📊 [图表预览] 设置图表配置')
+    previewChartInstance.setOption(chartConfig, true)
+
+    // 监听窗口大小变化
+    const previewResizeHandler = () => {
+      previewChartInstance.resize()
+    }
+    window.addEventListener('resize', previewResizeHandler)
+
+    // 保存实例引用以便清理
+    ;(chartPreviewRef.value as any)._chartInstance = previewChartInstance
+    ;(chartPreviewRef.value as any)._resizeHandler = previewResizeHandler
+
+    console.log('✅ [图表预览] 图表渲染成功')
+
+  } catch (error) {
+    console.error('❌ [图表预览] 图表渲染失败:', error)
+    previewError.value = '图表渲染失败: ' + (error as Error).message
+    message.error('图表渲染失败: ' + (error as Error).message)
+  }
+}
+
 // 映射配置相关方法
 const loadPlaceholders = async (chartId: string) => {
   placeholdersLoading.value = true
   try {
-    const result = await placeholderMappingApi.getPlaceholders(chartId)
-    placeholders.value = result.placeholders || []
+    const placeholderResult = await placeholderMappingApi.getPlaceholders(chartId)
+    placeholders.value = placeholderResult.placeholders || []
 
     // 初始化映射配置对象
     placeholders.value.forEach(placeholder => {
@@ -696,8 +862,8 @@ const loadPlaceholders = async (chartId: string) => {
 
 const loadExistingMappings = async (chartId: string) => {
   try {
-    const result = await placeholderMappingApi.getMappings(chartId)
-    Object.assign(mappingConfigs, result.mappings || {})
+    const mappingResult = await placeholderMappingApi.getMappings(chartId)
+    Object.assign(mappingConfigs, mappingResult.mappings || {})
     console.log('📋 [映射管理] 加载现有映射成功:', mappingConfigs)
   } catch (error) {
     console.error('❌ [映射管理] 加载现有映射失败:', error)
@@ -706,8 +872,8 @@ const loadExistingMappings = async (chartId: string) => {
 
 const loadAvailableFields = async () => {
   try {
-    const result = await placeholderMappingApi.getAvailableFields()
-    availableFields.value = result.fields || []
+    const fieldsResult = await placeholderMappingApi.getAvailableFields()
+    availableFields.value = fieldsResult.fields || []
     console.log('📋 [映射管理] 加载可用字段成功:', availableFields.value)
   } catch (error) {
     console.error('❌ [映射管理] 加载可用字段失败:', error)
@@ -1412,7 +1578,7 @@ const showChartPreview = async () => {
 
   // 显示弹框（先显示弹框，再设置数据）
   chartPreviewVisible.value = true
-  previewLoading.value = true
+  modalLoading.value = true
 
   try {
     // 等待弹框DOM渲染完成
@@ -1429,7 +1595,7 @@ const showChartPreview = async () => {
       console.log('🔍 [图表预览] 检查DOM元素:', chartPreviewRef.value)
       console.log('🔍 [图表预览] 检查数据:', chartPreviewData.value)
       console.log('🔍 [图表预览] 弹框可见状态:', chartPreviewVisible.value)
-      console.log('🔍 [图表预览] 加载状态:', previewLoading.value)
+      console.log('🔍 [图表预览] 加载状态:', modalLoading.value)
 
       if (chartPreviewRef.value && chartPreviewData.value) {
         console.log('🎨 [图表预览] 开始初始化ECharts实例')
@@ -1440,34 +1606,34 @@ const showChartPreview = async () => {
 
         try {
           // 创建ECharts实例
-          const chartInstance = echarts.init(chartPreviewRef.value)
+          const modalChartInstance = echarts.init(chartPreviewRef.value)
 
           // 设置图表配置
-          chartInstance.setOption(chartPreviewData.value)
+          modalChartInstance.setOption(chartPreviewData.value)
 
           // 重要：手动调用resize确保图表尺寸正确
           setTimeout(() => {
-            chartInstance.resize()
+            modalChartInstance.resize()
             console.log('🔄 [图表预览] 图表尺寸已重新计算')
           }, 100)
 
           // 监听窗口大小变化
-          const handleResize = () => {
-            chartInstance.resize()
+          const modalResizeHandler = () => {
+            modalChartInstance.resize()
           }
-          window.addEventListener('resize', handleResize)
+          window.addEventListener('resize', modalResizeHandler)
 
           // 保存实例引用以便清理
-          ;(chartPreviewRef.value as any)._chartInstance = chartInstance
-          ;(chartPreviewRef.value as any)._resizeHandler = handleResize
+          ;(chartPreviewRef.value as any)._chartInstance = modalChartInstance
+          ;(chartPreviewRef.value as any)._resizeHandler = modalResizeHandler
 
           console.log('✅ [图表预览] 预览生成成功:', selectedRecord.value?.chartType)
           message.success('图表预览生成成功')
-          previewLoading.value = false
+          modalLoading.value = false
         } catch (chartError) {
           console.error('❌ [图表预览] ECharts初始化失败:', chartError)
           message.error('图表初始化失败')
-          previewLoading.value = false
+          modalLoading.value = false
         }
       } else {
         console.error('❌ [图表预览] DOM元素或数据未准备好，重试中...')
@@ -1475,7 +1641,7 @@ const showChartPreview = async () => {
           hasRef: !!chartPreviewRef.value,
           hasData: !!chartPreviewData.value,
           modalVisible: chartPreviewVisible.value,
-          loading: previewLoading.value
+          loading: modalLoading.value
         })
 
         // 重试机制：最多重试5次，延长间隔
@@ -1486,7 +1652,7 @@ const showChartPreview = async () => {
         } else {
           console.error('❌ [图表预览] 重试次数已达上限')
           message.error('预览容器未准备好，请重试')
-          previewLoading.value = false
+          modalLoading.value = false
           delete (window as any).chartRetryCount
         }
       }
@@ -1501,7 +1667,7 @@ const showChartPreview = async () => {
   } catch (error) {
     console.error('❌ [图表预览] 预览生成失败:', error)
     message.error('图表预览生成失败')
-    previewLoading.value = false
+    modalLoading.value = false
   }
 }
 
@@ -1511,16 +1677,16 @@ const handlePreviewClose = () => {
 
   // 清理ECharts实例和事件监听器
   if (chartPreviewRef.value) {
-    const chartInstance = (chartPreviewRef.value as any)._chartInstance
-    const resizeHandler = (chartPreviewRef.value as any)._resizeHandler
+    const savedChartInstance = (chartPreviewRef.value as any)._chartInstance
+    const savedResizeHandler = (chartPreviewRef.value as any)._resizeHandler
 
-    if (chartInstance) {
-      chartInstance.dispose()
+    if (savedChartInstance) {
+      savedChartInstance.dispose()
       console.log('🗑️ [图表预览] ECharts实例已销毁')
     }
 
-    if (resizeHandler) {
-      window.removeEventListener('resize', resizeHandler)
+    if (savedResizeHandler) {
+      window.removeEventListener('resize', savedResizeHandler)
       console.log('🗑️ [图表预览] 窗口resize监听器已移除')
     }
 
@@ -1531,7 +1697,7 @@ const handlePreviewClose = () => {
 
   // 重置状态
   chartPreviewData.value = null
-  previewLoading.value = false
+  modalLoading.value = false
 
   console.log('✅ [图表预览] 资源清理完成')
 }
@@ -2540,6 +2706,26 @@ body.dragging * {
   .code-block {
     font-size: 9px;
     padding: 8px;
+  }
+}
+
+/* 图表预览样式 */
+.chart-preview-container {
+  .preview-error {
+    margin-bottom: 16px;
+  }
+
+  .chart-container {
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .preview-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
   }
 }
 </style>

@@ -179,7 +179,11 @@
                         <a-select-option value=">">></a-select-option>
                         <a-select-option value="<"><</a-select-option>
                       </a-select>
-                      <a-input v-model:value="filter.value" style="width: 30%" />
+                      <a-input
+                        v-model:value="filter.value"
+                        :placeholder="getFilterPlaceholder(filter.field)"
+                        style="width: 30%"
+                      />
                       <a-button 
                         type="text" 
                         danger 
@@ -379,10 +383,10 @@ watch(selectedChartId, (newChartId) => {
 // 加载可用字段
 const loadAvailableFields = async () => {
   try {
-    const result = await placeholderMappingApi.getAvailableFields()
+    const fieldsResult = await placeholderMappingApi.getAvailableFields()
 
-    if (result && result.fields) {
-      availableFields.value = result.fields
+    if (fieldsResult && fieldsResult.fields) {
+      availableFields.value = fieldsResult.fields
 
       // 按组分类字段
       const groups = availableFields.value.reduce((acc, field) => {
@@ -428,12 +432,18 @@ const refreshPlaceholders = async () => {
 
   placeholderLoading.value = true
   try {
-    const result = await placeholderMappingApi.getPlaceholders(selectedChartId.value)
+    const placeholderResult = await placeholderMappingApi.getPlaceholders(selectedChartId.value)
+    console.log('🔍 [映射管理] API响应:', placeholderResult)
 
-    if (result && result.placeholders) {
-      placeholders.value = result.placeholders || []
-      console.log('✅ [映射管理] 加载占位符成功:', placeholders.value.length)
+    if (placeholderResult && placeholderResult.success && placeholderResult.data) {
+      placeholders.value = placeholderResult.data.placeholders || []
+      console.log('✅ [映射管理] 加载占位符成功:', placeholders.value.length, placeholders.value)
+    } else if (placeholderResult && placeholderResult.placeholders) {
+      // 兼容旧格式
+      placeholders.value = placeholderResult.placeholders || []
+      console.log('✅ [映射管理] 加载占位符成功(兼容格式):', placeholders.value.length)
     } else {
+      console.error('❌ [映射管理] 数据格式错误:', placeholderResult)
       message.error('加载占位符失败: 数据格式错误')
     }
   } catch (error) {
@@ -447,11 +457,16 @@ const refreshPlaceholders = async () => {
 // 加载现有映射配置
 const loadExistingMappings = async (chartId: string) => {
   try {
-    const result = await placeholderMappingApi.getMappings(chartId)
+    const mappingResult = await placeholderMappingApi.getMappings(chartId)
+    console.log('🔍 [映射管理] 映射配置API响应:', mappingResult)
 
-    if (result && result.hasConfig) {
-      mappings.value = result.mappings || {}
+    if (mappingResult && mappingResult.success && mappingResult.data) {
+      mappings.value = mappingResult.data.mappings || {}
       console.log('✅ [映射管理] 加载现有映射配置:', Object.keys(mappings.value).length)
+    } else if (mappingResult && mappingResult.hasConfig) {
+      // 兼容旧格式
+      mappings.value = mappingResult.mappings || {}
+      console.log('✅ [映射管理] 加载现有映射配置(兼容格式):', Object.keys(mappings.value).length)
     }
   } catch (error) {
     console.error('❌ [映射管理] 加载现有映射配置失败:', error)
@@ -467,13 +482,22 @@ const isMapped = (placeholder: string) => {
 const selectPlaceholder = (placeholder: string) => {
   selectedPlaceholder.value = placeholder
   
+  console.log('🎯 [映射管理] 选择占位符:', placeholder)
+
   // 加载现有配置
   const existingMapping = mappings.value[placeholder]
   if (existingMapping) {
+    console.log('📋 [映射管理] 加载现有映射配置:', existingMapping)
     Object.assign(currentMapping, existingMapping)
     // 确保filters是数组
     if (!Array.isArray(currentMapping.filters)) {
-      currentMapping.filters = []
+      // 将对象格式的filters转换为数组格式
+      const existingFiltersObj = currentMapping.filters || {}
+      currentMapping.filters = Object.entries(existingFiltersObj).map(([field, value]) => ({
+        field,
+        operator: '=',
+        value: String(value)
+      }))
     }
   } else {
     // 重置配置
@@ -504,6 +528,21 @@ const addFilter = () => {
 const removeFilter = (index: number) => {
   currentMapping.filters.splice(index, 1)
   hasUnsavedChanges.value = true
+}
+
+// 获取过滤条件占位符文本 - 针对销售业绩场景优化
+const getFilterPlaceholder = (fieldName: string) => {
+  const placeholders: Record<string, string> = {
+    'category': '销售业绩',
+    'salesman': '张三 或 李四',
+    'year': '2025',
+    'month': '01-12',
+    'region': '华北 或 华南',
+    'product': '产品名称',
+    'channel': '线上 或 线下',
+    'amount': '金额数值'
+  }
+  return placeholders[fieldName] || '过滤值'
 }
 
 // 保存单个映射配置
@@ -553,13 +592,13 @@ const saveAllMappings = async () => {
 
   savingMappings.value = true
   try {
-    const result = await placeholderMappingApi.configureMappings(selectedChartId.value, mappings.value)
+    const saveResult = await placeholderMappingApi.configureMappings(selectedChartId.value, mappings.value)
 
-    if (result && result.success) {
+    if (saveResult && saveResult.success) {
       hasUnsavedChanges.value = false
       message.success('映射配置保存成功')
     } else {
-      message.error('保存失败: ' + (result?.message || '未知错误'))
+      message.error('保存失败: ' + (saveResult?.message || '未知错误'))
     }
   } catch (error) {
     console.error('❌ [映射管理] 保存映射配置失败:', error)
@@ -587,7 +626,50 @@ const generateDefaultMappings = async () => {
       
       let fieldMapping = { fieldName: 'category', dataType: 'string', aggregationType: 'none', filters: {} }
       
-      if (variableName.includes('category') || variableName.includes('categories')) {
+      // 针对"张三和李四2025年销售业绩排行"场景的智能映射
+      if (variableName.includes('title') || variableName.includes('chart_title')) {
+        fieldMapping = {
+          fieldName: 'category',
+          dataType: 'string',
+          aggregationType: 'none',
+          filters: { category: '销售业绩' }
+        }
+      } else if (variableName.includes('categories')) {
+        fieldMapping = {
+          fieldName: 'month',
+          dataType: 'array',
+          aggregationType: 'list',
+          filters: { year: '2025', category: '销售业绩' }
+        }
+      } else if (variableName.includes('series_1_name')) {
+        fieldMapping = {
+          fieldName: 'salesman',
+          dataType: 'string',
+          aggregationType: 'none',
+          filters: { salesman: '张三' }
+        }
+      } else if (variableName.includes('series_1_data')) {
+        fieldMapping = {
+          fieldName: 'amount',
+          dataType: 'array',
+          aggregationType: 'list',
+          filters: { salesman: '张三', year: '2025', category: '销售业绩' }
+        }
+      } else if (variableName.includes('series_2_name')) {
+        fieldMapping = {
+          fieldName: 'salesman',
+          dataType: 'string',
+          aggregationType: 'none',
+          filters: { salesman: '李四' }
+        }
+      } else if (variableName.includes('series_2_data')) {
+        fieldMapping = {
+          fieldName: 'amount',
+          dataType: 'array',
+          aggregationType: 'list',
+          filters: { salesman: '李四', year: '2025', category: '销售业绩' }
+        }
+      } else if (variableName.includes('category')) {
         fieldMapping = { fieldName: 'category', dataType: 'array', aggregationType: 'list', filters: {} }
       } else if (variableName.includes('amount') || variableName.includes('value')) {
         fieldMapping = { fieldName: 'amount', dataType: 'number', aggregationType: 'sum', filters: {} }
@@ -599,6 +681,10 @@ const generateDefaultMappings = async () => {
         fieldMapping = { fieldName: 'product', dataType: 'string', aggregationType: 'none', filters: {} }
       } else if (variableName.includes('channel')) {
         fieldMapping = { fieldName: 'channel', dataType: 'string', aggregationType: 'none', filters: {} }
+      } else if (variableName.includes('name')) {
+        fieldMapping = { fieldName: 'salesman', dataType: 'string', aggregationType: 'none', filters: {} }
+      } else if (variableName.includes('data')) {
+        fieldMapping = { fieldName: 'amount', dataType: 'array', aggregationType: 'list', filters: {} }
       }
       
       defaultMappings[placeholder] = fieldMapping
@@ -606,7 +692,7 @@ const generateDefaultMappings = async () => {
     
     mappings.value = { ...mappings.value, ...defaultMappings }
     hasUnsavedChanges.value = true
-    message.success(`已生成 ${Object.keys(defaultMappings).length} 个默认映射`)
+    message.success(`已生成 ${Object.keys(defaultMappings).length} 个销售业绩场景默认映射`)
     
   } catch (error) {
     console.error('❌ [映射管理] 生成默认映射失败:', error)
@@ -625,10 +711,10 @@ const previewMapping = async () => {
 
   previewLoading.value = true
   try {
-    const result = await placeholderMappingApi.previewMapping(selectedChartId.value, {})
+    const previewResponse = await placeholderMappingApi.previewMapping(selectedChartId.value, {})
 
-    if (result) {
-      previewResult.value = result
+    if (previewResponse) {
+      previewResult.value = previewResponse
       message.success('预览生成成功')
     } else {
       message.error('预览失败: 数据格式错误')

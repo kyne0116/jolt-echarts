@@ -3,16 +3,20 @@
     "operation": "shift",
     "spec": {
       "chartMeta": {
-        "title": "title.text"
+        "title": "title.text",
+        "subtitle": "title.subtext",
+        "description": "title.description"
       },
-      "categories": "xAxis.data",
-      "series": {
-        "*": {
-          "values": "series[&1].data",
-          "seriesName": "series[&1].name",
-          "seriesType": "series[&1].type",
-          "stackGroup": "series[&1].stack",
-          "smoothStyle": "series[&1].smooth"
+      "dataStructure": {
+        "categories": "xAxis.data",
+        "series": {
+          "*": {
+            "values": "series[&1].data",
+            "seriesName": "series[&1].name",
+            "seriesType": "series[&1].type",
+            "smoothStyle": "series[&1].smooth",
+            "stackGroup": "series[&1].stack"
+          }
         }
       }
     }
